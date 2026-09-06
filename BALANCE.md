@@ -553,12 +553,17 @@ Kamishini no Yari's beam is **not rendered for Gin himself**. It leaves the eye 
 | `HUD_LEVEL_TEXT_GAP` | 4 | Gap between the Soul Level figure and the left end of the bar, px |
 | `HUD_Z_DEPTH` | 0.0 | Depth the bar is lifted to — kept at 0 to respect 2D rendering and avoid clipping action messages |
 | `HUD_COLOR_LEVEL_TEXT` | `0xFFFFFF` | Soul Level figure colour |
+| `HUD_GATE_WIDTH_PX` | 1 | Width of a gate notch, px |
+| `HUD_GATE_OVERHANG_PX` | 1 | How far a notch overhangs the bar above and below, px |
+| `HUD_COLOR_GATE_OPEN` | `0xFFFFFF` | Notch colour once the gate is met |
+| `HUD_COLOR_GATE_SHUT` | `0x64748B` | Notch colour while the gate is short |
+| `HUD_GATE_SHUT_ALPHA` | `0x9A` | Notch alpha while the gate is short |
 | `HUD_SPX_GAIN_DURATION_MILLIS` | 1400.0 | How long one `+N SPX` figure lives — the full rise and fade |
 | `HUD_SPX_GAIN_RISE_PX` | 13 | How far a figure rises over that life, scaled px |
 | `HUD_SPX_GAIN_HOLD` | 0.45 | Fraction of the life at full opacity before the fade starts |
 | `HUD_SPX_GAIN_MERGE_MILLIS` | 350.0 | Awards landing within this of the last merge into it instead of stacking |
 | `HUD_SPX_GAIN_STACK_PX` | 10 | Vertical pitch between two figures on screen at once, scaled px |
-| `HUD_COLOR_SPX_GAIN` | `0x7CE7A0` | SPX gain figure colour |
+| `HUD_COLOR_SPX_GAIN` | `0x60A5FA` | SPX gain figure colour |
 | `STATS_COLOR_PANEL` | `0x0F1420` | Stats screen panel background |
 | `STATS_COLOR_ROW` | `0x1E2635` | Stats screen inset row background |
 | `STATS_COLOR_ACCENT` | `0x3B82F6` | Stats screen border and progress fill |
@@ -570,6 +575,17 @@ Kamishini no Yari's beam is **not rendered for Gin himself**. It leaves the eye 
 | `WSL_RECOMPUTE_DAYS` | 1 | MC days between WSL recomputes |
 | `WSL_PLAYTIME_WINDOW_DAYS` | 7 | MC days of playtime that count toward WSL |
 | `MOD_ENABLED` | `true` | Master on/off switch. Not a balance value — a diagnostic one |
+
+**The bar carries gate notches at the Shikai and Bankai thresholds (§C).** A notch the fill has passed
+is lit; one it has not is dim. "Can I go Bankai yet" should be answerable by looking at the bar rather
+than by remembering a percentage that moves with every Soul Level — the pool is the resource and the
+bar is the picture of it.
+
+Both thresholds are **sent by the server**, for the reason the payload's other derived fields are:
+they are read off `GATE_BANKAI_BASE` / `GATE_SHIKAI_BASE` / `GATE_REDUCTION_PER_LEVEL`, and tuning is
+never synced. A client computing them itself would mark the bar in places a tuned server's own checks
+disagreed with — a HUD confidently lying about the one thing it exists to report. A gate of `0` means
+the player has no character, and nothing is drawn.
 
 **The `+N SPX` popup is pushed by the server, not inferred by the client.** The obvious alternative —
 watch the synced `spx` figure and show the difference — is wrong, and quietly so: SPX is a bank that
@@ -659,6 +675,7 @@ above meaningless.
 | `AURA_MIN_RADIUS_PX` | 2.5 | scaled px | Floor on the drawn radius — a far aura is a spark, never nothing |
 | `AURA_MAX_RADIUS_PX` | 110.0 | scaled px | Ceiling **at rest**, so a neighbour cannot white out the screen |
 | `AURA_MAX_BURN_RADIUS_PX` | 430.0 | scaled px | Ceiling once burn is applied — a released Bankai on top of you is meant to fill the view |
+| `AURA_ANCHOR_DROP_BLOCKS` | 0.5 | blocks | How far below a soul's centre of mass its fire is anchored |
 | `AURA_CORE_ALPHA` | 0.85 | 0..1 | Alpha at the centre. The rim always fades to zero |
 | `AURA_SEGMENTS` | 20 | count | Rim segments per ellipse |
 | `AURA_SMOOTHING_PER_SECOND` | 0.9995 | 0..1 | Fraction of the gap to the newest reported position closed per second |
@@ -670,6 +687,20 @@ units; the perspective divide is what makes it shrink with distance. So "inverse
 distance, proportional to Soul Level" falls out of drawing the blob where it actually is, and the
 two pixel clamps exist only to stop the far end rounding to zero and the near end filling the
 screen. Burn (§N.2) scales that world radius before the divide, so it stays proportional to both.
+
+**The anchor sits below centre of mass, because a fire rises from it.** A blob centred on the body
+reads as centred; a fire does not, so the point that was right for a disc put the flames above the
+soul with the body sitting in the gap underneath. `AURA_ANCHOR_DROP_BLOCKS` sets the base low on the
+body, which is what makes the soul look like the thing that is burning.
+
+**The eyelid finishes closing at `AURA_VISION_THRESHOLD`, not at the end of its travel.** Drawn to its
+raw progress it did not: vision opens at 0.86 of the animation, so for the last fraction of the close
+there were souls burning over a strip of live world at the bottom of the screen — the eye visibly
+still open under a sense meant to have replaced it, which read as the picture being cut in half.
+Mapping the wipe onto the threshold leaves the animation's character untouched and reaches full black
+exactly as the first aura can appear; the remainder is the hold while vision resolves. The invariant
+that no aura is ever drawn over an unblacked pixel is then structural, rather than two constants
+happening to agree.
 
 **A creature is sized by its body, because it has no soul to be sized by.** The measure is the cube
 root of its bounding box volume — an effective diameter, so a wide flat spider and a tall thin breeze

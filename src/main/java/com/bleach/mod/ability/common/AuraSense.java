@@ -257,10 +257,19 @@ public final class AuraSense implements Ability {
 		return found;
 	}
 
-	/** Centre of mass rather than feet or eyes, so the blob sits on the body at any height. */
+	/**
+	 * Centre of mass rather than feet or eyes, so the blob sits on the body at any height, then
+	 * dropped by {@link BleachTuning#AURA_ANCHOR_DROP_BLOCKS}.
+	 *
+	 * <p>The drop exists because the reading stopped being a symmetrical blob when it became a fire.
+	 * A blob centred on the body reads as centred; a fire <em>rises</em> from its anchor, so the same
+	 * point puts the flames above the soul and the body in the empty space underneath. Sitting the
+	 * base low on the body is what makes the soul look like the thing that is burning.
+	 */
 	private static AuraSensePayload.Aura aura(Vec3 origin, LivingEntity entity, int color,
 			int soulLevel, float burn) {
-		Vec3 centre = entity.position().add(0.0, entity.getBbHeight() * 0.5, 0.0);
+		Vec3 centre = entity.position().add(0.0,
+				entity.getBbHeight() * 0.5 - BleachTuning.AURA_ANCHOR_DROP_BLOCKS, 0.0);
 		return new AuraSensePayload.Aura(
 				entity.getId(),
 				(float) (centre.x - origin.x),

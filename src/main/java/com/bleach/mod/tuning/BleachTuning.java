@@ -790,6 +790,22 @@ public final class BleachTuning {
 	public static double HUD_Z_DEPTH = 0.0;
 	/** Soul Level figure colour, packed RGB. */
 	public static int HUD_COLOR_LEVEL_TEXT = 0xFFFFFF;
+	/*
+	 * Gate markers — the notches on the bar showing where Shikai and Bankai become available. The
+	 * thresholds are sent by the server · SpiritualSyncPayload, because they are read off tuning that
+	 * is never synced.
+	 */
+
+	/** Width of a gate notch, px. */
+	public static int HUD_GATE_WIDTH_PX = 1;
+	/** How far a notch overhangs the bar above and below, px. Zero keeps it inside the frame. */
+	public static int HUD_GATE_OVERHANG_PX = 1;
+	/** Notch colour once the gate is met, packed RGB — this release is available right now. */
+	public static int HUD_COLOR_GATE_OPEN = 0xFFFFFF;
+	/** Notch colour while the gate is short, packed RGB. */
+	public static int HUD_COLOR_GATE_SHUT = 0x64748B;
+	/** Notch alpha while the gate is short, 0..255. Present but quiet — a target, not a warning. */
+	public static int HUD_GATE_SHUT_ALPHA = 0x9A;
 
 	/*
 	 * The "+30 SPX" that rises off the bar on a kill. Sent by the server as it makes the award rather
@@ -807,8 +823,11 @@ public final class BleachTuning {
 	public static double HUD_SPX_GAIN_MERGE_MILLIS = 350.0;
 	/** Vertical pitch between two figures on screen at once, scaled pixels. */
 	public static int HUD_SPX_GAIN_STACK_PX = 10;
-	/** SPX gain figure colour, packed RGB. */
-	public static int HUD_COLOR_SPX_GAIN = 0x7CE7A0;
+	/**
+	 * SPX gain figure colour, packed RGB. A light blue rather than a mid one — the figure is small,
+	 * outlined, and lives for barely a second over whatever the world happens to be behind it.
+	 */
+	public static int HUD_COLOR_SPX_GAIN = 0x60A5FA;
 	/**
 	 * Reiatsu overlay alpha by amplifier, as a fraction. The PRD's "screen shake" ships first as this
 	 * HUD-layer substitute — a real camera hook is a renderer mixin, and the plan says to try the
@@ -925,6 +944,15 @@ public final class BleachTuning {
 	 * fill the view, and clamping it to the resting ceiling would erase the whole difference.
 	 */
 	public static double AURA_MAX_BURN_RADIUS_PX = 430.0;
+	/**
+	 * How far below a soul's centre of mass its fire is anchored, blocks.
+	 *
+	 * <p>A blob centred on the body reads as centred, but a fire rises from its anchor — so the same
+	 * point that was right for a disc puts the flames above the soul and leaves the body sitting in
+	 * the gap underneath. Dropping the base low on the body is what makes the soul look like the
+	 * thing that is burning.
+	 */
+	public static double AURA_ANCHOR_DROP_BLOCKS = 0.5;
 	/** Alpha at the centre of an aura, 0..1. The rim always fades to zero. */
 	public static double AURA_CORE_ALPHA = 0.85;
 	/** Triangle-fan segments per aura. Twenty is round enough at the maximum radius. */

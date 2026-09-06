@@ -142,16 +142,30 @@ public final class AuraSenseOverlay {
 		int width = graphics.guiWidth();
 		int height = graphics.guiHeight();
 
+		float threshold = (float) Mth.clamp(BleachTuning.AURA_VISION_THRESHOLD, 0.0, 0.999);
+
+		// The lid finishes closing AT the threshold, not at the end of its travel.
+		//
+		// Drawn to `height * lid` it does not: vision opens at 0.86 of the animation, so for the last
+		// fraction of the close there were souls burning over a strip of live world at the bottom of
+		// the screen — the eye visibly still open under a sense that is supposed to have replaced it.
+		// It read as the picture being cut in half, because it was.
+		//
+		// Mapping the travel onto the threshold keeps the wipe exactly as it was, only reaching full
+		// black at the instant the first aura can appear; the remainder of the animation is the hold
+		// while vision resolves. The invariant — no aura is ever drawn over an unblacked pixel — is
+		// then structural rather than a matter of two constants happening to agree.
+		float coverage = threshold > 0.0f ? Math.min(1.0f, lid / threshold) : 1.0f;
+
 		graphics.pose().pushPose();
 		graphics.pose().translate(0.0f, 0.0f, BLACKOUT_Z_DEPTH);
-		graphics.fill(0, 0, width, Mth.ceil(height * lid), 0xFF000000);
+		graphics.fill(0, 0, width, Mth.ceil(height * coverage), 0xFF000000);
 		graphics.pose().popPose();
 
 		// Always advanced, even with the lid still rising: the smoothing and the fade are per-frame
 		// and skipping them would make every aura jump on the frame the sense becomes visible.
 		Collection<ClientAuraSenseState.Reading> readings = ClientAuraSenseState.advance();
 
-		float threshold = (float) Mth.clamp(BleachTuning.AURA_VISION_THRESHOLD, 0.0, 0.999);
 		if (lid < threshold) {
 			return;
 		}

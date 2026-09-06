@@ -63,6 +63,11 @@ The blue bar above your hotbar. It is the fuel for everything.
 Bankai's refill is a **loan**. When you drop out, anything above what you entered with is taken
 straight back — you cannot bank it, and you cannot toggle Bankai on and off to top yourself up.
 
+**You do not have to remember those percentages.** The SP bar carries a notch at each gate — the left
+one is Shikai, the right one Bankai. A notch goes **bright white once your pressure has passed it**,
+and stays dim while you are short. So the answer to "can I go Bankai yet" is just whether the bar has
+reached the second notch. Both notches slide left as you level, because the gates get cheaper.
+
 ### Exertion
 
 Time spent released builds *exertion*, which throttles your regeneration afterwards. It clears only

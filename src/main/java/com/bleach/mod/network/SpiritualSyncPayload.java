@@ -20,15 +20,21 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
  * packet. It rides here rather than on a payload of its own because it changes at exactly the moments
  * this one is already being sent — the drain moves the bar every tick of the hold.
  *
- * <p>That rule is why the last three components are here rather than being derived client-side from
- * the two before them. The formulas are simple enough to duplicate, but they read
- * {@code BleachTuning}, and tuning is a server-side config file that is never synced — so a server
- * with a tuned {@code CATCHUP_PER_LEVEL_GAP} would show every player a catch-up multiplier it was
- * not paying them. Derived once, on the side that owns the numbers.
+ * <p>That rule is why the derived components are here rather than being computed client-side from the
+ * ones before them. The formulas are simple enough to duplicate, but they read {@code BleachTuning},
+ * and tuning is a server-side config file that is never synced — so a server with a tuned
+ * {@code CATCHUP_PER_LEVEL_GAP} would show every player a catch-up multiplier it was not paying them.
+ * Derived once, on the side that owns the numbers.
+ *
+ * <p>{@code shikaiGate} and {@code bankaiGate} are the same rule applied to the release thresholds:
+ * fractions of max SP, 0..1, which is directly where the HUD paints them on the bar. They are
+ * <b>0 when the player has no character</b>, which is the honest answer — there is no threshold to
+ * cross — and the HUD reads that as "draw no gate" without needing a flag of its own.
  */
 public record SpiritualSyncPayload(float sp, float maxSp, int soulLevel, int spx, int spxToNext,
 		byte state, float regenMult, float worldSoulLevel, int spxRemainingToday, float catchUp,
-		float mobScalar, boolean hovering) implements CustomPacketPayload {
+		float mobScalar, boolean hovering, float shikaiGate, float bankaiGate)
+		implements CustomPacketPayload {
 
 	public static final CustomPacketPayload.Type<SpiritualSyncPayload> TYPE =
 			new CustomPacketPayload.Type<>(BleachMod.id("spiritual_sync"));
@@ -51,6 +57,8 @@ public record SpiritualSyncPayload(float sp, float maxSp, int soulLevel, int spx
 				buf.writeFloat(payload.catchUp);
 				buf.writeFloat(payload.mobScalar);
 				buf.writeBoolean(payload.hovering);
+				buf.writeFloat(payload.shikaiGate);
+				buf.writeFloat(payload.bankaiGate);
 			},
 			buf -> new SpiritualSyncPayload(
 					buf.readFloat(),
@@ -64,7 +72,18 @@ public record SpiritualSyncPayload(float sp, float maxSp, int soulLevel, int spx
 					buf.readVarInt(),
 					buf.readFloat(),
 					buf.readFloat(),
-					buf.readBoolean()));
+					buf.readBoolean(),
+					buf.readFloat(),
+					buf.readFloat()));
+
+	/** Release threshold as a fraction of max, or 0 for a player with no character to release. */
+	private static float gate(SpiritualData data, byte state) {
+		if (!data.hasCharacter()) {
+			return 0.0f;
+		}
+		return (float) Math.max(0.0, Math.min(1.0,
+				SpiritualData.gatePercent(state, data.soulLevel)));
+	}
 
 	public static SpiritualSyncPayload of(SpiritualData data, double worldSoulLevel) {
 		return new SpiritualSyncPayload(
@@ -79,7 +98,9 @@ public record SpiritualSyncPayload(float sp, float maxSp, int soulLevel, int spx
 				SoulLevel.remainingToday(worldSoulLevel, data),
 				(float) SoulLevel.catchUp(worldSoulLevel, data.soulLevel),
 				(float) SoulLevel.mobScalar(worldSoulLevel, data.soulLevel),
-				data.hovering);
+				data.hovering,
+				gate(data, SpiritualData.STATE_SHIKAI),
+				gate(data, SpiritualData.STATE_BANKAI));
 	}
 
 	@Override

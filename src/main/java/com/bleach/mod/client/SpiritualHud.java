@@ -55,7 +55,8 @@ import net.minecraft.util.Mth;
  * the bar is vanilla's fixed 182 pixels and cannot shrink, so at a high GUI scale or in a narrow
  * window the flanks run out of room and a figure walks off the edge.
  *
- * <p>SPX awards rise off the left flank as {@code +30 SPX} · {@link SpxGainPopups}.
+ * <p>SPX awards rise off the left flank as {@code +30 SPX} · {@link SpxGainPopups}, and the bar
+ * itself carries notches at the Shikai and Bankai thresholds · {@link #drawGates}.
  */
 public final class SpiritualHud {
 	private SpiritualHud() {
@@ -178,6 +179,10 @@ public final class SpiritualHud {
 					OPAQUE | stateColor(state.state()));
 		}
 
+		// After the fill, so a met gate reads as a notch cut into the colour rather than a line
+		// buried under it, and before the pulse border, which owns the bar's outline.
+		drawGates(graphics, state, left, top, innerWidth);
+
 		if (state.regenMult() < 1.0f) {
 			drawBorder(graphics, left, top, left + BAR_WIDTH, top + BAR_HEIGHT, pulseColor(state));
 		}
@@ -236,6 +241,54 @@ public final class SpiritualHud {
 		int preferred = left + BAR_WIDTH + gap;
 		int rightmost = graphics.guiWidth() - 1 - font.width(text);
 		return Math.max(1, Math.min(preferred, rightmost));
+	}
+
+	/**
+	 * The gate notches: where on the bar Shikai and Bankai become available.
+	 *
+	 * <p>The pool is the resource and the bar is the picture of it, so "can I go Bankai yet" should
+	 * be answerable by looking at the bar rather than by remembering a percentage that moves with
+	 * every Soul Level. A notch that the fill has passed is <b>lit</b>; one it has not is dim. That is
+	 * the whole readout — no text, no icon, and nothing that moves.
+	 *
+	 * <p>Both thresholds come from the server · {@link SpiritualSyncPayload}, not from a formula here.
+	 * They are read off {@code GATE_*} tuning, which is never synced, so a server that had tuned its
+	 * gates would otherwise mark the bar in places its own checks disagreed with — a HUD confidently
+	 * lying about the one thing it exists to report. A gate of zero means the player has no character
+	 * and there is nothing to mark.
+	 *
+	 * <p>Drawn against the bar's <b>inner</b> width, the same span the fill uses, or the notches would
+	 * sit a pixel off from the edge of the fill they are meant to be compared against — which at a
+	 * gate the player is a sliver short of is precisely the wrong pixel to get wrong.
+	 */
+	private static void drawGates(GuiGraphics graphics, SpiritualSyncPayload state, int left, int top,
+			int innerWidth) {
+		float fraction = state.maxSp() > 0.0f
+				? Mth.clamp(state.sp() / state.maxSp(), 0.0f, 1.0f)
+				: 0.0f;
+
+		gate(graphics, state.shikaiGate(), fraction, left, top, innerWidth);
+		gate(graphics, state.bankaiGate(), fraction, left, top, innerWidth);
+	}
+
+	private static void gate(GuiGraphics graphics, float threshold, float fraction, int left, int top,
+			int innerWidth) {
+		if (threshold <= 0.0f || threshold > 1.0f) {
+			return;
+		}
+
+		int width = Math.max(1, BleachTuning.HUD_GATE_WIDTH_PX);
+		// Clamped so a gate at 1.0 lands inside the frame instead of on top of the sprite's own edge.
+		int x = left + 1 + Math.min(Math.round(innerWidth * threshold), innerWidth - width);
+
+		boolean open = fraction >= threshold;
+		int overhang = Math.max(0, BleachTuning.HUD_GATE_OVERHANG_PX);
+		int color = open
+				? OPAQUE | BleachTuning.HUD_COLOR_GATE_OPEN
+				: (Mth.clamp(BleachTuning.HUD_GATE_SHUT_ALPHA, 0, 255) << 24)
+						| BleachTuning.HUD_COLOR_GATE_SHUT;
+
+		graphics.fill(x, top + 1 - overhang, x + width, top + BAR_HEIGHT - 1 + overhang, color);
 	}
 
 	/**
