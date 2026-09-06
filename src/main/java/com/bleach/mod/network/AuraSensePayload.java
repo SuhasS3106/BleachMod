@@ -73,8 +73,18 @@ public record AuraSensePayload(boolean active, List<Aura> auras) implements Cust
 	public static final StreamCodec<FriendlyByteBuf, AuraSensePayload> STREAM_CODEC = StreamCodec.of(
 			(buf, payload) -> {
 				buf.writeBoolean(payload.active);
-				buf.writeVarInt(payload.auras.size());
-				for (Aura aura : payload.auras) {
+
+				// Capped on the WRITE side as well, because the read side clamps to the same bound.
+				// Sending more than the reader will consume desyncs the buffer by whole entries and
+				// kicks the client with "found N bytes extra" — a decode error that names neither
+				// this packet's contents nor the setting that caused it. AURA_MAX_ENTRIES is a
+				// server-side config value, so nothing but this stops someone raising it past the
+				// wire bound and disconnecting every player who closes their eyes.
+				int count = Math.min(payload.auras.size(), MAX_WIRE_ENTRIES);
+				buf.writeVarInt(count);
+
+				for (int i = 0; i < count; i++) {
+					Aura aura = payload.auras.get(i);
 					buf.writeVarInt(aura.entityId);
 					buf.writeFloat(aura.dx);
 					buf.writeFloat(aura.dy);
