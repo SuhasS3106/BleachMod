@@ -37,6 +37,10 @@ import net.minecraft.world.phys.Vec3;
  * by a fixed fraction of the remaining gap per second — frame-rate independent, no extrapolation,
  * and it cannot invent a position the server never sent. An aura that stops being reported fades
  * over {@link BleachTuning#AURA_FADE_SECONDS} instead of vanishing mid-frame.
+ *
+ * <p>Burn — how hard a soul is pushing · {@code AuraSense#burn} — rides the same blend, so a release
+ * swells over a few frames rather than cutting between two sizes. That swell is the only warning a
+ * sensor gets that someone across the map just went Bankai, and a hard cut would read as a glitch.
  */
 public final class ClientAuraSenseState {
 	private ClientAuraSenseState() {
@@ -44,6 +48,8 @@ public final class ClientAuraSenseState {
 
 	/** One aura, as the renderer needs it: where it is being drawn, and how solid it still is. */
 	public static final class Reading {
+		/** Entity id. The renderer uses it only as a seed, so one soul's plume leans the same way. */
+		public final int id;
 		public final int color;
 		public final int soulLevel;
 
@@ -51,18 +57,37 @@ public final class ClientAuraSenseState {
 		private Vec3 target;
 		/** Where it is actually being drawn, chasing {@link #target}. */
 		private Vec3 drawn;
+		/** Newest burn multiplier the server reported. */
+		private float targetBurn;
+		/** The burn actually being drawn, chasing {@link #targetBurn}. */
+		private float drawnBurn;
 		/** Seconds since this aura was last in a packet. Drives the fade-out. */
 		private double staleSeconds;
 
-		private Reading(int color, int soulLevel, Vec3 position) {
+		private Reading(int id, int color, int soulLevel, Vec3 position, float burn) {
+			this.id = id;
 			this.color = color;
 			this.soulLevel = soulLevel;
 			this.target = position;
 			this.drawn = position;
+			this.targetBurn = burn;
+			this.drawnBurn = burn;
 		}
 
 		public Vec3 position() {
 			return drawn;
+		}
+
+		/**
+		 * How hard this soul is pushing, chasing the reported value on the same blend as position.
+		 *
+		 * <p>Smoothed rather than snapped because a release is a swell, not a cut: a Bankai coming
+		 * out should be a fire growing over a few frames, which is also the only warning a sensor
+		 * gets. A new reading starts at its reported burn, so a soul that walks into reach already
+		 * released arrives at full size instead of blooming out of nothing.
+		 */
+		public float burn() {
+			return drawnBurn;
 		}
 
 		/** 1.0 while the aura is still being reported, ramping to 0 over the fade window. */
@@ -116,9 +141,11 @@ public final class ClientAuraSenseState {
 
 			Reading existing = READINGS.get(aura.entityId());
 			if (existing == null) {
-				READINGS.put(aura.entityId(), new Reading(aura.color(), aura.soulLevel(), position));
+				READINGS.put(aura.entityId(), new Reading(aura.entityId(), aura.color(),
+						aura.soulLevel(), position, aura.burn()));
 			} else {
 				existing.target = position;
+				existing.targetBurn = aura.burn();
 				existing.staleSeconds = 0.0;
 			}
 		}
@@ -224,6 +251,8 @@ public final class ClientAuraSenseState {
 			reading.drawn = reading.drawn.distanceToSqr(reading.target) > snap * snap
 					? reading.target
 					: reading.drawn.lerp(reading.target, blend);
+
+			reading.drawnBurn = Mth.lerp((float) blend, reading.drawnBurn, reading.targetBurn);
 			visible.add(reading);
 		}
 		return visible;

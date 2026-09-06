@@ -32,8 +32,14 @@ public record AuraSensePayload(boolean active, List<Aura> auras) implements Cust
 	 * One reading. {@code entityId} is carried purely so the client can match an aura to its previous
 	 * frame and smooth between two packets rather than teleporting it ten times a second; nothing
 	 * else on the client looks the id up, and at these ranges there is usually no entity to look up.
+	 *
+	 * <p>{@code burn} is how hard the soul is pushing — a single resolved multiplier rather than the
+	 * state and the Flex flag it was derived from. Sending the multiplier keeps the rule on the
+	 * server where the rest of the reading is decided, and keeps the packet from telling a client
+	 * "that player is in Bankai" when all it is entitled to draw is "that one is burning ×7.6".
 	 */
-	public record Aura(int entityId, float dx, float dy, float dz, int color, byte soulLevel) {
+	public record Aura(int entityId, float dx, float dy, float dz, int color, byte soulLevel,
+			float burn) {
 	}
 
 	public static final CustomPacketPayload.Type<AuraSensePayload> TYPE =
@@ -60,6 +66,7 @@ public record AuraSensePayload(boolean active, List<Aura> auras) implements Cust
 					buf.writeFloat(aura.dz);
 					buf.writeInt(aura.color);
 					buf.writeByte(aura.soulLevel);
+					buf.writeFloat(aura.burn);
 				}
 			},
 			buf -> {
@@ -73,7 +80,8 @@ public record AuraSensePayload(boolean active, List<Aura> auras) implements Cust
 							buf.readFloat(),
 							buf.readFloat(),
 							buf.readInt(),
-							buf.readByte()));
+							buf.readByte(),
+							buf.readFloat()));
 				}
 				return new AuraSensePayload(active, auras);
 			});

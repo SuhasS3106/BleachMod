@@ -603,6 +603,27 @@ Mob colour is **derived, not listed**: `hue = hash(entity type id) mod 360`, at 
 and value above. Same type, same colour, forever and on both sides; different type, different
 colour; no table to maintain against mobs this mod has never heard of.
 
+### N.2 Burn · *what a soul is doing, not how big it is*
+
+Soul Level says how big a soul is. **Burn** says how hard it is pushing right now, and the two
+**multiply**: `size = (AURA_SIZE_BASE + AURA_SIZE_PER_LEVEL × SL) × burn`. Multiplying is what keeps
+the reading proportional to Soul Level all the way up — the same release reads bigger on a bigger
+soul, and a Bankai at the cap is a different object from a Bankai at SL 3.
+
+| Symbol | Default | Unit | Meaning |
+|---|---|---|---|
+| `AURA_BURN_SHIKAI` | 1.8 | × | Multiplier while in Shikai |
+| `AURA_BURN_BANKAI` | 3.6 | × | Multiplier while in Bankai |
+| `AURA_BURN_FLEX` | 2.1 | × | Further multiplier while exerting Spiritual Flex (§H) |
+
+State and Flex compound, so the ceiling is `3.6 × 2.1 = 7.56` — a released Bankai spending everything
+it has. Anything without a Soul Level burns at a flat ×1; a mob has no state to release and no pool
+to exert.
+
+**Reach is deliberately not multiplied.** Burn changes how loud a soul is, not how far the room is.
+Letting it widen reach as well would turn every release into a map-wide ping and make the reach table
+above meaningless.
+
 ### N.1 Aura Sense presentation
 
 | Symbol | Default | Unit | Meaning |
@@ -613,9 +634,10 @@ colour; no table to maintain against mobs this mod has never heard of.
 | `AURA_SIZE_BASE` | 1.6 | world units | Aura radius for an unranked entity |
 | `AURA_SIZE_PER_LEVEL` | 0.32 | world units/level | Added radius per Soul Level |
 | `AURA_MIN_RADIUS_PX` | 2.5 | scaled px | Floor on the drawn radius — a far aura is a spark, never nothing |
-| `AURA_MAX_RADIUS_PX` | 110.0 | scaled px | Ceiling, so a neighbour cannot white out the screen |
+| `AURA_MAX_RADIUS_PX` | 110.0 | scaled px | Ceiling **at rest**, so a neighbour cannot white out the screen |
+| `AURA_MAX_BURN_RADIUS_PX` | 430.0 | scaled px | Ceiling once burn is applied — a released Bankai on top of you is meant to fill the view |
 | `AURA_CORE_ALPHA` | 0.85 | 0..1 | Alpha at the centre. The rim always fades to zero |
-| `AURA_SEGMENTS` | 20 | count | Triangle-fan segments per aura |
+| `AURA_SEGMENTS` | 20 | count | Rim segments per ellipse |
 | `AURA_SMOOTHING_PER_SECOND` | 0.9995 | 0..1 | Fraction of the gap to the newest reported position closed per second |
 | `AURA_FADE_SECONDS` | 0.35 | s | How long an aura keeps being drawn, fading, after it leaves the packet |
 | `AURA_SNAP_DISTANCE` | 8.0 | blocks | Jump beyond which an aura is snapped instead of smoothed |
@@ -624,7 +646,77 @@ colour; no table to maintain against mobs this mod has never heard of.
 units; the perspective divide is what makes it shrink with distance. So "inversely proportional to
 distance, proportional to Soul Level" falls out of drawing the blob where it actually is, and the
 two pixel clamps exist only to stop the far end rounding to zero and the near end filling the
-screen.
+screen. Burn (§N.2) scales that world radius before the divide, so it stays proportional to both.
+
+### N.3 Aura Sense flame · *the particle fire*
+
+**Fire is not a shape, it is a population.** Every attempt to *draw* a flame here — a teardrop, then a
+cluster of tapering chains — read as a glowing decal, because the look of fire lives in the history of
+each particle rather than in the outline. So a reading's drawn radius is not a shape to fill; it is
+the size of a live particle system that persists between frames. Particles are born hot and white at
+the base of a soul, rise, cool through the aura's own colour, tear apart at the top and die. The
+taper, the flicker, the wisps coming off the tip are consequences of that, not things drawn on
+purpose.
+
+The **colour ramp** does most of the visual work. A flame drawn in one colour reads as a blob no
+matter how good the motion is, because real fire is a temperature gradient before it is anything else.
+Each particle walks white → the aura colour → a deep cooled version of it over its own life. The white
+phase runs to 5% of that life and no further: blending is additive, so a wide white band stacks into a
+featureless white pill, while the same ramp held brief reads as a hot core.
+
+The simulation is **normalised to the reading's own radius**, so one set of numbers describes a
+bonfire at ten blocks and a spark at three hundred alike, and a soul swelling into Bankai grows its
+fire smoothly instead of teleporting every particle in it. Only the spawn rate looks at the drawn
+pixel size — which is what fixed distant souls rendering as plain round dots. **There is no threshold
+below which a reading becomes a simpler shape.** Any such threshold produces dots by definition; the
+same fire simply runs sparser.
+
+| Symbol | Default | Unit | Meaning |
+|---|---|---|---|
+| `AURA_PARTICLE_RATE` | 620.0 | /s | Particles per second before burn, radius and gust scaling |
+| `AURA_PARTICLE_LIFE` | 0.95 | s | Mean lifetime; each varies around it |
+| `AURA_PARTICLE_BUOYANCY` | 13.0 | radii/s² | Upward acceleration. **Fades with age**, so the top stalls and breaks up |
+| `AURA_PARTICLE_TURBULENCE` | 4.4 | — | Noise strength. **Ramped with age** — applied flat it lays the whole fire down |
+| `AURA_PARTICLE_SWIRL` | 2.4 | — | Rotation about the axis; without it turbulence reads as jitter, not motion |
+| `AURA_PARTICLE_DRAG` | 0.45 | /s | Velocity lost per second |
+| `AURA_PARTICLE_TAPER` | 0.95 | — | Pull back toward the axis, growing with age — this is what gives a flame its point |
+| `AURA_PARTICLE_GROW` | 0.7 | fraction | Expansion over a particle's life — cooling gas |
+| `AURA_PARTICLE_DISC` | 1.1 | × radius | Radius of the spawn volume |
+| `AURA_PARTICLE_DOME` | 0.80 | 0..1 | 0 a flat disc, 1 a half-sphere |
+| `AURA_PARTICLE_BLOOM` | 0.60 | — | Outward speed off the dome |
+| `AURA_PARTICLE_OPACITY` | 0.30 | 0..1 | Alpha of one particle at its brightest |
+| `AURA_PARTICLE_GRAIN` | 0.26 | × radius | Particle size — small and many, never big and few |
+| `AURA_PARTICLE_STRETCH` | 1.75 | — | Stretch along the particle's own velocity |
+| `AURA_PARTICLE_GUST` | 0.65 | 0..1 | Surge depth — a constant burn reads as a machine |
+| `AURA_PARTICLE_CHURN` | 1.9 | × | How fast the turbulence field boils |
+| `AURA_PARTICLE_SEGMENTS` | 5 | count | Fan segments per particle |
+| `AURA_PARTICLE_MIN_SIZE_PX` | 0.35 | scaled px | Below this a particle is skipped, not emitted sub-pixel |
+| `AURA_PARTICLE_MAX_PER_SOUL` | 260 | count | Hard cap on live particles for one soul |
+| `AURA_PARTICLE_BUDGET` | 4200 | count | Live particles across every soul on screen |
+| `AURA_EMBER_RADIUS_PX` | 2.0 | scaled px | Below this a reading is too small to bother hazing |
+| `AURA_HAZE_ALPHA` | 0.12 | 0..1 | Ambient haze behind the strongest reading on screen |
+| `AURA_HAZE_SCALE` | 3.0 | × radius | Haze size |
+
+**`BLOOM` against `BUOYANCY` is the whole shape control.** Bloom wins and the reading is a ball of
+fire; buoyancy wins and it is a jet. `DOME` sets what they act on: a flat spawn disc collapses to a
+line the moment the camera is level with it — a column standing on a plate — while the dome wraps the
+soul so the fire is round from every angle. `STRETCH` is the single thing that turns a column of round
+dots into fire: fast particles become streaks leaning along their own velocity, slow ones at the top
+stay puffs. Area is held constant across the stretch (widen by *s*, thin by 1/√*s*) so it does not
+also brighten.
+
+Particles live in a **world-aligned** local frame, so the fire has real volume: turning your head
+orbits it and looking down shows you the top of it. Everything is emitted into **one batched draw
+call** with additive blending, which is why no depth sorting is needed at any range.
+
+Crowding is handled by a **proportional throttle**, not a cap: exceeding `AURA_PARTICLE_BUDGET` thins
+every fire on screen in step, so a packed room reads as a dimmer, sparser version of the same picture
+rather than having some readings vanish because of what other readings were doing. The throttle steers
+off last frame's count, which makes it a feedback loop that settles instead of a hard limit that
+oscillates.
+
+These constants were settled in `tools/flame-prototype.html` — the same maths in a canvas with a
+slider per value. **Retune there before touching them here.**
 
 ---
 
@@ -705,7 +797,8 @@ Kept current so a balance change never requires a codebase search.
 | J.1–J.8 | `ability/kits/*` |
 | K | `network/BleachNetworking`, `client/SpiritualHud`, `client/SoulStatsScreen`, `client/ScreenShake`, `progression/WorldSoulLevel` |
 | N | `ability/common/AuraSense` |
-| N.1 | `client/AuraSenseOverlay`, `client/ClientAuraSenseState` |
+| N.1, N.3 | `client/AuraSenseOverlay`, `client/ClientAuraSenseState` |
+| N.2 | `ability/common/AuraSense` (`burn`), `client/AuraSenseOverlay` (applies it) |
 | O | `ability/common/Hover`, `mixin/client/LocalPlayerHoverMixin`, `client/ClientHoverState` |
 
 ---

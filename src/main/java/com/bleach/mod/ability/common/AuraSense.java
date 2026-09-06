@@ -42,6 +42,14 @@ import net.minecraft.world.phys.Vec3;
  * walked in full at any distance, while the unranked pass only ever has to look inside a 64-block
  * box, which is what keeps a 700-block-wide scan from being a 700-block-wide entity query.
  *
+ * <h2>Size is Soul Level times burn</h2>
+ *
+ * <p>Reach answers "can I feel them"; size answers "what am I feeling". Soul Level sets the resting
+ * size — {@code AURA_SIZE_BASE + AURA_SIZE_PER_LEVEL × level}, drawn client-side — and {@link #burn}
+ * multiplies it by what the soul is doing right now: Shikai, Bankai, and Spiritual Flex on top of
+ * either. Multiplying rather than adding is what keeps the reading proportional to Soul Level all
+ * the way up, so a released Bankai never reads as the same fire whoever is holding it.
+ *
  * <h2>What it costs</h2>
  *
  * <p><b>No SP.</b> The price is paid in sight: the client draws a blackout over the whole viewport
@@ -90,6 +98,34 @@ public final class AuraSense implements Ability {
 
 	public static double reachUnranked() {
 		return BleachTuning.AURA_RANGE_UNRANKED;
+	}
+
+	/**
+	 * How hard this soul is pushing, as a multiplier on the size it is drawn at.
+	 *
+	 * <p>Soul Level says how big a soul is; burn says what it is doing with it. The two multiply
+	 * rather than add, which is the whole point — a released Bankai at the cap is an order of
+	 * magnitude of pressure over a Shikai at Soul Level 3, and a sense that flattened the two into
+	 * the same blob would leave a sensor unable to answer the one question they closed their eyes
+	 * to ask. State and Flex compound for the same reason they compound everywhere else in the mod:
+	 * a Bankai holding Flex is a soul spending everything it has, and it should be unmistakable
+	 * from three hundred blocks.
+	 *
+	 * <p>Reach is deliberately <em>not</em> multiplied. Burn changes how loud a soul is, not how far
+	 * the room is — letting it widen reach as well would turn every release into a map-wide ping and
+	 * make the Soul Level reach table meaningless.
+	 */
+	public static float burn(SpiritualData data) {
+		double mult = switch (data.state) {
+			case SpiritualData.STATE_BANKAI -> BleachTuning.AURA_BURN_BANKAI;
+			case SpiritualData.STATE_SHIKAI -> BleachTuning.AURA_BURN_SHIKAI;
+			default -> 1.0;
+		};
+
+		if (data.flexing) {
+			mult *= BleachTuning.AURA_BURN_FLEX;
+		}
+		return (float) mult;
 	}
 
 	/**
@@ -185,7 +221,8 @@ public final class AuraSense implements Ability {
 				continue;
 			}
 
-			found.add(aura(origin, other, BleachTuning.AURA_COLOR_PLAYER, otherData.soulLevel));
+			found.add(aura(origin, other, BleachTuning.AURA_COLOR_PLAYER, otherData.soulLevel,
+					burn(otherData)));
 		}
 
 		// Everything else, inside the one box the unranked reach allows. Players are excluded here
@@ -200,7 +237,8 @@ public final class AuraSense implements Ability {
 				continue;
 			}
 
-			found.add(aura(origin, entity, colorFor(entity.getType()), UNRANKED_SOUL_LEVEL));
+			// Burn ×1, flat. Nothing without a Soul Level has a state to release or a pool to exert.
+			found.add(aura(origin, entity, colorFor(entity.getType()), UNRANKED_SOUL_LEVEL, 1.0f));
 		}
 
 		// Nearest first, then truncated: a packet that has to drop readings should drop the faint
@@ -214,7 +252,8 @@ public final class AuraSense implements Ability {
 	}
 
 	/** Centre of mass rather than feet or eyes, so the blob sits on the body at any height. */
-	private static AuraSensePayload.Aura aura(Vec3 origin, LivingEntity entity, int color, int soulLevel) {
+	private static AuraSensePayload.Aura aura(Vec3 origin, LivingEntity entity, int color,
+			int soulLevel, float burn) {
 		Vec3 centre = entity.position().add(0.0, entity.getBbHeight() * 0.5, 0.0);
 		return new AuraSensePayload.Aura(
 				entity.getId(),
@@ -222,7 +261,8 @@ public final class AuraSense implements Ability {
 				(float) (centre.y - origin.y),
 				(float) (centre.z - origin.z),
 				color,
-				(byte) soulLevel);
+				(byte) soulLevel,
+				burn);
 	}
 
 	// --- Colour ---------------------------------------------------------------------------

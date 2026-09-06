@@ -848,6 +848,23 @@ public final class BleachTuning {
 	/** Ticks between the pressure particles that tell everyone else a sensor's eyes are shut. */
 	public static int AURA_TELL_INTERVAL_TICKS = 6;
 
+	// --- Aura Sense burn · how hard a soul is pushing · BALANCE.md §N.2 --------------
+
+	/*
+	 * Soul Level says how big a soul is; burn says how hard it is pushing right now. The two are
+	 * multiplied rather than added, so the multiplier stays proportional to Soul Level — a released
+	 * Bankai at SL 20 reads far larger than the same release at SL 3, exactly as the base radius
+	 * already does. A sense that showed every soul at its resting size would make a released Bankai
+	 * indistinguishable from a sheathed one, which is the one thing a pressure-sense is for.
+	 */
+
+	/** Burn multiplier while in Shikai. Applied on top of the Soul Level radius. */
+	public static double AURA_BURN_SHIKAI = 1.8;
+	/** Burn multiplier while in Bankai. */
+	public static double AURA_BURN_BANKAI = 3.6;
+	/** Further multiplier while exerting Spiritual Flex, on top of whatever state is held. */
+	public static double AURA_BURN_FLEX = 2.1;
+
 	// --- Aura Sense presentation · client-side · BALANCE.md §N.1 ---------------------
 
 	/** Time the eyelid takes to fall, milliseconds. */
@@ -862,12 +879,103 @@ public final class BleachTuning {
 	public static double AURA_SIZE_PER_LEVEL = 0.32;
 	/** Floor on the drawn radius, scaled pixels — a far aura is a spark, never nothing. */
 	public static double AURA_MIN_RADIUS_PX = 2.5;
-	/** Ceiling on the drawn radius, scaled pixels, so a neighbour does not white out the screen. */
+	/** Ceiling on the drawn radius at rest, scaled pixels, so a neighbour does not white out. */
 	public static double AURA_MAX_RADIUS_PX = 110.0;
+	/**
+	 * Ceiling on the drawn radius once burn is applied, scaled pixels. Separate from
+	 * {@link #AURA_MAX_RADIUS_PX} on purpose: a released Bankai standing on top of you is meant to
+	 * fill the view, and clamping it to the resting ceiling would erase the whole difference.
+	 */
+	public static double AURA_MAX_BURN_RADIUS_PX = 430.0;
 	/** Alpha at the centre of an aura, 0..1. The rim always fades to zero. */
 	public static double AURA_CORE_ALPHA = 0.85;
 	/** Triangle-fan segments per aura. Twenty is round enough at the maximum radius. */
 	public static int AURA_SEGMENTS = 20;
+
+	// --- Aura Sense flame · the particle fire · BALANCE.md §N.3 ---------------------
+
+	/*
+	 * Fire is not a shape, it is a population. Every value below feeds a live particle system —
+	 * particles born hot and white at the base of a soul, rising, cooling through the aura's own
+	 * colour, spreading and dying · AuraFlame. The taper, the flicker and the wisps tearing off the
+	 * tip are consequences of that, not things drawn on purpose, which is why the earlier
+	 * static-geometry version read as a decal no matter how it was shaped.
+	 *
+	 * The simulation is normalised to the reading's own radius, so ONE set of numbers describes a
+	 * bonfire at ten blocks and a spark at three hundred alike, and a soul swelling into Bankai grows
+	 * its fire smoothly instead of teleporting every particle in it. Only the spawn rate looks at the
+	 * drawn pixel radius, so that a distant soul is a small fire rather than a lonely dot.
+	 *
+	 * These were settled in tools/flame-prototype.html, which is the same maths in a canvas with a
+	 * slider per constant. Retune there before touching them here.
+	 */
+
+	/** Particles per second at the reference size, before burn, radius and gust scaling. */
+	public static double AURA_PARTICLE_RATE = 620.0;
+	/** Mean particle lifetime, seconds. Each varies around it. */
+	public static double AURA_PARTICLE_LIFE = 0.95;
+	/** Upward acceleration, in radii per second squared. Fades with age, so the top stalls. */
+	public static double AURA_PARTICLE_BUOYANCY = 13.0;
+	/** Turbulence strength. Ramped with age — applied flat, it lays the whole fire down. */
+	public static double AURA_PARTICLE_TURBULENCE = 4.4;
+	/** Rotation about the fire's axis. Without it, turbulence reads as jitter rather than motion. */
+	public static double AURA_PARTICLE_SWIRL = 2.4;
+	/** Velocity lost per second, 0..1. */
+	public static double AURA_PARTICLE_DRAG = 0.45;
+	/** Pull back toward the axis, growing with age. This is what gives a flame its point. */
+	public static double AURA_PARTICLE_TAPER = 0.95;
+	/** How much a particle expands over its life — cooling gas. */
+	public static double AURA_PARTICLE_GROW = 0.7;
+	/** Radius of the spawn volume, in reading radii. */
+	public static double AURA_PARTICLE_DISC = 1.1;
+	/**
+	 * How far the spawn volume lifts off the flat, 0 a disc .. 1 a half-sphere. A flat disc collapses
+	 * to a line the moment the camera is level with it, which reads as a column on a plate; the dome
+	 * wraps the soul so the fire is round from every angle.
+	 */
+	public static double AURA_PARTICLE_DOME = 0.80;
+	/**
+	 * Outward speed off the dome. Against {@link #AURA_PARTICLE_BUOYANCY} this is the whole shape
+	 * control: bloom wins and it is a ball of fire, buoyancy wins and it is a jet.
+	 */
+	public static double AURA_PARTICLE_BLOOM = 0.60;
+	/**
+	 * Alpha of one particle at its brightest. Deliberately low — the brightness of a fire comes from
+	 * how many particles overlap, and a solid one clips the core to a white pill under additive
+	 * blending.
+	 */
+	public static double AURA_PARTICLE_OPACITY = 0.30;
+	/** Particle size as a fraction of the reading's radius. Small and many, never big and few. */
+	public static double AURA_PARTICLE_GRAIN = 0.26;
+	/**
+	 * How far a particle stretches along its own velocity. The single thing that turns a column of
+	 * round dots into fire: fast particles become streaks, slow ones at the top stay puffs.
+	 */
+	public static double AURA_PARTICLE_STRETCH = 1.75;
+	/** Surge depth, 0 a steady burn .. 1 violent flaring. A constant fire reads as a machine. */
+	public static double AURA_PARTICLE_GUST = 0.65;
+	/** How fast the turbulence field boils. Raises violence without making the fire finer-grained. */
+	public static double AURA_PARTICLE_CHURN = 1.9;
+
+	/** Fan segments per particle. Five: at a few pixels across, a pentagon and a circle are one picture. */
+	public static int AURA_PARTICLE_SEGMENTS = 5;
+	/** Particles below this drawn size, px, are skipped rather than emitted as sub-pixel triangles. */
+	public static double AURA_PARTICLE_MIN_SIZE_PX = 0.35;
+	/** Hard cap on live particles for one soul. */
+	public static int AURA_PARTICLE_MAX_PER_SOUL = 260;
+	/**
+	 * Live particles across every soul on screen. Exceeding it throttles the spawn rate of all fires
+	 * in proportion rather than cutting some of them off, so a crowded room thins out evenly instead
+	 * of picking winners.
+	 */
+	public static int AURA_PARTICLE_BUDGET = 4200;
+
+	/** Drawn radius below which a reading is too small to bother hazing, px. */
+	public static double AURA_EMBER_RADIUS_PX = 2.0;
+	/** Alpha of the ambient haze around the strongest reading on screen, 0..1. */
+	public static double AURA_HAZE_ALPHA = 0.12;
+	/** Haze size as a multiple of the reading's drawn radius. */
+	public static double AURA_HAZE_SCALE = 3.0;
 	/** Fraction of the gap to the newest reported position an aura closes each second, 0..1. */
 	public static double AURA_SMOOTHING_PER_SECOND = 0.9995;
 	/** Seconds an aura keeps being drawn, fading, after it drops out of the packet. */

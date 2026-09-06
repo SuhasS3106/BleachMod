@@ -180,11 +180,54 @@ and **no spiritual pressure** — you pay for it in sight and nothing else.
   about 64 blocks and no further, so a distant aura is always a person.
 - Aura size is distance and strength together: a capped soul at three hundred blocks is a pinprick,
   and the same soul at ten blocks fills your view.
+- **A released soul burns.** Shikai is roughly double the fire of a sheathed blade, Bankai roughly
+  triple that again, and holding Spiritual Flex doubles whatever you are already in — so a released
+  Bankai spending everything reads about seven times its resting size and hazes the dark around it. It
+  grows on your side of the screen the moment they release, wherever they are. **It scales off Soul
+  Level too**, so the same Bankai is a much larger fire on a stronger soul.
+- **Reach does not grow with it.** Releasing makes a soul louder, not the room smaller — someone who
+  goes Bankai at four hundred blocks is still out of reach entirely.
 - **You are blind while you hold it**, and there is a mote of pressure at your head that everyone
   else can see. It is a trade, not a free overlay.
 - **Enma Kōrogi shuts it off.** Caught inside Tōsen's Bankai dome, the key does nothing and a sense
   already running dies — the dome takes every sense you have, and this is one of them. Tōsen keeps
   his.
+
+### Legend — reading the fire
+
+Every soul is a **fire**, not a dot. Nothing on the screen is a different kind of marker; a spark at
+three hundred blocks and a bonfire at ten are the same fire at different sizes, so you never have to
+learn two vocabularies.
+
+| What you see | What it means |
+|---|---|
+| **Pale blue fire** | A player. All players are this colour — you know *something* is there, not who |
+| **Any other colour** | A creature. Fixed per kind: two zombies match, a zombie and a cow do not |
+| **Big fire** | Close, strong, or released. Size is all three at once — see below |
+| **Small fire** | Far away, or a weak soul nearby. Still a fire, still burning, just quieter |
+| **White-hot core** | The base of any fire, at any size. Not a signal — every soul has one |
+| **Colour deepening upward** | Just the fire cooling as it rises. Not a signal either |
+| **A fire that swells while you watch** | Someone released, right then. Shikai, Bankai, or a Flex |
+| **A fire that shrinks while you watch** | They sheathed, or let a Flex go |
+| **Violent, wide, throwing off the top** | High burn. A released soul spending what it has |
+| **Coloured haze in the dark around one fire** | The strongest reading on screen — your biggest problem |
+| **A fire fading out over a moment** | It left your reach, or died. Fires never blink out |
+
+**Size is three things multiplied, and you cannot separate them from the outside.** Distance, Soul
+Level, and burn all feed the same number. A pinprick is *either* a capped soul far away *or* a weak
+one nearby, and the sense will not tell you which — that ambiguity is the price of a sense that costs
+no pressure. What it *will* tell you honestly is **change**: a fire that grows without moving toward
+you is a release, and that is the warning the sense exists to give.
+
+Rough sizes for the same soul, at the same distance:
+
+| State | Reads about |
+|---|---|
+| Sheathed | ×1 — its resting size |
+| Shikai | ×1.8 |
+| Bankai | ×3.6 |
+| + Spiritual Flex | ×2.1 on top of whichever of the above they are in |
+| Bankai + Flex | ×7.6 — the loudest thing a soul can be |
 
 ---
 
