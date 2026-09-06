@@ -42,13 +42,19 @@ import net.minecraft.world.phys.Vec3;
  * walked in full at any distance, while the unranked pass only ever has to look inside a 64-block
  * box, which is what keeps a 700-block-wide scan from being a 700-block-wide entity query.
  *
- * <h2>Size is Soul Level times burn</h2>
+ * <h2>Size is Soul Level times burn — or, for a creature, its body</h2>
  *
- * <p>Reach answers "can I feel them"; size answers "what am I feeling". Soul Level sets the resting
- * size — {@code AURA_SIZE_BASE + AURA_SIZE_PER_LEVEL × level}, drawn client-side — and {@link #burn}
- * multiplies it by what the soul is doing right now: Shikai, Bankai, and Spiritual Flex on top of
- * either. Multiplying rather than adding is what keeps the reading proportional to Soul Level all
- * the way up, so a released Bankai never reads as the same fire whoever is holding it.
+ * <p>Reach answers "can I feel them"; size answers "what am I feeling". For a player, Soul Level sets
+ * the resting size — {@code AURA_SIZE_BASE + AURA_SIZE_PER_LEVEL × level}, drawn client-side — and
+ * {@link #burn} multiplies it by what the soul is doing right now: Shikai, Bankai, and Spiritual Flex
+ * on top of either. Multiplying rather than adding is what keeps the reading proportional to Soul
+ * Level all the way up, so a released Bankai never reads as the same fire whoever is holding it.
+ *
+ * <p>A creature has no Soul Level to be measured by, so it is measured by the only thing it does have
+ * — <b>how much of the world it takes up</b> · {@link #body}. A bee is a spark and a ghast is a
+ * bonfire, and every soul on the screen is then on one continuous scale rather than every mob being
+ * the same anonymous dot. It is a poorer signal than Soul Level, and honestly so: physical size is
+ * not spiritual weight, and the largest creature alive still reads under a fully realised shinigami.
  *
  * <h2>What it costs</h2>
  *
@@ -262,7 +268,27 @@ public final class AuraSense implements Ability {
 				(float) (centre.z - origin.z),
 				color,
 				(byte) soulLevel,
-				burn);
+				burn,
+				body(entity));
+	}
+
+	/**
+	 * How physically big a creature is, in blocks: the cube root of its bounding box's volume.
+	 *
+	 * <p>An effective diameter rather than a width or a height, so a wide flat spider and a tall thin
+	 * breeze both come out in the middle instead of one of them being scored on the single dimension
+	 * it happens to be large in. Cube-rooting also compresses the range honestly — an ender dragon is
+	 * two thousand times a chicken by volume and about twenty-six times by this measure, which is a
+	 * number a radius can actually be built from.
+	 *
+	 * <p>Read off the <b>live</b> box, not the entity type, so a baby zombie reads smaller than an
+	 * adult and a size-4 magma cube reads bigger than a size-1 — no table, and correct for modded
+	 * mobs this has never heard of.
+	 */
+	private static float body(LivingEntity entity) {
+		float width = entity.getBbWidth();
+		float height = entity.getBbHeight();
+		return (float) Math.cbrt(width * width * height);
 	}
 
 	// --- Colour ---------------------------------------------------------------------------

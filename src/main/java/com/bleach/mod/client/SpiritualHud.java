@@ -1,5 +1,7 @@
 package com.bleach.mod.client;
 
+import java.util.List;
+
 import com.bleach.mod.attachment.SpiritualData;
 import com.bleach.mod.network.SpiritualSyncPayload;
 import com.bleach.mod.tuning.BleachTuning;
@@ -49,7 +51,11 @@ import net.minecraft.util.Mth;
  *
  * <p>The SP figure sits on the bar's right flank and the Soul Level on its left, clear of the
  * 182-pixel span the vanilla rows occupy, so neither number can collide with a heart or a drumstick
- * however many rows vanilla decides to draw.
+ * however many rows vanilla decides to draw. Both are then clamped on screen · {@link #flankLeft}:
+ * the bar is vanilla's fixed 182 pixels and cannot shrink, so at a high GUI scale or in a narrow
+ * window the flanks run out of room and a figure walks off the edge.
+ *
+ * <p>SPX awards rise off the left flank as {@code +30 SPX} · {@link SpxGainPopups}.
  */
 public final class SpiritualHud {
 	private SpiritualHud() {
@@ -177,6 +183,7 @@ public final class SpiritualHud {
 		}
 
 		drawNumbers(graphics, client.font, state, left, top);
+		drawSpxGains(graphics, client.font, left, top);
 
 		graphics.pose().popPose();
 	}
@@ -201,19 +208,106 @@ public final class SpiritualHud {
 		int gap = BleachTuning.HUD_LEVEL_TEXT_GAP;
 
 		String sp = String.valueOf(Math.round(state.sp()));
-		outlined(graphics, font, sp, left + BAR_WIDTH + gap, textY, stateColor(state.state()));
+		outlined(graphics, font, sp, flankRight(graphics, font, sp, left, gap), textY,
+				stateColor(state.state()));
 
 		String level = String.valueOf(state.soulLevel());
-		outlined(graphics, font, level, left - gap - font.width(level), textY,
+		outlined(graphics, font, level, flankLeft(font, level, left, gap), textY,
 				BleachTuning.HUD_COLOR_LEVEL_TEXT);
 	}
 
+	/**
+	 * X for the figure on the bar's left flank, kept on screen.
+	 *
+	 * <p>The bar is vanilla's own width and cannot shrink, so as the GUI width falls toward 182 the
+	 * flanks run out of room and the figure walks off the edge — which is what was clipping the Soul
+	 * Level at high GUI scales and in narrow windows. Clamping trades the gap for legibility: the
+	 * number closes on the bar's end and, in the worst case, touches it. That is a far better failure
+	 * than half a digit, and it only ever happens where there was no space to be had.
+	 *
+	 * <p>The floor is 1 rather than 0 because {@link #outlined} paints a pass at {@code x - 1}.
+	 */
+	private static int flankLeft(Font font, String text, int left, int gap) {
+		return Math.max(1, left - gap - font.width(text));
+	}
+
+	/** X for the figure on the bar's right flank, kept on screen. Mirror of {@link #flankLeft}. */
+	private static int flankRight(GuiGraphics graphics, Font font, String text, int left, int gap) {
+		int preferred = left + BAR_WIDTH + gap;
+		int rightmost = graphics.guiWidth() - 1 - font.width(text);
+		return Math.max(1, Math.min(preferred, rightmost));
+	}
+
+	/**
+	 * The {@code +30 SPX} figures, rising off the bar's left flank and fading out.
+	 *
+	 * <p>They go on the <b>left</b>, above the Soul Level, because that is what SPX is buying — the
+	 * award and the number it counts toward read as one column. The right flank is SP, which moves for
+	 * entirely different reasons, and a figure climbing out of it would suggest the pool had grown.
+	 *
+	 * <p>The rise eases out, so a figure covers most of its travel while it is still fully opaque and
+	 * drifts the last few pixels as it goes. Linear motion under a linear fade reads as a sprite being
+	 * dragged; this reads as something thrown.
+	 *
+	 * <p>Nothing here is clipped to the bar's own span, so the stack is free to climb into the band
+	 * above it. That band holds the lifted vanilla rows, but only across the bar's 182 pixels — the
+	 * flank above the Soul Level is empty at every row count vanilla draws.
+	 */
+	private static void drawSpxGains(GuiGraphics graphics, Font font, int left, int top) {
+		long now = System.currentTimeMillis();
+		List<SpxGainPopups.Popup> popups = SpxGainPopups.active(now);
+		if (popups.isEmpty()) {
+			return;
+		}
+
+		double life = Math.max(1.0, BleachTuning.HUD_SPX_GAIN_DURATION_MILLIS);
+		float hold = (float) Mth.clamp(BleachTuning.HUD_SPX_GAIN_HOLD, 0.0, 0.99);
+		int gap = BleachTuning.HUD_LEVEL_TEXT_GAP;
+
+		// Newest nearest the bar: it is the one being read, and it should not have to climb past the
+		// older figures to be seen.
+		for (int i = popups.size() - 1; i >= 0; i--) {
+			SpxGainPopups.Popup popup = popups.get(i);
+			float age = (float) Mth.clamp((now - popup.bornMillis()) / life, 0.0, 1.0);
+
+			// Ease out: fast off the mark, settling as it fades.
+			float eased = 1.0f - (1.0f - age) * (1.0f - age);
+			int stack = (popups.size() - 1 - i) * BleachTuning.HUD_SPX_GAIN_STACK_PX;
+
+			int y = top - (font.lineHeight - BAR_HEIGHT) / 2
+					- Math.round(eased * BleachTuning.HUD_SPX_GAIN_RISE_PX)
+					- BleachTuning.HUD_SPX_GAIN_STACK_PX - stack;
+
+			int alpha = age <= hold
+					? 0xFF
+					: Math.round(0xFF * (1.0f - (age - hold) / (1.0f - hold)));
+
+			String text = "+" + popup.amount() + " SPX";
+			outlined(graphics, font, text, flankLeft(font, text, left, gap), y,
+					BleachTuning.HUD_COLOR_SPX_GAIN, alpha);
+		}
+	}
+
 	private static void outlined(GuiGraphics graphics, Font font, String text, int x, int y, int color) {
-		graphics.drawString(font, text, x + 1, y, COLOR_TEXT_OUTLINE, false);
-		graphics.drawString(font, text, x - 1, y, COLOR_TEXT_OUTLINE, false);
-		graphics.drawString(font, text, x, y + 1, COLOR_TEXT_OUTLINE, false);
-		graphics.drawString(font, text, x, y - 1, COLOR_TEXT_OUTLINE, false);
-		graphics.drawString(font, text, x, y, OPAQUE | color, false);
+		outlined(graphics, font, text, x, y, color, 0xFF);
+	}
+
+	/**
+	 * The same outline at a given alpha, so a fading popup fades its outline with it. An outline left
+	 * opaque under fading text does not read as one thing disappearing; it reads as the text turning
+	 * black.
+	 */
+	private static void outlined(GuiGraphics graphics, Font font, String text, int x, int y,
+			int color, int alpha) {
+		if (alpha <= 4) {
+			return;
+		}
+		int outline = (alpha << 24) | COLOR_TEXT_OUTLINE;
+		graphics.drawString(font, text, x + 1, y, outline, false);
+		graphics.drawString(font, text, x - 1, y, outline, false);
+		graphics.drawString(font, text, x, y + 1, outline, false);
+		graphics.drawString(font, text, x, y - 1, outline, false);
+		graphics.drawString(font, text, x, y, (alpha << 24) | (color & 0xFFFFFF), false);
 	}
 
 	private static int stateColor(byte state) {

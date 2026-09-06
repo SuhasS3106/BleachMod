@@ -37,9 +37,16 @@ public record AuraSensePayload(boolean active, List<Aura> auras) implements Cust
 	 * state and the Flex flag it was derived from. Sending the multiplier keeps the rule on the
 	 * server where the rest of the reading is decided, and keeps the packet from telling a client
 	 * "that player is in Bankai" when all it is entitled to draw is "that one is burning ×7.6".
+	 *
+	 * <p>{@code body} is how physically big the creature is, in blocks — the cube root of its
+	 * bounding box's volume, so a wide flat spider and a tall thin breeze both land in the middle
+	 * rather than one of them being scored on height alone. It has to come over the wire for the same
+	 * reason the position does: at these ranges there is no entity on the client to measure. It is a
+	 * plain fact about the creature with no tuning folded into it, so the client is free to decide
+	 * what it is worth · {@code BleachTuning#AURA_MOB_SIZE_PER_BLOCK}.
 	 */
 	public record Aura(int entityId, float dx, float dy, float dz, int color, byte soulLevel,
-			float burn) {
+			float burn, float body) {
 	}
 
 	public static final CustomPacketPayload.Type<AuraSensePayload> TYPE =
@@ -55,6 +62,14 @@ public record AuraSensePayload(boolean active, List<Aura> auras) implements Cust
 	 */
 	private static final int MAX_WIRE_ENTRIES = 256;
 
+	/**
+	 * Fixed-point scale for {@link Aura#body} on the wire: one byte, eighths of a block, so the
+	 * range runs to just under 32 blocks and the step is well below anything a radius can show. A
+	 * float here would be three bytes an entry for precision nothing downstream can use, and this
+	 * packet already carries up to forty-eight entries several times a second.
+	 */
+	private static final float BODY_SCALE = 8.0f;
+
 	public static final StreamCodec<FriendlyByteBuf, AuraSensePayload> STREAM_CODEC = StreamCodec.of(
 			(buf, payload) -> {
 				buf.writeBoolean(payload.active);
@@ -67,6 +82,7 @@ public record AuraSensePayload(boolean active, List<Aura> auras) implements Cust
 					buf.writeInt(aura.color);
 					buf.writeByte(aura.soulLevel);
 					buf.writeFloat(aura.burn);
+					buf.writeByte(Math.min(255, Math.max(0, Math.round(aura.body * BODY_SCALE))));
 				}
 			},
 			buf -> {
@@ -81,7 +97,8 @@ public record AuraSensePayload(boolean active, List<Aura> auras) implements Cust
 							buf.readFloat(),
 							buf.readInt(),
 							buf.readByte(),
-							buf.readFloat()));
+							buf.readFloat(),
+							buf.readUnsignedByte() / BODY_SCALE));
 				}
 				return new AuraSensePayload(active, auras);
 			});

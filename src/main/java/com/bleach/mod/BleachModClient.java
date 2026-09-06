@@ -37,9 +37,14 @@ public class BleachModClient implements ClientModInitializer {
 				(payload, context) -> context.client().execute(
 						() -> com.bleach.mod.client.ClientAuraSenseState.update(payload)));
 
+		ClientPlayNetworking.registerGlobalReceiver(com.bleach.mod.network.SpxGainPayload.TYPE,
+				(payload, context) -> context.client().execute(
+						() -> com.bleach.mod.client.SpxGainPopups.add(payload.amount())));
+
 		// Otherwise the bar from the last world flashes up before the first sync of the next one.
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 			ClientSpiritualState.clear();
+			com.bleach.mod.client.SpxGainPopups.reset();
 			com.bleach.mod.client.ClientAuraSenseState.clear();
 			com.bleach.mod.client.ClientEnmaKorogiState.clear();
 			com.bleach.mod.client.ClientGinBeamState.clear();

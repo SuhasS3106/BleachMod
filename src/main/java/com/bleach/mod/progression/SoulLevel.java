@@ -5,6 +5,7 @@ import com.bleach.mod.ModToggle;
 import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.attachment.SpiritualData;
 import com.bleach.mod.attachment.SpiritualTicker;
+import com.bleach.mod.network.BleachNetworking;
 import com.bleach.mod.tuning.BleachTuning;
 
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -131,6 +132,11 @@ public final class SoulLevel {
 
 		data.spx += award;
 		data.spxEarnedToday += award;
+
+		// Announced here, before the level-up loop below spends it. The bank is filled and drawn down
+		// in the same tick, so the sync that follows cannot be differenced to recover what was earned
+		// · SpxGainPayload.
+		BleachNetworking.sendSpxGain(killer, award);
 
 		if (levelUp(killer, data)) {
 			// A level-up changes this player's weight in the world average, so the roster entry has

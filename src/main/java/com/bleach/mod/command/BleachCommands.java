@@ -232,7 +232,9 @@ public final class BleachCommands {
 		ServerPlayer player = ctx.getSource().getPlayerOrException();
 		SpiritualData data = BleachAttachments.get(player);
 
-		data.spx = Math.max(0, data.spx + IntegerArgumentType.getInteger(ctx, VALUE_ARG));
+		int granted = IntegerArgumentType.getInteger(ctx, VALUE_ARG);
+		data.spx = Math.max(0, data.spx + granted);
+		com.bleach.mod.network.BleachNetworking.sendSpxGain(player, granted);
 		SoulLevel.levelUp(player, data);
 
 		SpiritualTicker.sync(player, true);

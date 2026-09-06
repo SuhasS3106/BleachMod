@@ -81,6 +81,11 @@ zanpakutō deals, and the damage you shrug off.
 **Soul Points** are earned by killing. A player is worth 25, plus 5 for every level they had on
 you. There is a daily cap (200 base) so nobody clears the ladder in one sitting.
 
+Every award floats up off the left end of the bar as **`+30 SPX`**, so you can see what a kill was
+worth without opening anything. Kills landing together are counted into one figure rather than
+stacking up the screen. When the figure is smaller than you expected, you are near the daily cap — the
+number shown is what you actually banked, not what the kill was nominally worth.
+
 **World Soul Level** is the server's playtime-weighted average. Mobs scale with it, and players
 below it earn up to **3× faster** — joining late is a delay, not a permanent disadvantage.
 
@@ -175,6 +180,9 @@ and **no spiritual pressure** — you pay for it in sight and nothing else.
   and roughly how strong, not who.
 - **Every other kind of creature has its own colour**, the same for every one of its kind. Two
   zombies look identical; a zombie and a cow do not.
+- **Creatures burn according to how big they are.** A bee or a chicken is a spark, a cow or a spider
+  is a proper little fire, and an iron golem, a ravager or a ghast is a bonfire you can see across the
+  room. Baby animals read smaller than adults, and a big slime reads bigger than a small one.
 - **How far a soul carries is that soul's business, not yours.** A Soul Level 1 player is felt at
   about 80 blocks and a Soul Level 20 player at about 350 — from anywhere, at any level. Mobs carry
   about 64 blocks and no further, so a distant aura is always a person.
@@ -203,8 +211,8 @@ learn two vocabularies.
 |---|---|
 | **Pale blue fire** | A player. All players are this colour — you know *something* is there, not who |
 | **Any other colour** | A creature. Fixed per kind: two zombies match, a zombie and a cow do not |
-| **Big fire** | Close, strong, or released. Size is all three at once — see below |
-| **Small fire** | Far away, or a weak soul nearby. Still a fire, still burning, just quieter |
+| **Big fire** | Close, strong, released — or, for a creature, simply large. See below |
+| **Small fire** | Far away, a weak soul nearby, or something small. Still a fire, just quieter |
 | **White-hot core** | The base of any fire, at any size. Not a signal — every soul has one |
 | **Colour deepening upward** | Just the fire cooling as it rises. Not a signal either |
 | **A fire that swells while you watch** | Someone released, right then. Shikai, Bankai, or a Flex |
@@ -228,6 +236,22 @@ Rough sizes for the same soul, at the same distance:
 | Bankai | ×3.6 |
 | + Spiritual Flex | ×2.1 on top of whichever of the above they are in |
 | Bankai + Flex | ×7.6 — the loudest thing a soul can be |
+
+**Creatures are ranked by body, not by soul** — the only thing they have to be ranked by. Roughly,
+smallest to largest, at the same distance:
+
+| | |
+|---|---|
+| Sparks | silverfish, chicken, rabbit, bee |
+| Small fires | zombie, skeleton, creeper, pig, breeze, phantom |
+| Proper fires | cow, sheep, enderman, spider |
+| Big fires | warden, wither, iron golem, ravager |
+| Bonfires | ghast, ender dragon |
+
+Even the ender dragon reads a shade **under** a Soul Level 20 player. Being enormous is not the same
+as being strong, and the sense will not pretend otherwise. Note also that creatures still only carry
+**64 blocks** however big they are — size makes a soul louder, never the room smaller — so anything
+you can feel from further away than that is a person, no exceptions.
 
 ---
 

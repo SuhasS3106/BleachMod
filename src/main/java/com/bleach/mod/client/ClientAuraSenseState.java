@@ -52,6 +52,11 @@ public final class ClientAuraSenseState {
 		public final int id;
 		public final int color;
 		public final int soulLevel;
+		/**
+		 * How physically big the creature is, blocks · {@code AuraSense#body}. Only consulted for a
+		 * soul with no Soul Level to be sized by; a player is measured by their soul, not their body.
+		 */
+		public final float body;
 
 		/** Newest position the server reported, in world space. */
 		private Vec3 target;
@@ -64,10 +69,11 @@ public final class ClientAuraSenseState {
 		/** Seconds since this aura was last in a packet. Drives the fade-out. */
 		private double staleSeconds;
 
-		private Reading(int id, int color, int soulLevel, Vec3 position, float burn) {
+		private Reading(int id, int color, int soulLevel, float body, Vec3 position, float burn) {
 			this.id = id;
 			this.color = color;
 			this.soulLevel = soulLevel;
+			this.body = body;
 			this.target = position;
 			this.drawn = position;
 			this.targetBurn = burn;
@@ -142,7 +148,7 @@ public final class ClientAuraSenseState {
 			Reading existing = READINGS.get(aura.entityId());
 			if (existing == null) {
 				READINGS.put(aura.entityId(), new Reading(aura.entityId(), aura.color(),
-						aura.soulLevel(), position, aura.burn()));
+						aura.soulLevel(), aura.body(), position, aura.burn()));
 			} else {
 				existing.target = position;
 				existing.targetBurn = aura.burn();

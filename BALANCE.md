@@ -553,6 +553,12 @@ Kamishini no Yari's beam is **not rendered for Gin himself**. It leaves the eye 
 | `HUD_LEVEL_TEXT_GAP` | 4 | Gap between the Soul Level figure and the left end of the bar, px |
 | `HUD_Z_DEPTH` | 0.0 | Depth the bar is lifted to — kept at 0 to respect 2D rendering and avoid clipping action messages |
 | `HUD_COLOR_LEVEL_TEXT` | `0xFFFFFF` | Soul Level figure colour |
+| `HUD_SPX_GAIN_DURATION_MILLIS` | 1400.0 | How long one `+N SPX` figure lives — the full rise and fade |
+| `HUD_SPX_GAIN_RISE_PX` | 13 | How far a figure rises over that life, scaled px |
+| `HUD_SPX_GAIN_HOLD` | 0.45 | Fraction of the life at full opacity before the fade starts |
+| `HUD_SPX_GAIN_MERGE_MILLIS` | 350.0 | Awards landing within this of the last merge into it instead of stacking |
+| `HUD_SPX_GAIN_STACK_PX` | 10 | Vertical pitch between two figures on screen at once, scaled px |
+| `HUD_COLOR_SPX_GAIN` | `0x7CE7A0` | SPX gain figure colour |
 | `STATS_COLOR_PANEL` | `0x0F1420` | Stats screen panel background |
 | `STATS_COLOR_ROW` | `0x1E2635` | Stats screen inset row background |
 | `STATS_COLOR_ACCENT` | `0x3B82F6` | Stats screen border and progress fill |
@@ -564,6 +570,20 @@ Kamishini no Yari's beam is **not rendered for Gin himself**. It leaves the eye 
 | `WSL_RECOMPUTE_DAYS` | 1 | MC days between WSL recomputes |
 | `WSL_PLAYTIME_WINDOW_DAYS` | 7 | MC days of playtime that count toward WSL |
 | `MOD_ENABLED` | `true` | Master on/off switch. Not a balance value — a diagnostic one |
+
+**The `+N SPX` popup is pushed by the server, not inferred by the client.** The obvious alternative —
+watch the synced `spx` figure and show the difference — is wrong, and quietly so: SPX is a bank that
+is **filled and spent in the same tick**, because a kill awards into it and `SoulLevel#levelUp`
+immediately draws levels out of it. A kill worth 30 that buys a 40-point level syncs a bank that fell
+by ten, so the difference would read `−10 SPX` on the single occasion the player most wants to be told
+they gained something. Reconstructing the award from the level-up would need the client to know the
+cost of every level crossed, and the curve lives in server-side tuning that is deliberately never
+synced. So `SpxGainPayload` carries one int, sent only when there is an award to report.
+
+**Both flank figures are clamped on screen.** The bar is vanilla's fixed 182 pixels and cannot shrink,
+so below a GUI width of about 210 the flanks run out of room and a figure walks off the edge — which
+is what was clipping the Soul Level at high GUI scales and in narrow windows. Clamping trades the gap
+for legibility: the number closes on the bar's end and, at worst, touches it.
 
 `MOD_ENABLED` lives here only because this file already gives it persistence, a config key and
 `/bleach reload`. It is owned at runtime by `ModToggle`, which is what game code reads. Switched
@@ -631,8 +651,11 @@ above meaningless.
 | `AURA_EYELID_CLOSE_MILLIS` | 260.0 | ms | Time the lid takes to fall |
 | `AURA_EYELID_OPEN_MILLIS` | 170.0 | ms | Time the lid takes to lift — faster, as it is |
 | `AURA_VISION_THRESHOLD` | 0.86 | fraction | How far the lid must fall before any aura is drawn |
-| `AURA_SIZE_BASE` | 1.6 | world units | Aura radius for an unranked entity |
+| `AURA_SIZE_BASE` | 1.6 | world units | Aura radius before Soul Level — the floor for a player at SL 1 |
 | `AURA_SIZE_PER_LEVEL` | 0.32 | world units/level | Added radius per Soul Level |
+| `AURA_MOB_SIZE_BASE` | 0.55 | world units | Aura radius floor for any creature |
+| `AURA_MOB_SIZE_PER_BLOCK` | 1.35 | world units/block | Added radius per block of measured body size |
+| `AURA_MOB_SIZE_CAP` | 5.0 | blocks | Ceiling on the measured size fed into the above |
 | `AURA_MIN_RADIUS_PX` | 2.5 | scaled px | Floor on the drawn radius — a far aura is a spark, never nothing |
 | `AURA_MAX_RADIUS_PX` | 110.0 | scaled px | Ceiling **at rest**, so a neighbour cannot white out the screen |
 | `AURA_MAX_BURN_RADIUS_PX` | 430.0 | scaled px | Ceiling once burn is applied — a released Bankai on top of you is meant to fill the view |
@@ -647,6 +670,41 @@ units; the perspective divide is what makes it shrink with distance. So "inverse
 distance, proportional to Soul Level" falls out of drawing the blob where it actually is, and the
 two pixel clamps exist only to stop the far end rounding to zero and the near end filling the
 screen. Burn (§N.2) scales that world radius before the divide, so it stays proportional to both.
+
+**A creature is sized by its body, because it has no soul to be sized by.** The measure is the cube
+root of its bounding box volume — an effective diameter, so a wide flat spider and a tall thin breeze
+both land mid-scale rather than one of them being scored on the single dimension it happens to be
+large in. Cube-rooting compresses the range honestly: an ender dragon is two thousand chickens by
+volume and about twenty-six by this measure, which is a number a radius can be built from.
+
+| Creature | Measure | Aura radius |
+|---|---|---|
+| Silverfish | 0.36 | 1.04 |
+| Chicken | 0.48 | 1.20 |
+| Bee | 0.67 | 1.45 |
+| Zombie, skeleton | 0.89 | 1.75 |
+| Pig, breeze | 0.90 | 1.77 |
+| Cow, sheep, enderman | 1.04 | 1.96 |
+| Spider | 1.21 | 2.18 |
+| Warden | 1.33 | 2.35 |
+| Iron golem | 1.74 | 2.90 |
+| Ravager | 2.03 | 3.29 |
+| Ghast | 4.00 | 5.95 |
+| Ender dragon | 12.7 → capped 5.0 | 7.30 |
+
+For scale, a player runs **1.92 at Soul Level 1 to 8.00 at Soul Level 20**. So a bee sits under the
+weakest shinigami and the largest creature alive sits just under the strongest — which is the line
+`AURA_MOB_SIZE_CAP` exists to hold. Physical bulk is not spiritual weight, however much of it there
+is, and a sense that let a ghast outshine a Bankai would be reporting the wrong thing.
+
+The measure is read off the **live** bounding box rather than the entity type, so a baby zombie reads
+smaller than an adult and a size-4 magma cube reads bigger than a size-1 — no table to maintain, and
+correct for modded mobs the sense has never heard of. It rides the wire as one byte in eighths of a
+block; a float would be three bytes an entry for precision nothing downstream can use.
+
+**Reach is not affected.** A creature is felt at `AURA_RANGE_UNRANKED` whatever its size, for the same
+reason burn does not widen reach (§N.2): size says how loud, not how far. A ghast is a bonfire inside
+64 blocks and nothing at all outside them, so "a distant aura is always a person" still holds.
 
 ### N.3 Aura Sense flame · *the particle fire*
 

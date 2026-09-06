@@ -53,6 +53,11 @@ import net.minecraft.world.phys.Vec3;
  * behind it. The clamps at both ends only stop a far aura rounding to nothing and a neighbour
  * whiting out the screen.
  *
+ * <p>A creature has no Soul Level, so its world radius comes from how much of the world it takes up
+ * instead — a measure the server sends because at these ranges there is no entity here to measure.
+ * That keeps every soul on screen on one continuous scale: a bee is a spark, a ghast is a bonfire,
+ * and nothing is an anonymous dot for want of a number to size it by.
+ *
  * <h2>A soul burns, and fire is a population</h2>
  *
  * <p>The drawn radius is not a shape to fill; it is the size of a <b>fire</b> · {@link AuraFlame}.
@@ -94,6 +99,13 @@ public final class AuraSenseOverlay {
 
 	/** How far the centre of the haze is pulled toward white. The core of a fire is not its colour. */
 	private static final float CORE_WHITENING = 0.45f;
+
+	/**
+	 * Soul Level the server sends for anything that has none · {@code AuraSense}. Players start at 1,
+	 * so this is an unambiguous "size this one by its body, not by its soul" and not a sentinel that
+	 * a real reading could ever collide with.
+	 */
+	private static final int UNRANKED_SOUL_LEVEL = 0;
 
 	/**
 	 * One live fire per soul, keyed on entity id. Kept here rather than on the reading because a
@@ -208,9 +220,14 @@ public final class AuraSenseOverlay {
 
 			// Soul Level sets the resting size and burn multiplies it, so the two stay proportional
 			// all the way up: the same release reads bigger on a bigger soul, which is the point.
+			// A creature has no Soul Level, so it is sized by its body instead — the one thing it
+			// does have — and burns at a flat ×1, which leaves the multiply harmless either way.
 			float burn = Math.max(0.0f, reading.burn());
-			double worldRadius = (BleachTuning.AURA_SIZE_BASE
-					+ BleachTuning.AURA_SIZE_PER_LEVEL * reading.soulLevel) * burn;
+			double worldRadius = (reading.soulLevel > UNRANKED_SOUL_LEVEL
+					? BleachTuning.AURA_SIZE_BASE
+							+ BleachTuning.AURA_SIZE_PER_LEVEL * reading.soulLevel
+					: BleachTuning.AURA_MOB_SIZE_BASE + BleachTuning.AURA_MOB_SIZE_PER_BLOCK
+							* Math.min(reading.body, BleachTuning.AURA_MOB_SIZE_CAP)) * burn;
 
 			// The resting ceiling is what stops a neighbour whiting out the screen; a soul that is
 			// actually burning is allowed past it, up to a ceiling of its own, or the clamp would

@@ -790,6 +790,25 @@ public final class BleachTuning {
 	public static double HUD_Z_DEPTH = 0.0;
 	/** Soul Level figure colour, packed RGB. */
 	public static int HUD_COLOR_LEVEL_TEXT = 0xFFFFFF;
+
+	/*
+	 * The "+30 SPX" that rises off the bar on a kill. Sent by the server as it makes the award rather
+	 * than differenced from the synced bank, which cannot work: SPX is filled and spent on levels in
+	 * the same tick · SpxGainPayload.
+	 */
+
+	/** How long one figure lives, milliseconds — the full rise and fade. */
+	public static double HUD_SPX_GAIN_DURATION_MILLIS = 1400.0;
+	/** How far a figure rises over that life, scaled pixels. */
+	public static int HUD_SPX_GAIN_RISE_PX = 13;
+	/** Fraction of the life spent at full opacity before the fade starts, 0..1. */
+	public static double HUD_SPX_GAIN_HOLD = 0.45;
+	/** Awards landing within this of the last one merge into it instead of stacking, milliseconds. */
+	public static double HUD_SPX_GAIN_MERGE_MILLIS = 350.0;
+	/** Vertical pitch between two figures on screen at once, scaled pixels. */
+	public static int HUD_SPX_GAIN_STACK_PX = 10;
+	/** SPX gain figure colour, packed RGB. */
+	public static int HUD_COLOR_SPX_GAIN = 0x7CE7A0;
 	/**
 	 * Reiatsu overlay alpha by amplifier, as a fraction. The PRD's "screen shake" ships first as this
 	 * HUD-layer substitute — a real camera hook is a renderer mixin, and the plan says to try the
@@ -873,10 +892,29 @@ public final class BleachTuning {
 	public static double AURA_EYELID_OPEN_MILLIS = 170.0;
 	/** How far the lid must have fallen before any aura is drawn, as a fraction of its travel. */
 	public static double AURA_VISION_THRESHOLD = 0.86;
-	/** Aura radius for an unranked entity, in world units — projection turns this into 1/distance. */
+	/** Aura radius before Soul Level, world units — the floor for a player at SL 1. */
 	public static double AURA_SIZE_BASE = 1.6;
 	/** Added aura radius per Soul Level, in world units. */
 	public static double AURA_SIZE_PER_LEVEL = 0.32;
+
+	/*
+	 * A creature has no Soul Level, so it is sized by the only thing it does have: how much of the
+	 * world it takes up. The measure is the cube root of its bounding box's volume, sent over the
+	 * wire because at these ranges there is no entity on the client to measure · AuraSense#body.
+	 * Roughly: silverfish 0.36, chicken 0.48, bee 0.67, zombie 0.89, cow 1.04, spider 1.21,
+	 * iron golem 1.74, ravager 2.03, ghast 4.0, ender dragon 12.7.
+	 */
+
+	/** Aura radius floor for any creature, world units. Even a bee is something. */
+	public static double AURA_MOB_SIZE_BASE = 0.55;
+	/** Added aura radius per block of measured body size, world units. */
+	public static double AURA_MOB_SIZE_PER_BLOCK = 1.35;
+	/**
+	 * Ceiling on the measured size fed into the above, blocks. Holds the very largest creature alive
+	 * just under a fully realised Soul Level 20 player, which is the line the sense is worth keeping:
+	 * physical bulk is not spiritual weight, however much of it there is.
+	 */
+	public static double AURA_MOB_SIZE_CAP = 5.0;
 	/** Floor on the drawn radius, scaled pixels — a far aura is a spark, never nothing. */
 	public static double AURA_MIN_RADIUS_PX = 2.5;
 	/** Ceiling on the drawn radius at rest, scaled pixels, so a neighbour does not white out. */

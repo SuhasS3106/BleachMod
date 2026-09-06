@@ -28,6 +28,7 @@ public final class BleachNetworking {
 		PayloadTypeRegistry.playS2C().register(EnmaKorogiSyncPayload.TYPE, EnmaKorogiSyncPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(GinBeamStatePayload.TYPE, GinBeamStatePayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(AuraSensePayload.TYPE, AuraSensePayload.STREAM_CODEC);
+		PayloadTypeRegistry.playS2C().register(SpxGainPayload.TYPE, SpxGainPayload.STREAM_CODEC);
 
 		PayloadTypeRegistry.playC2S().register(AbilityActivatePayload.TYPE, AbilityActivatePayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(ModTogglePayload.Request.TYPE, ModTogglePayload.Request.STREAM_CODEC);
@@ -57,5 +58,13 @@ public final class BleachNetworking {
 
 	public static void sendSync(ServerPlayer player, SpiritualSyncPayload payload) {
 		ServerPlayNetworking.send(player, payload);
+	}
+
+	/** Tell one player what they just earned, for the HUD popup · {@code SpxGainPayload}. */
+	public static void sendSpxGain(ServerPlayer player, int amount) {
+		if (amount <= 0) {
+			return;
+		}
+		ServerPlayNetworking.send(player, new SpxGainPayload(amount));
 	}
 }
