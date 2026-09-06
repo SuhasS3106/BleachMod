@@ -2,11 +2,13 @@ package com.bleach.mod.item;
 
 import com.bleach.mod.tuning.BleachTuning;
 
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.SwordItem;
 import net.minecraft.world.item.Tiers;
+import net.minecraft.world.item.component.Unbreakable;
 
 /**
  * A character's zanpakutō · PRD §3.1–3.2. One instance per kit, minted by {@link BleachItems}.
@@ -36,9 +38,11 @@ public class ZanpakutoItem extends SwordItem {
 				.stacksTo(1)
 				.rarity(Rarity.EPIC)
 				.fireResistant()
-				// No durability(): an item with no max damage never breaks. A zanpakutō that could be
-				// worn out would be a zanpakutō the player has to be protected from losing, and the
-				// whole point of the attachment is that it cannot be lost.
+				// SwordItem derives max durability from Tiers.IRON regardless of this builder, so it
+				// must be neutralized explicitly: a zanpakutō that could be worn out would be a
+				// zanpakutō the player has to be protected from losing, and the whole point of the
+				// attachment is that it cannot be lost.
+				.component(DataComponents.UNBREAKABLE, new Unbreakable(true))
 				.attributes(SwordItem.createAttributes(Tiers.IRON,
 						BleachTuning.ZANPAKUTO_ATTACK_DAMAGE,
 						(float) BleachTuning.ZANPAKUTO_ATTACK_SPEED));

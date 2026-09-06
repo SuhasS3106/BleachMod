@@ -48,6 +48,7 @@ public class BleachMod implements ModInitializer {
 
 		BleachAttachments.register();
 		BleachNetworking.register();
+		ServerFlightFix.register();
 		AbilityCooldowns.register();
 		AbilityRegistry.registerDefaults();
 		MeleeHooks.register();
