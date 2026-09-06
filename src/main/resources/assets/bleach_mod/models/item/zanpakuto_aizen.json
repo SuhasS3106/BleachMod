@@ -1,0 +1,10 @@
+{
+	"__comment": "Base is the Asauchi's shape, as every blade's is. Kyōka Suigetsu swaps in at bleach_mod:released 0.5 — Shikai — and an override with no upper bound also covers Bankai, which is correct until a separate Bankai model exists to claim 1. See client/ZanpakutoModels.",
+	"parent": "bleach_mod:item/asauchi",
+	"overrides": [
+		{
+			"predicate": {"bleach_mod:released": 0.5},
+			"model": "bleach_mod:item/zanpakuto_aizen_shikai"
+		}
+	]
+}

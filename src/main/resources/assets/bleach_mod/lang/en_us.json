@@ -1,0 +1,43 @@
+{
+	"key.categories.bleach_mod": "Bleach",
+
+	"key.bleach_mod.flash_step": "Flash Step",
+	"key.bleach_mod.shikai": "Shikai",
+	"key.bleach_mod.bankai": "Bankai",
+	"key.bleach_mod.flex": "Spiritual Flex (hold)",
+	"key.bleach_mod.aura_sense": "Aura Sense (hold)",
+	"key.bleach_mod.hover": "Hover (hold)",
+	"key.bleach_mod.draw_sheathe": "Draw / Sheathe Zanpakutō",
+	"key.bleach_mod.stats": "Soul Stats",
+	"key.bleach_mod.toggle_mod": "Toggle Bleach Mod",
+
+	"screen.bleach_mod.stats": "Soul Stats",
+	"screen.bleach_mod.stats.wsl": "World Soul Level",
+	"screen.bleach_mod.stats.soul_level": "Soul Level",
+	"screen.bleach_mod.stats.spx": "Soul Points",
+	"screen.bleach_mod.stats.capped": "Maximum",
+	"screen.bleach_mod.stats.remaining": "Cap remaining today",
+	"screen.bleach_mod.stats.catch_up": "Catch-up",
+	"screen.bleach_mod.stats.mob_scalar": "Mob damage",
+	"screen.bleach_mod.stats.regen": "SP regen",
+
+	"effect.bleach_mod.reiatsu": "Reiatsu",
+	"effect.bleach_mod.freeze": "Freeze",
+	"effect.bleach_mod.sakanade": "Sakanade",
+
+	"death.attack.bleach_mod.spirit_pressure":"%1$s was crushed by spiritual pressure",
+	"death.attack.bleach_mod.spirit_pressure.player": "%1$s was crushed by %2$s's spiritual pressure",
+	"death.attack.bleach_mod.spirit_mechanic_kill": "%1$s was struck down",
+	"death.attack.bleach_mod.spirit_mechanic_kill.player": "%1$s was struck down by %2$s",
+
+	"item.bleach_mod.asauchi": "Asauchi",
+	"item.bleach_mod.reforged_asauchi": "Reforged Asauchi",
+	"item.bleach_mod.zanpakuto_ichigo": "Zangetsu",
+	"item.bleach_mod.zanpakuto_yamamoto": "Ryūjin Jakka",
+	"item.bleach_mod.zanpakuto_suifeng": "Suzumebachi",
+	"item.bleach_mod.zanpakuto_rukia": "Sode no Shirayuki",
+	"item.bleach_mod.zanpakuto_shinji": "Sakanade",
+	"item.bleach_mod.zanpakuto_aizen": "Kyōka Suigetsu",
+	"item.bleach_mod.zanpakuto_tosen": "Suzumushi",
+	"item.bleach_mod.zanpakuto_gin": "Shinsō"
+}

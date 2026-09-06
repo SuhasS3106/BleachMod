@@ -1,0 +1,16 @@
+{
+  "CONFIG_VERSION": 5,
+  "_comment": "Only values you have changed are stored here. Anything absent follows the mod's own default and updates automatically when the mod does. See tuning-defaults.json for the full list of keys and their current defaults — that file is regenerated every launch and editing it does nothing.",
+  "SL_MAX": 25,
+  "FS_NO_FALL_DAMAGE": false,
+  "REIATSU_SPEED_MULT": [
+    -0.1,
+    -0.2,
+    -0.3,
+    -0.9
+  ],
+  "TOSEN_SHIKAI_RADIUS": 40.0,
+  "MOB_SPX": {
+    "minecraft:zombie": 7
+  }
+}

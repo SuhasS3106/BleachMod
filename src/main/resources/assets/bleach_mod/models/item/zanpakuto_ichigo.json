@@ -1,0 +1,10 @@
+{
+	"__comment": "Base and Shikai are the Asauchi's shape, as every blade's are. The override swaps in Tensa Zangetsu at bleach_mod:released 1, which is Bankai — the predicate is state/2, so Shikai reads 0.5 and does not reach it. See client/ZanpakutoModels.",
+	"parent": "bleach_mod:item/asauchi",
+	"overrides": [
+		{
+			"predicate": {"bleach_mod:released": 1},
+			"model": "bleach_mod:item/zanpakuto_ichigo_bankai"
+		}
+	]
+}

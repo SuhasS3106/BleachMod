@@ -1,0 +1,34 @@
+{
+	"schemaVersion": 1,
+	"id": "bleach_mod",
+	"version": "${version}",
+	"name": "Bleach",
+	"description": "Spiritual pressure, zanpakutō and released states for PvP-first survival servers. Vanilla mechanics only.",
+	"authors": [
+		"kingskod1399"
+	],
+	"contact": {},
+	"license": "CC0-1.0",
+	"icon": "assets/bleach_mod/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.bleach.mod.BleachMod"
+		],
+		"client": [
+			"com.bleach.mod.BleachModClient"
+		],
+		"fabric-datagen": [
+			"com.bleach.mod.BleachModDataGenerator"
+		]
+	},
+	"mixins": [
+		"bleach_mod.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
