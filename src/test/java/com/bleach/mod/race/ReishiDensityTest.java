@@ -76,4 +76,16 @@ class ReishiDensityTest {
 		BleachTuning.REISHI_SUBMERGED_PENALTY = -5.0;   // a config file can hold anything
 		assertTrue(ReishiDensity.multiplier(1.0, 0, false, true, false) > 0.0);
 	}
+
+	@Test
+	void ceilingHoldsEvenWhenExposureWeightsSumAboveOne() {
+		// The two weights are meant to sum to 1.0 (BALANCE.md), but they are public static non-final
+		// knobs a balance pass is free to retune independently. If their sum climbs above 1.0, the
+		// documented ceiling must still hold rather than being blown past by luck of the current
+		// defaults.
+		BleachTuning.REISHI_SKYLIGHT_WEIGHT = 0.9;
+		BleachTuning.REISHI_SKY_ACCESS_WEIGHT = 0.9;
+		double result = ReishiDensity.multiplier(1.0, 15, true, false, true);
+		assertEquals(BleachTuning.REISHI_MULT_MAX, result, 1e-9);
+	}
 }

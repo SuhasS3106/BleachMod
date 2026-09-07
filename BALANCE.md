@@ -883,6 +883,7 @@ multiplied by the environment. `Races.SHINIGAMI` has a sensitivity of 0 and is n
 | `REISHI_SKY_ACCESS_WEIGHT` | 0.4 | frac | Share bought by having a clear column to the sky |
 | `REISHI_SUBMERGED_PENALTY` | 0.7 | × | Applied on top while submerged |
 | `REISHI_NO_SKY_DIMENSION_PENALTY` | 0.6 | × | Applied on top in a dimension with no natural sky |
+| `REISHI_MULT_ABSOLUTE_FLOOR` | 0.01 | × | Absolute floor the final multiplier can never drop below |
 
 The two weights are a share of the span between floor and ceiling and should sum to 1.0. They are
 separate keys rather than one because sky *access* and sky *light* differ at night: standing outside

@@ -13,6 +13,8 @@ public final class ReishiDensity {
 	private ReishiDensity() {
 	}
 
+	// Engine invariant, not a balance knob: Minecraft's sky light is fixed 0..15 by the game itself,
+	// and making this tunable would let a config describe values the engine can never emit.
 	private static final int MAX_SKY_LIGHT = 15;
 
 	/**
@@ -36,6 +38,14 @@ public final class ReishiDensity {
 		double raw = BleachTuning.REISHI_MULT_MIN
 				+ (BleachTuning.REISHI_MULT_MAX - BleachTuning.REISHI_MULT_MIN) * exposure;
 
+		// Defend the documented [MULT_MIN, MULT_MAX] span explicitly rather than relying on the two
+		// exposure weights above summing to 1.0 — a balance pass is free to retune either one, and if
+		// their sum ever exceeds 1.0 this clamp is what keeps `raw` from blowing past the ceiling.
+		// This happens BEFORE the penalties below on purpose: those are meant to push the result under
+		// MULT_MIN, and REISHI_MULT_ABSOLUTE_FLOOR at the end is what catches that — clamping against
+		// MULT_MIN again after the penalties would silently cancel them out.
+		raw = Math.max(BleachTuning.REISHI_MULT_MIN, Math.min(BleachTuning.REISHI_MULT_MAX, raw));
+
 		if (submerged) {
 			raw *= BleachTuning.REISHI_SUBMERGED_PENALTY;
 		}
@@ -49,6 +59,6 @@ public final class ReishiDensity {
 
 		// A config file can hold any number somebody types into it, and a non-positive regen
 		// multiplier would freeze the pool outright rather than merely slowing it.
-		return Math.max(0.01, scaled);
+		return Math.max(BleachTuning.REISHI_MULT_ABSOLUTE_FLOOR, scaled);
 	}
 }

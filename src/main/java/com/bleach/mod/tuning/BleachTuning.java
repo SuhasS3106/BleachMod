@@ -771,6 +771,8 @@ public final class BleachTuning {
 	public static double REISHI_SUBMERGED_PENALTY = 0.7;
 	/** Multiplier applied on top in a dimension with no natural sky — the Nether. */
 	public static double REISHI_NO_SKY_DIMENSION_PENALTY = 0.6;
+	/** Absolute floor the final multiplier can never drop below, however harsh the penalties above. */
+	public static double REISHI_MULT_ABSOLUTE_FLOOR = 0.01;
 
 	// ================================================================================
 	// K. Networking and presentation · BALANCE.md §K
