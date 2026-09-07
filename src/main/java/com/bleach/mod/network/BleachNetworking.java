@@ -29,6 +29,7 @@ public final class BleachNetworking {
 		PayloadTypeRegistry.playS2C().register(GinBeamStatePayload.TYPE, GinBeamStatePayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(AuraSensePayload.TYPE, AuraSensePayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(SpxGainPayload.TYPE, SpxGainPayload.STREAM_CODEC);
+		PayloadTypeRegistry.playS2C().register(KaromatsuSyncPayload.TYPE, KaromatsuSyncPayload.STREAM_CODEC);
 
 		PayloadTypeRegistry.playC2S().register(AbilityActivatePayload.TYPE, AbilityActivatePayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(ModTogglePayload.Request.TYPE, ModTogglePayload.Request.STREAM_CODEC);

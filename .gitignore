@@ -1,23 +1,20 @@
 # gradle
-
 .gradle/
 build/
 out/
 classes/
+.loom/
 
 # eclipse
-
 *.launch
 
 # idea
-
 .idea/
 *.iml
 *.ipr
 *.iws
 
 # vscode
-
 .settings/
 .vscode/
 bin/
@@ -25,28 +22,49 @@ bin/
 .project
 
 # macos
-
 *.DS_Store
+.AppleDouble
+.LSOverride
+._*
 
-# fabric
+# windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
+# fabric / minecraft runtime
 run/
+runClient/
+runServer/
+runData/
+*.log
+*.log.gz
+crash-reports/
+logs/
 
 # java
-
 hs_err_*.log
 replay_*.log
 *.hprof
 *.jfr
 
-# summaries
-
+# summaries & scratch docs
 summaryphase*.md
 IMPLEMENTATION_PLAN.md
 new_demands.md
 prompts.md
 
 # python
-
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+.pytest_cache/
+venv/
+.venv/
+env/
+.env
+
+# environment & local overrides
+.env.local
+*.local
+

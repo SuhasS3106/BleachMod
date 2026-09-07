@@ -33,10 +33,11 @@ public final class BleachKits {
 	public static final ResourceLocation AIZEN = BleachMod.id("aizen");
 	public static final ResourceLocation TOSEN = BleachMod.id("tosen");
 	public static final ResourceLocation GIN = BleachMod.id("gin");
+	public static final ResourceLocation SHUNSUI = BleachMod.id("shunsui");
 
 	/** Every kit id, in menu order. Read by {@code BleachItems} to mint one sword per kit. */
 	public static final List<ResourceLocation> IDS = List.of(
-			ICHIGO, YAMAMOTO, SUIFENG, RUKIA, SHINJI, AIZEN, TOSEN, GIN);
+			ICHIGO, YAMAMOTO, SUIFENG, RUKIA, SHINJI, AIZEN, TOSEN, GIN, SHUNSUI);
 
 	/**
 	 * Called once from {@code AbilityRegistry#registerDefaults}. Registers all eight playable kits
@@ -82,5 +83,10 @@ public final class BleachKits {
 				GinTransform.shikai(), GinTransform.bankai(),
 				BleachTuning.KIT_GIN_FS_RANGE_MULT, BleachTuning.KIT_GIN_FS_COOLDOWN_MULT,
 				BleachTuning.KIT_GIN_PARTICLE_COLOR));
+
+		AbilityRegistry.registerKit(new Kit(SHUNSUI, "Shunsui Kyōraku",
+				ShunsuiTransform.shikai(), ShunsuiTransform.bankai(),
+				BleachTuning.KIT_SHUNSUI_FS_RANGE_MULT, BleachTuning.KIT_SHUNSUI_FS_COOLDOWN_MULT,
+				BleachTuning.KIT_SHUNSUI_PARTICLE_COLOR));
 	}
 }

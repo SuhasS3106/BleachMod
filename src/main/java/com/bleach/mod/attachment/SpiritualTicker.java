@@ -154,6 +154,13 @@ public final class SpiritualTicker {
 		} else if (data.sp < max) {
 			double perTick = data.regenPerSecond() * data.regenMultiplier() / BleachTuning.TICKS_PER_SECOND;
 			data.sp = Math.min(max, data.sp + perTick);
+
+			// Shunsui passive: laid-back regen bonus in base state
+			if (data.state == SpiritualData.STATE_BASE
+					&& (com.bleach.mod.ability.kits.BleachKits.SHUNSUI.toString().equals(data.characterId)
+							|| "shunsui".equals(data.characterId))) {
+				data.sp = Math.min(max, data.sp + BleachTuning.SHUNSUI_IDLE_REGEN_BONUS / BleachTuning.TICKS_PER_SECOND);
+			}
 		}
 
 		// The only place exertion ever clears. Checked outside the pause branch so a player who is
@@ -167,7 +174,11 @@ public final class SpiritualTicker {
 
 	private static void tickTransformed(ServerPlayer player, SpiritualData data) {
 		data.exertion += data.exertionRatePerSecond() / BleachTuning.TICKS_PER_SECOND;
-		data.sp -= data.drainPerSecond() / BleachTuning.TICKS_PER_SECOND;
+
+		// Act 3 drain gate: KaromatsuManager applies its own drain; normal Bankai drain is suspended.
+		if (!com.bleach.mod.ability.kits.KaromatsuManager.isInAct3(player)) {
+			data.sp -= data.drainPerSecond() / BleachTuning.TICKS_PER_SECOND;
+		}
 
 		if (data.sp <= 0.0) {
 			data.sp = 0.0;
