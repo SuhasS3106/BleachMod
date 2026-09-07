@@ -1,8 +1,10 @@
 package com.bleach.mod.ability;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.bleach.mod.BleachMod;
@@ -12,6 +14,7 @@ import com.bleach.mod.ability.common.Hover;
 import com.bleach.mod.ability.common.SpiritualFlex;
 import com.bleach.mod.ability.kits.BleachKits;
 import com.bleach.mod.attachment.SpiritualData;
+import com.bleach.mod.race.Race;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.resources.ResourceLocation;
@@ -96,5 +99,16 @@ public final class AbilityRegistry {
 	/** Menu order is registration order — {@link LinkedHashMap} is load-bearing for the Asauchi UI. */
 	public static Collection<Kit> kits() {
 		return Collections.unmodifiableCollection(KITS.values());
+	}
+
+	/** The kits belonging to one race, in registration order. Drives the second picker screen. */
+	public static List<Kit> kitsFor(Race race) {
+		List<Kit> matching = new ArrayList<>();
+		for (Kit kit : KITS.values()) {
+			if (kit.race().id() == race.id()) {
+				matching.add(kit);
+			}
+		}
+		return matching;
 	}
 }

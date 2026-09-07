@@ -6,6 +6,7 @@ import com.bleach.mod.BleachMod;
 import com.bleach.mod.ability.AbilityRegistry;
 import com.bleach.mod.ability.Kit;
 import com.bleach.mod.attachment.SpiritualData;
+import com.bleach.mod.race.Races;
 import com.bleach.mod.tuning.BleachTuning;
 
 import net.minecraft.resources.ResourceLocation;
@@ -46,41 +47,41 @@ public final class BleachKits {
 		AbilityRegistry.registerKit(new Kit(ICHIGO, "Ichigo Kurosaki",
 				IchigoTransform.shikai(), IchigoTransform.bankai(),
 				BleachTuning.KIT_ICHIGO_FS_RANGE_MULT, BleachTuning.KIT_ICHIGO_FS_COOLDOWN_MULT,
-				BleachTuning.KIT_ICHIGO_PARTICLE_COLOR));
+				BleachTuning.KIT_ICHIGO_PARTICLE_COLOR, Races.SHINIGAMI));
 
 		AbilityRegistry.registerKit(new Kit(YAMAMOTO, "Genryūsai Yamamoto",
 				YamamotoTransform.shikai(), YamamotoTransform.bankai(),
 				BleachTuning.KIT_YAMAMOTO_FS_RANGE_MULT, BleachTuning.KIT_YAMAMOTO_FS_COOLDOWN_MULT,
-				BleachTuning.KIT_YAMAMOTO_PARTICLE_COLOR));
+				BleachTuning.KIT_YAMAMOTO_PARTICLE_COLOR, Races.SHINIGAMI));
 
 		AbilityRegistry.registerKit(new Kit(SUIFENG, "Suì-Fēng",
 				SuiFengTransform.shikai(), SuiFengTransform.bankai(),
 				BleachTuning.KIT_SUIFENG_FS_RANGE_MULT, BleachTuning.KIT_SUIFENG_FS_COOLDOWN_MULT,
-				BleachTuning.KIT_SUIFENG_PARTICLE_COLOR));
+				BleachTuning.KIT_SUIFENG_PARTICLE_COLOR, Races.SHINIGAMI));
 
 		AbilityRegistry.registerKit(new Kit(RUKIA, "Rukia Kuchiki",
 				RukiaTransform.shikai(), RukiaTransform.bankai(),
 				BleachTuning.KIT_RUKIA_FS_RANGE_MULT, BleachTuning.KIT_RUKIA_FS_COOLDOWN_MULT,
-				BleachTuning.KIT_RUKIA_PARTICLE_COLOR));
+				BleachTuning.KIT_RUKIA_PARTICLE_COLOR, Races.SHINIGAMI));
 
 		AbilityRegistry.registerKit(new Kit(SHINJI, "Shinji Hirako",
 				ShinjiTransform.shikai(), ShinjiTransform.bankai(),
 				BleachTuning.KIT_SHINJI_FS_RANGE_MULT, BleachTuning.KIT_SHINJI_FS_COOLDOWN_MULT,
-				BleachTuning.KIT_SHINJI_PARTICLE_COLOR));
+				BleachTuning.KIT_SHINJI_PARTICLE_COLOR, Races.SHINIGAMI));
 
 		AbilityRegistry.registerKit(new Kit(AIZEN, "Sōsuke Aizen",
 				AizenTransform.shikai(), AizenTransform.bankai(),
 				BleachTuning.KIT_AIZEN_FS_RANGE_MULT, BleachTuning.KIT_AIZEN_FS_COOLDOWN_MULT,
-				BleachTuning.KIT_AIZEN_PARTICLE_COLOR));
+				BleachTuning.KIT_AIZEN_PARTICLE_COLOR, Races.SHINIGAMI));
 
 		AbilityRegistry.registerKit(new Kit(TOSEN, "Kaname Tōsen",
 				TosenTransform.shikai(), TosenTransform.bankai(),
 				BleachTuning.KIT_TOSEN_FS_RANGE_MULT, BleachTuning.KIT_TOSEN_FS_COOLDOWN_MULT,
-				BleachTuning.KIT_TOSEN_PARTICLE_COLOR));
+				BleachTuning.KIT_TOSEN_PARTICLE_COLOR, Races.SHINIGAMI));
 
 		AbilityRegistry.registerKit(new Kit(GIN, "Gin Ichimaru",
 				GinTransform.shikai(), GinTransform.bankai(),
 				BleachTuning.KIT_GIN_FS_RANGE_MULT, BleachTuning.KIT_GIN_FS_COOLDOWN_MULT,
-				BleachTuning.KIT_GIN_PARTICLE_COLOR));
+				BleachTuning.KIT_GIN_PARTICLE_COLOR, Races.SHINIGAMI));
 	}
 }
