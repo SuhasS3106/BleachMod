@@ -2,6 +2,7 @@ package com.bleach.mod.menu;
 
 import java.util.List;
 
+import com.bleach.mod.BleachMod;
 import com.bleach.mod.ability.AbilityRegistry;
 import com.bleach.mod.ability.Kit;
 import com.bleach.mod.attachment.BleachAttachments;
@@ -62,6 +63,15 @@ public class ZanpakutoSelectMenu extends ChestMenu {
 			return;
 		}
 
+		if (races.size() > ROW) {
+			// The exact failure this task exists to stop being silent: a race beyond the row limit
+			// would render with no error and no way to select it. Truncation below is unchanged —
+			// this is a diagnostic, not a fix — but the next person hits a log line, not a ghost.
+			BleachMod.LOGGER.warn(
+					"Race picker has {} races but only {} slots — {} will not be selectable",
+					races.size(), ROW, races.size() - ROW);
+		}
+
 		SimpleContainer display = new SimpleContainer(ROW);
 		for (int i = 0; i < races.size() && i < ROW; i++) {
 			display.setItem(i, raceStack(races.get(i)));
@@ -80,6 +90,14 @@ public class ZanpakutoSelectMenu extends ChestMenu {
 			player.displayClientMessage(
 					Component.literal("No characters are available for that race yet."), true);
 			return;
+		}
+
+		if (choices.size() > ROW) {
+			// Same diagnostic as the race screen: a race with more than nine kits would otherwise
+			// drop the extras with no error and no way to select them. Truncation below is unchanged.
+			BleachMod.LOGGER.warn(
+					"{} has {} kits but only {} slots — {} will not be selectable",
+					race.displayName(), choices.size(), ROW, choices.size() - ROW);
 		}
 
 		SimpleContainer display = new SimpleContainer(ROW);
