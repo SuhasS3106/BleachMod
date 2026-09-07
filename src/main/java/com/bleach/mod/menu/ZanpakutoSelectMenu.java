@@ -181,14 +181,21 @@ public class ZanpakutoSelectMenu extends ChestMenu {
 			return;
 		}
 
-		// Consume whichever token opened the menu. Found by scanning rather than remembered from the
-		// open call: the player is free to move it between slots while the menu is up.
+		// Consume whichever token opened the menu. Prefer the held item — a player holding a plain
+		// Asauchi while a Reforged one sits earlier in the inventory must lose the one they actually
+		// clicked, not whichever comes first in slot order. Fall back to the scan only when the main
+		// hand isn't a selector, since the player is free to move it between slots while the menu is
+		// up.
 		int token = -1;
 		Inventory inventory = player.getInventory();
-		for (int i = 0; i < inventory.getContainerSize(); i++) {
-			if (BleachItems.isSelector(inventory.getItem(i))) {
-				token = i;
-				break;
+		if (BleachItems.isSelector(player.getMainHandItem())) {
+			token = inventory.selected;
+		} else {
+			for (int i = 0; i < inventory.getContainerSize(); i++) {
+				if (BleachItems.isSelector(inventory.getItem(i))) {
+					token = i;
+					break;
+				}
 			}
 		}
 		if (token < 0) {
