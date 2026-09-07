@@ -868,6 +868,28 @@ path out of the channel.
 
 ---
 
+## P. Quincy
+
+### P.0 Shared race constants · *design §3.5*
+
+A Quincy draws power from ambient reishi rather than producing it internally, so their regen is
+multiplied by the environment. `Races.SHINIGAMI` has a sensitivity of 0 and is never affected.
+
+| Symbol | Default | Unit | Meaning |
+|---|---|---|---|
+| `REISHI_MULT_MIN` | 0.45 | × | Floor — deep underground, submerged, in the Nether |
+| `REISHI_MULT_MAX` | 1.35 | × | Ceiling — open sky, full daylight |
+| `REISHI_SKYLIGHT_WEIGHT` | 0.6 | frac | Share of the span bought by sky light level |
+| `REISHI_SKY_ACCESS_WEIGHT` | 0.4 | frac | Share bought by having a clear column to the sky |
+| `REISHI_SUBMERGED_PENALTY` | 0.7 | × | Applied on top while submerged |
+| `REISHI_NO_SKY_DIMENSION_PENALTY` | 0.6 | × | Applied on top in a dimension with no natural sky |
+
+The two weights are a share of the span between floor and ceiling and should sum to 1.0. They are
+separate keys rather than one because sky *access* and sky *light* differ at night: standing outside
+at midnight still beats standing in a cave, which is the distinction a Quincy should feel.
+
+---
+
 ## L. Where each constant is consumed
 
 Kept current so a balance change never requires a codebase search.

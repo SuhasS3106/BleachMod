@@ -757,6 +757,21 @@ public final class BleachTuning {
 	/** Spacing between beam particles, in blocks. Smaller is a more continuous stream. */
 	public static double GIN_BANKAI_BEAM_PARTICLE_STEP = 0.6;
 
+	// --- P.0 Quincy · shared race constants ------------------------------------------
+
+	/** Floor on a Quincy's environment regen multiplier — deep underground, submerged, in the Nether. */
+	public static double REISHI_MULT_MIN = 0.45;
+	/** Ceiling — open sky, full daylight. */
+	public static double REISHI_MULT_MAX = 1.35;
+	/** How much of the span is bought by sky light level (0..15 normalised). */
+	public static double REISHI_SKYLIGHT_WEIGHT = 0.6;
+	/** How much of the span is bought by having a clear column to the sky at all. */
+	public static double REISHI_SKY_ACCESS_WEIGHT = 0.4;
+	/** Multiplier applied on top while the player is submerged in fluid. */
+	public static double REISHI_SUBMERGED_PENALTY = 0.7;
+	/** Multiplier applied on top in a dimension with no natural sky — the Nether. */
+	public static double REISHI_NO_SKY_DIMENSION_PENALTY = 0.6;
+
 	// ================================================================================
 	// K. Networking and presentation · BALANCE.md §K
 	// ================================================================================
