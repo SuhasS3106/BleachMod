@@ -16,14 +16,21 @@ import com.bleach.mod.network.BleachNetworking;
 import com.bleach.mod.network.SpiritualSyncPayload;
 import com.bleach.mod.progression.SoulLevel;
 import com.bleach.mod.progression.WorldSoulLevel;
+import com.bleach.mod.race.Race;
+import com.bleach.mod.race.Races;
+import com.bleach.mod.race.ReishiDensity;
 import com.bleach.mod.tuning.BleachTuning;
 import com.bleach.mod.util.BlockQueue;
 
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.world.level.LightLayer;
 
 /**
  * The one server tick handler that owns the SP pool: regen, exertion accrual, transformation drain,
@@ -139,20 +146,21 @@ public final class SpiritualTicker {
 			if (data.isTransformed()) {
 				tickTransformed(player, data);
 			} else {
-				tickRegen(data);
+				tickRegen(player, data);
 			}
 
 			sync(player, keepalive);
 		}
 	}
 
-	private static void tickRegen(SpiritualData data) {
+	private static void tickRegen(ServerPlayer player, SpiritualData data) {
 		double max = data.maxSp();
 
 		if (data.regenPauseTicks > 0) {
 			data.regenPauseTicks--;
 		} else if (data.sp < max) {
-			double perTick = data.regenPerSecond() * data.regenMultiplier() / BleachTuning.TICKS_PER_SECOND;
+			double perTick = data.regenPerSecond() * data.regenMultiplier() * environmentMultiplier(player, data)
+					/ BleachTuning.TICKS_PER_SECOND;
 			data.sp = Math.min(max, data.sp + perTick);
 		}
 
@@ -163,6 +171,27 @@ public final class SpiritualTicker {
 		if (data.sp >= max) {
 			data.exertion = 0.0;
 		}
+	}
+
+	/**
+	 * A Quincy draws power from the world rather than producing it · design §3.5. Exactly 1.0 for
+	 * a Shinigami, whose race declares zero sensitivity, so this costs the existing path nothing
+	 * beyond one field read and a branch that is never taken.
+	 */
+	private static double environmentMultiplier(ServerPlayer player, SpiritualData data) {
+		Race race = Races.byId(data.race);
+		if (race.reishiSensitivity() <= 0.0) {
+			return 1.0;
+		}
+
+		BlockPos pos = player.blockPosition();
+		ServerLevel level = player.serverLevel();
+		return ReishiDensity.multiplier(
+				race.reishiSensitivity(),
+				level.getBrightness(LightLayer.SKY, pos),
+				level.canSeeSky(pos),
+				player.isEyeInFluid(FluidTags.WATER) || player.isEyeInFluid(FluidTags.LAVA),
+				level.dimensionType().hasSkyLight());
 	}
 
 	private static void tickTransformed(ServerPlayer player, SpiritualData data) {
