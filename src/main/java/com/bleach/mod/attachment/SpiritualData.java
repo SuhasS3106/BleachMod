@@ -110,6 +110,15 @@ public class SpiritualData {
 	public boolean flexing;
 
 	/**
+	 * Blut stance · design §5.4. 0 off, 1 Vene, 2 Arterie.
+	 *
+	 * <p>Not persisted and not in the codec, for the same reason as {@link #flexing}: it is a stance
+	 * the player is holding, and a stale value restored from disk would bill someone who is not
+	 * pressing anything.
+	 */
+	public byte blut;
+
+	/**
 	 * Whether the Aura Sense key is currently held — the player's eyes are shut. Not persisted and
 	 * not in the codec, for the same reason as {@link #flexing}: it is an edge-tracked channel, and
 	 * a stale true restored from disk would blind a player who is not pressing anything.
@@ -309,6 +318,7 @@ public class SpiritualData {
 		this.sensing = false;
 		this.hoverIntent = false;
 		this.hovering = false;
+		this.blut = 0;
 		this.sp = maxSp();
 	}
 }

@@ -33,7 +33,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
  */
 public record SpiritualSyncPayload(float sp, float maxSp, int soulLevel, int spx, int spxToNext,
 		byte state, float regenMult, float worldSoulLevel, int spxRemainingToday, float catchUp,
-		float mobScalar, boolean hovering, float shikaiGate, float bankaiGate)
+		float mobScalar, boolean hovering, float shikaiGate, float bankaiGate, byte race, byte blut)
 		implements CustomPacketPayload {
 
 	public static final CustomPacketPayload.Type<SpiritualSyncPayload> TYPE =
@@ -41,7 +41,7 @@ public record SpiritualSyncPayload(float sp, float maxSp, int soulLevel, int spx
 
 	/**
 	 * Hand-written rather than {@code StreamCodec.composite}, whose overloads stop short of the
-	 * twelve components here.
+	 * sixteen components here.
 	 */
 	public static final StreamCodec<FriendlyByteBuf, SpiritualSyncPayload> STREAM_CODEC = StreamCodec.of(
 			(buf, payload) -> {
@@ -59,6 +59,8 @@ public record SpiritualSyncPayload(float sp, float maxSp, int soulLevel, int spx
 				buf.writeBoolean(payload.hovering);
 				buf.writeFloat(payload.shikaiGate);
 				buf.writeFloat(payload.bankaiGate);
+				buf.writeByte(payload.race);
+				buf.writeByte(payload.blut);
 			},
 			buf -> new SpiritualSyncPayload(
 					buf.readFloat(),
@@ -74,7 +76,9 @@ public record SpiritualSyncPayload(float sp, float maxSp, int soulLevel, int spx
 					buf.readFloat(),
 					buf.readBoolean(),
 					buf.readFloat(),
-					buf.readFloat()));
+					buf.readFloat(),
+					buf.readByte(),
+					buf.readByte()));
 
 	/** Release threshold as a fraction of max, or 0 for a player with no character to release. */
 	private static float gate(SpiritualData data, byte state) {
@@ -100,7 +104,9 @@ public record SpiritualSyncPayload(float sp, float maxSp, int soulLevel, int spx
 				(float) SoulLevel.mobScalar(worldSoulLevel, data.soulLevel),
 				data.hovering,
 				gate(data, SpiritualData.STATE_SHIKAI),
-				gate(data, SpiritualData.STATE_BANKAI));
+				gate(data, SpiritualData.STATE_BANKAI),
+				data.race,
+				data.blut);
 	}
 
 	@Override
