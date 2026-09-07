@@ -894,10 +894,21 @@ at midnight still beats standing in a cave, which is the distinction a Quincy sh
 | Symbol | Default | Unit | Meaning |
 |---|---|---|---|
 | `REISHI_ARROW_PARTICLE_SCALE` | 0.5 | × | Quad size of the in-flight pressure-particle trail |
+| `REISHI_ARROW_WIDTH` | 0.5 | blocks | Hitbox width. Vanilla arrow's own value, kept as the default |
+| `REISHI_ARROW_HEIGHT` | 0.5 | blocks | Hitbox height. Vanilla arrow's own value, kept as the default |
+| `REISHI_ARROW_TRACKING_RANGE` | 4 | chunks | How far a client must be to have the arrow sent to it at all |
+| `REISHI_ARROW_UPDATE_INTERVAL` | 20 | ticks | How often tracking clients get a position/velocity resync |
 
-The arrow's own hitbox size, client tracking range and update interval are not here: they mirror
-vanilla's `EntityType.ARROW` registration exactly and are engine/networking parity for a fast
-projectile, not tunable balance — see the comment at `BleachEntities.register`.
+Vanilla's own `EntityType.ARROW` uses these same four defaults; they are kept as *defaults*, not
+hardcoded, because this mod's arrow is not vanilla's — a fast, long-range Quincy shot is exactly
+the kind of thing `REISHI_ARROW_TRACKING_RANGE` in particular may need to raise past vanilla's 4
+chunks (~64 blocks) once it's fired from further away than a bow ever draws.
+
+**These four are the only constants in §P.1 that `/bleach reload` cannot move.** `EntityType.Builder`
+bakes them into the built `EntityType` exactly once, when `BleachEntities` registers it at startup
+— the same restart caveat §I.1 records for the zanpakutō's attack attributes. Changing any of the
+four needs a restart; `REISHI_ARROW_PARTICLE_SCALE` above is read fresh every particle spawn and
+is not affected.
 
 ---
 
@@ -923,7 +934,7 @@ Kept current so a balance change never requires a codebase search.
 | N.2 | `ability/common/AuraSense` (`burn`), `client/AuraSenseOverlay` (applies it) |
 | O | `ability/common/Hover`, `mixin/client/LocalPlayerHoverMixin`, `client/ClientHoverState` |
 | P.0 | `race/ReishiDensity` |
-| P.1 | `entity/ReishiArrow` |
+| P.1 | `entity/ReishiArrow` (particle scale), `entity/BleachEntities` (hitbox, tracking range, update interval — registration-time) |
 
 ---
 

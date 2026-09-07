@@ -1,13 +1,20 @@
 package com.bleach.mod.entity;
 
 import com.bleach.mod.BleachMod;
+import com.bleach.mod.tuning.BleachTuning;
 
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 
-/** Every entity the mod adds. Called from {@code BleachMod#onInitialize}. */
+/**
+ * Every entity the mod adds. Called from {@code BleachMod#onInitialize}, after
+ * {@link BleachTuning#load()} so the values below reflect {@code config/bleach_mod/tuning.json}
+ * on first launch — but not after: {@code EntityType.Builder} bakes these into the built
+ * {@code EntityType} once, here, so unlike most of {@code BleachTuning} a later
+ * {@code /bleach reload} cannot move them. See {@code BALANCE.md} §P.1.
+ */
 public final class BleachEntities {
 	private BleachEntities() {
 	}
@@ -18,13 +25,9 @@ public final class BleachEntities {
 		REISHI_ARROW = Registry.register(BuiltInRegistries.ENTITY_TYPE,
 				BleachMod.id("reishi_arrow"),
 				EntityType.Builder.<ReishiArrow>of(ReishiArrow::new, MobCategory.MISC)
-						// Hitbox size, tracking range and update interval below mirror vanilla's own
-						// EntityType.ARROW registration exactly (checked against the mapped jar) — they
-						// are engine/networking parity for a fast projectile, not tunable balance, so
-						// they stay literals rather than BleachTuning fields.
-						.sized(0.5f, 0.5f)
-						.clientTrackingRange(4)
-						.updateInterval(20)
+						.sized((float) BleachTuning.REISHI_ARROW_WIDTH, (float) BleachTuning.REISHI_ARROW_HEIGHT)
+						.clientTrackingRange(BleachTuning.REISHI_ARROW_TRACKING_RANGE)
+						.updateInterval(BleachTuning.REISHI_ARROW_UPDATE_INTERVAL)
 						.build("reishi_arrow"));
 	}
 }

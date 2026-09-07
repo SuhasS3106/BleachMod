@@ -778,6 +778,20 @@ public final class BleachTuning {
 
 	/** Quad size of {@code ReishiArrow}'s in-flight pressure-particle trail. */
 	public static double REISHI_ARROW_PARTICLE_SCALE = 0.5;
+	/**
+	 * {@code ReishiArrow}'s hitbox width, in blocks. Read once by {@code BleachEntities#register}
+	 * at entity-type registration — like §I.1, a config change here needs a restart.
+	 */
+	public static double REISHI_ARROW_WIDTH = 0.5;
+	/** {@code ReishiArrow}'s hitbox height, in blocks. Same restart caveat as {@link #REISHI_ARROW_WIDTH}. */
+	public static double REISHI_ARROW_HEIGHT = 0.5;
+	/**
+	 * Chunk radius at which a tracking client is sent the arrow at all. Same restart caveat as
+	 * {@link #REISHI_ARROW_WIDTH}.
+	 */
+	public static int REISHI_ARROW_TRACKING_RANGE = 4;
+	/** Ticks between position/velocity resyncs to tracking clients. Same restart caveat as {@link #REISHI_ARROW_WIDTH}. */
+	public static int REISHI_ARROW_UPDATE_INTERVAL = 20;
 
 	// ================================================================================
 	// K. Networking and presentation · BALANCE.md §K
