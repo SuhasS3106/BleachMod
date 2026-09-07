@@ -910,6 +910,28 @@ bakes them into the built `EntityType` exactly once, when `BleachEntities` regis
 four needs a restart; `REISHI_ARROW_PARTICLE_SCALE` above is read fresh every particle spawn and
 is not affected.
 
+### P.2 Heilig Bogen · *design §4.3*
+
+The Heilig Bogen is the structural twin of the zanpakutō (§I.1): single stack, unbreakable,
+undroppable, kept on death, restored on respawn. It uses vanilla bow draw semantics rather than a
+release, so its numbers split the same way the zanpakutō's do — a deliberately weak melee stat and
+the real power in what it fires.
+
+| Symbol | Default | Unit | Meaning |
+|---|---|---|---|
+| `BOW_MELEE_DAMAGE` | 1 | — | Melee damage of the bow used as a club. Deliberately far under the zanpakutō's 3 |
+| `BOW_MELEE_SPEED` | −2.8 | — | Melee attack speed modifier for the bow |
+| `BOW_SHOT_SP_COST` | 6.0 | SP | Charged per shot, whatever the draw |
+| `BOW_FULL_DRAW_TICKS` | 20 | ticks | Draw time for a full-power shot |
+| `BOW_ARROW_DAMAGE` | 7.0 | hp | Arrow damage at a full draw, before Soul Level scaling |
+| `BOW_ARROW_VELOCITY` | 3.0 | blocks/tick | Arrow launch velocity at a full draw |
+| `BOW_MIN_DRAW` | 0.15 | frac | Minimum draw fraction below which the shot is refused outright |
+
+**`BOW_MELEE_DAMAGE` and `BOW_MELEE_SPEED` are baked into the item's default attribute modifiers at
+registration** — the same restart caveat §I.1 records for the zanpakutō's attack attributes.
+Changing either needs a restart; the other five are read fresh on every draw and shot and
+`/bleach reload` moves them immediately.
+
 ---
 
 ## L. Where each constant is consumed
@@ -935,6 +957,7 @@ Kept current so a balance change never requires a codebase search.
 | O | `ability/common/Hover`, `mixin/client/LocalPlayerHoverMixin`, `client/ClientHoverState` |
 | P.0 | `race/ReishiDensity` |
 | P.1 | `entity/ReishiArrow` (particle scale), `entity/BleachEntities` (hitbox, tracking range, update interval — registration-time) |
+| P.2 | `item/HeiligBogenItem` |
 
 ---
 

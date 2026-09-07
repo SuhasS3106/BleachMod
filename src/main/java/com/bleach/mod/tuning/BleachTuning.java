@@ -793,6 +793,27 @@ public final class BleachTuning {
 	/** Ticks between position/velocity resyncs to tracking clients. Same restart caveat as {@link #REISHI_ARROW_WIDTH}. */
 	public static int REISHI_ARROW_UPDATE_INTERVAL = 20;
 
+	// --- P.2 Quincy · Heilig Bogen --------------------------------------------------
+
+	/**
+	 * Melee damage of the bow used as a club. Deliberately far under the zanpakutō's 3. Baked into
+	 * the item's default attribute modifiers at registration — like §I.1, a config change here needs
+	 * a restart.
+	 */
+	public static int BOW_MELEE_DAMAGE = 1;
+	/** Melee attack speed modifier for the bow. Same restart caveat as {@link #BOW_MELEE_DAMAGE}. */
+	public static double BOW_MELEE_SPEED = -2.8;
+	/** SP charged per shot, whatever the draw. */
+	public static double BOW_SHOT_SP_COST = 6.0;
+	/** Ticks of draw for a full-power shot. */
+	public static int BOW_FULL_DRAW_TICKS = 20;
+	/** Arrow damage at a full draw, before Soul Level scaling. */
+	public static double BOW_ARROW_DAMAGE = 7.0;
+	/** Arrow launch velocity at a full draw, blocks per tick. */
+	public static double BOW_ARROW_VELOCITY = 3.0;
+	/** Minimum draw fraction below which the shot is refused outright. */
+	public static double BOW_MIN_DRAW = 0.15;
+
 	// ================================================================================
 	// K. Networking and presentation · BALANCE.md §K
 	// ================================================================================
