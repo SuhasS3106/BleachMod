@@ -35,7 +35,8 @@ public class SpiritualData {
 			Codec.DOUBLE.optionalFieldOf("sp_on_entry", 0.0).forGetter(d -> d.spOnEntry),
 			ItemStack.OPTIONAL_CODEC.optionalFieldOf("zanpakuto", ItemStack.EMPTY).forGetter(d -> d.zanpakuto),
 			ItemStack.OPTIONAL_CODEC.optionalFieldOf("stowed_item", ItemStack.EMPTY).forGetter(d -> d.stowedItem),
-			Codec.INT.optionalFieldOf("stowed_reforged", 0).forGetter(d -> d.stowedReforged)
+			Codec.INT.optionalFieldOf("stowed_reforged", 0).forGetter(d -> d.stowedReforged),
+			Codec.BYTE.optionalFieldOf("race", (byte) 0).forGetter(d -> d.race)
 	).apply(instance, SpiritualData::new));
 
 	/** Current spiritual pressure. */
@@ -58,6 +59,14 @@ public class SpiritualData {
 	public int regenPauseTicks;
 	/** Chosen kit, or null until an Asauchi has been used. */
 	public String characterId;
+	/**
+	 * Which race this player is · design §3.1. {@link com.bleach.mod.race.Races#byId} resolves it.
+	 *
+	 * <p><b>Defaults to 0, which is Shinigami, and that default is doing real work.</b> Every save
+	 * written before races existed omits the field, so every existing player loads as a Shinigami
+	 * with no migration step and no config version bump.
+	 */
+	public byte race;
 	/**
 	 * SP at the moment Bankai was entered. The entry refill is a loan; on revert the surplus is
 	 * clawed back with {@code sp = min(spOnEntry, sp)}. See PRD §1.4.
@@ -147,7 +156,7 @@ public class SpiritualData {
 	private SpiritualData(double sp, int soulLevel, int spx, double exertion, long lastSpxDay,
 			int spxEarnedToday, long playtimeTicks, byte state, int regenPauseTicks,
 			Optional<String> characterId, double spOnEntry, ItemStack zanpakuto, ItemStack stowedItem,
-			int stowedReforged) {
+			int stowedReforged, byte race) {
 		this.sp = sp;
 		this.soulLevel = soulLevel;
 		this.spx = spx;
@@ -162,6 +171,7 @@ public class SpiritualData {
 		this.zanpakuto = zanpakuto;
 		this.stowedItem = stowedItem;
 		this.stowedReforged = stowedReforged;
+		this.race = race;
 	}
 
 	// --- Derived values · BALANCE.md §A–§C -------------------------------------------
@@ -266,6 +276,8 @@ public class SpiritualData {
 		this.spxEarnedToday = other.spxEarnedToday;
 		this.playtimeTicks = other.playtimeTicks;
 		this.characterId = other.characterId;
+		// Race is progression, not pool state: it survives death exactly as the chosen kit does.
+		this.race = other.race;
 
 		// PRD §3.2: the zanpakutō is kept on death. It is already back in the attachment by this
 		// point — Zanpakuto's ALLOW_DEATH handler sheathes before the inventory is allowed to drop —
