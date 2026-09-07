@@ -774,6 +774,11 @@ public final class BleachTuning {
 	/** Absolute floor the final multiplier can never drop below, however harsh the penalties above. */
 	public static double REISHI_MULT_ABSOLUTE_FLOOR = 0.01;
 
+	// --- P.1 Quincy · Reishi Arrow ------------------------------------------------
+
+	/** Quad size of {@code ReishiArrow}'s in-flight pressure-particle trail. */
+	public static double REISHI_ARROW_PARTICLE_SCALE = 0.5;
+
 	// ================================================================================
 	// K. Networking and presentation · BALANCE.md §K
 	// ================================================================================

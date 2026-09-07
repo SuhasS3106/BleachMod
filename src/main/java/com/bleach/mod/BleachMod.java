@@ -7,6 +7,7 @@ import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.attachment.SpiritualTicker;
 import com.bleach.mod.command.BleachCommands;
 import com.bleach.mod.effect.BleachEffects;
+import com.bleach.mod.entity.BleachEntities;
 import com.bleach.mod.item.BleachItems;
 import com.bleach.mod.particle.BleachParticles;
 import com.bleach.mod.item.Zanpakuto;
@@ -32,6 +33,10 @@ public class BleachMod implements ModInitializer {
 		// registered before the initial load so they fire for it too.
 		BleachTuning.onReload(SpxTable::rebuild);
 		BleachTuning.load();
+
+		// After tuning (nothing here reads it yet, but every registration call in this method does)
+		// and before the items, which is a convenient anchor point rather than a hard requirement.
+		BleachEntities.register();
 
 		// Items before kits: ZanpakutoItem bakes BALANCE.md §I.1 into its default components at
 		// construction, so this call has to sit after BleachTuning.load() and cannot be a static

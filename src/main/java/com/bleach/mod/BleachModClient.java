@@ -3,9 +3,11 @@ package com.bleach.mod;
 import com.bleach.mod.client.BleachKeybinds;
 import com.bleach.mod.client.ClientSpiritualState;
 import com.bleach.mod.client.FreezeOverlay;
+import com.bleach.mod.client.InvisibleEntityRenderer;
 import com.bleach.mod.client.ScreenShake;
 import com.bleach.mod.client.SpiritualHud;
 import com.bleach.mod.client.particle.PressureParticle;
+import com.bleach.mod.entity.BleachEntities;
 import com.bleach.mod.network.ModTogglePayload;
 import com.bleach.mod.network.SpiritualSyncPayload;
 import com.bleach.mod.particle.BleachParticles;
@@ -14,6 +16,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 
 public class BleachModClient implements ClientModInitializer {
 	@Override
@@ -51,6 +54,8 @@ public class BleachModClient implements ClientModInitializer {
 		});
 
 		ParticleFactoryRegistry.getInstance().register(BleachParticles.PRESSURE, PressureParticle.Provider::new);
+
+		EntityRendererRegistry.register(BleachEntities.REISHI_ARROW, InvisibleEntityRenderer::new);
 
 		com.bleach.mod.client.ZanpakutoModels.register();
 

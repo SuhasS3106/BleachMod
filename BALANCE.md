@@ -889,6 +889,16 @@ The two weights are a share of the span between floor and ceiling and should sum
 separate keys rather than one because sky *access* and sky *light* differ at night: standing outside
 at midnight still beats standing in a cave, which is the distinction a Quincy should feel.
 
+### P.1 Reishi Arrow · *design §4.3*
+
+| Symbol | Default | Unit | Meaning |
+|---|---|---|---|
+| `REISHI_ARROW_PARTICLE_SCALE` | 0.5 | × | Quad size of the in-flight pressure-particle trail |
+
+The arrow's own hitbox size, client tracking range and update interval are not here: they mirror
+vanilla's `EntityType.ARROW` registration exactly and are engine/networking parity for a fast
+projectile, not tunable balance — see the comment at `BleachEntities.register`.
+
 ---
 
 ## L. Where each constant is consumed
@@ -912,6 +922,8 @@ Kept current so a balance change never requires a codebase search.
 | N.1, N.3 | `client/AuraSenseOverlay`, `client/ClientAuraSenseState` |
 | N.2 | `ability/common/AuraSense` (`burn`), `client/AuraSenseOverlay` (applies it) |
 | O | `ability/common/Hover`, `mixin/client/LocalPlayerHoverMixin`, `client/ClientHoverState` |
+| P.0 | `race/ReishiDensity` |
+| P.1 | `entity/ReishiArrow` |
 
 ---
 
