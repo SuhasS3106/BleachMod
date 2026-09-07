@@ -12,7 +12,7 @@ import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.attachment.SpiritualData;
 import com.bleach.mod.attachment.SpiritualTicker;
 import com.bleach.mod.damage.BleachDamage;
-import com.bleach.mod.item.Zanpakuto;
+import com.bleach.mod.item.SpiritWeapon;
 import com.bleach.mod.item.ZanpakutoItem;
 import com.bleach.mod.network.GinBeamPayload;
 import com.bleach.mod.network.GinBeamStatePayload;

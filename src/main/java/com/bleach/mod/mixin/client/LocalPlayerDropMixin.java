@@ -1,7 +1,7 @@
 package com.bleach.mod.mixin.client;
 
 import com.bleach.mod.client.ClientHoverState;
-import com.bleach.mod.item.Zanpakuto;
+import com.bleach.mod.item.SpiritWeapon;
 
 import net.minecraft.client.player.LocalPlayer;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,7 +21,7 @@ public abstract class LocalPlayerDropMixin {
 	@Inject(method = "drop(Z)Z", at = @At("HEAD"), cancellable = true)
 	private void bleach$clientKeepZanpakuto(boolean dropStack, CallbackInfoReturnable<Boolean> cir) {
 		LocalPlayer self = (LocalPlayer) (Object) this;
-		if (Zanpakuto.isUndroppable(self.getInventory().getSelected()) || Zanpakuto.isUndroppable(self.getMainHandItem())) {
+		if (SpiritWeapon.isUndroppable(self.getInventory().getSelected()) || SpiritWeapon.isUndroppable(self.getMainHandItem())) {
 			cir.setReturnValue(false);
 		}
 

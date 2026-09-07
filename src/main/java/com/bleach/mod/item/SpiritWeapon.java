@@ -11,54 +11,61 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Everything the zanpakutō does outside of being an item: draw, sheathe, and the three guarantees
- * PRD §3.2 makes about it — it cannot be lost, it survives death, and it is restored if it ever
- * goes missing.
+ * Everything a race's spirit weapon does outside of being an item: draw, sheathe, and the three
+ * guarantees PRD §3.2 makes about it — it cannot be lost, it survives death, and it is restored if
+ * it ever goes missing.
  *
- * <p><b>The blade is in exactly one place at a time.</b> Either {@link SpiritualData#zanpakuto}
+ * <p>Race-agnostic on purpose: a {@link ZanpakutoItem} for Shinigami and a
+ * {@link HeiligBogenItem} for Quincy both satisfy {@link #isSpiritWeapon}, so every guarantee below
+ * — undroppable, kept on death, restored on respawn — covers both without the mixins that enforce
+ * them knowing which race they are looking at.
+ *
+ * <p><b>The weapon is in exactly one place at a time.</b> Either {@link SpiritualData#zanpakuto}
  * holds it (sheathed) or the inventory does (drawn), never both and never neither. Every method
  * here preserves that, and it is what makes duplication impossible without a single item-counting
  * check anywhere.
  *
  * <p>Two mixins do the rest of the work, because they cover paths no event reaches:
  * {@code ServerPlayerDropMixin} refuses the drop key and {@code ContainerMenuMixin} freezes the
- * blade against every container click. Death is handled here, in
+ * weapon against every container click. Death is handled here, in
  * {@link ServerLivingEntityEvents#ALLOW_DEATH}, which runs before the inventory is allowed to drop.
  */
-public final class Zanpakuto {
-	private Zanpakuto() {
+public final class SpiritWeapon {
+	private SpiritWeapon() {
 	}
 
-	public static boolean isZanpakuto(ItemStack stack) {
-		return stack.getItem() instanceof ZanpakutoItem;
+	/** True for either race's drawn weapon: a Shinigami's blade or a Quincy's bow. */
+	public static boolean isSpiritWeapon(ItemStack stack) {
+		return stack.getItem() instanceof ZanpakutoItem || stack.getItem() instanceof HeiligBogenItem;
 	}
 
 	/**
-	 * Items the player may never throw away: the blade, and the Asauchi that becomes one.
+	 * Items the player may never throw away: the weapon, and the Asauchi that becomes one.
 	 *
-	 * <p>The Asauchi is on this list for the same reason the blade is, one step earlier. It is a
+	 * <p>The Asauchi is on this list for the same reason the weapon is, one step earlier. It is a
 	 * character choice in item form, and a character choice that can be dropped is one that can be
 	 * traded, stolen, or lost down a hole on the walk back from a death.
 	 */
 	public static boolean isUndroppable(ItemStack stack) {
-		return isZanpakuto(stack) || BleachItems.isSelector(stack);
+		return isSpiritWeapon(stack) || BleachItems.isSelector(stack);
 	}
 
 	/**
-	 * PRD §3.2: "drawn" is holding the blade, not merely owning it. A player who has scrolled to
+	 * PRD §3.2: "drawn" is holding the weapon, not merely owning it. A player who has scrolled to
 	 * another hotbar slot is sheathed for every purpose that checks — which is the honest reading,
 	 * and means the offense gate can never disagree with what the player can see in their hand.
 	 */
 	public static boolean isDrawn(Player player) {
-		return isZanpakuto(player.getMainHandItem());
+		return isSpiritWeapon(player.getMainHandItem());
 	}
 
-	/** A fresh blade for the given kit, or empty if that kit has no registered sword. */
+	/** A fresh weapon for the given kit, or empty if that kit has no registered weapon. */
 	public static ItemStack stackFor(ResourceLocation kitId) {
-		ZanpakutoItem item = BleachItems.zanpakutoFor(kitId);
+		Item item = BleachItems.weaponFor(kitId);
 		return item == null ? ItemStack.EMPTY : new ItemStack(item);
 	}
 
@@ -133,7 +140,7 @@ public final class Zanpakuto {
 	public static int findInInventory(Player player) {
 		Inventory inventory = player.getInventory();
 		for (int i = 0; i < inventory.getContainerSize(); i++) {
-			if (isZanpakuto(inventory.getItem(i))) {
+			if (isSpiritWeapon(inventory.getItem(i))) {
 				return i;
 			}
 		}

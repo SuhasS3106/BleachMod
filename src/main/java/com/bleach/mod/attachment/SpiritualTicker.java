@@ -11,7 +11,7 @@ import com.bleach.mod.ability.common.AuraSense;
 import com.bleach.mod.ability.common.Hover;
 import com.bleach.mod.ability.common.SpiritualFlex;
 import com.bleach.mod.ability.kits.IchigoTransform;
-import com.bleach.mod.item.Zanpakuto;
+import com.bleach.mod.item.SpiritWeapon;
 import com.bleach.mod.network.BleachNetworking;
 import com.bleach.mod.network.SpiritualSyncPayload;
 import com.bleach.mod.progression.SoulLevel;
@@ -237,7 +237,7 @@ public final class SpiritualTicker {
 
 		// Before onEnter, so a kit that swaps or re-mints the blade in its own hook wins rather than
 		// having a stale stamp written over the top of it.
-		Zanpakuto.markReleased(player, data, state);
+		SpiritWeapon.markReleased(player, data, state);
 
 		TransformAbility entered = AbilityDispatcher.activeTransform(data);
 		if (entered != null) {
@@ -266,7 +266,7 @@ public final class SpiritualTicker {
 		}
 
 		data.state = SpiritualData.STATE_BASE;
-		Zanpakuto.markReleased(player, data, SpiritualData.STATE_BASE);
+		SpiritWeapon.markReleased(player, data, SpiritualData.STATE_BASE);
 		data.spOnEntry = 0.0;
 		data.pauseRegen();
 	}

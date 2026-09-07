@@ -1,6 +1,6 @@
 package com.bleach.mod.mixin;
 
-import com.bleach.mod.item.Zanpakuto;
+import com.bleach.mod.item.SpiritWeapon;
 
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * it is, deliberately — a rule phrased as "not into a chest" has to enumerate chests, barrels,
  * shulker boxes, hoppers-as-menus, ender chests, villager trades, grindstones and every container a
  * mod adds later, and gets it wrong once. A blade that simply never moves has no such list. Its
- * position is owned by {@link Zanpakuto#draw} and {@link Zanpakuto#sheathe}, which is the only
+ * position is owned by {@link SpiritWeapon#draw} and {@link SpiritWeapon#sheathe}, which is the only
  * moving it needs.
  *
  * <p>Covers shift-click and hotbar swaps for free: both arrive here as a {@code clicked} call, the
@@ -38,13 +38,13 @@ public abstract class ContainerMenuMixin {
 
 		// Belt and braces: nothing should ever get the blade onto the cursor, but if something does,
 		// the click that would put it down is the last chance to stop it.
-		if (Zanpakuto.isUndroppable(self.getCarried())) {
+		if (SpiritWeapon.isUndroppable(self.getCarried())) {
 			ci.cancel();
 			return;
 		}
 
 		if (slotId >= 0 && slotId < self.slots.size()
-				&& Zanpakuto.isUndroppable(self.slots.get(slotId).getItem())) {
+				&& SpiritWeapon.isUndroppable(self.slots.get(slotId).getItem())) {
 			ci.cancel();
 			return;
 		}
@@ -52,7 +52,7 @@ public abstract class ContainerMenuMixin {
 		// A swap names its source in `button`, not in `slotId` — the hotbar index for a number key,
 		// or SLOT_OFFHAND for the offhand key.
 		if (type == ClickType.SWAP && isSwapSource(player, button)
-				&& Zanpakuto.isUndroppable(player.getInventory().getItem(button))) {
+				&& SpiritWeapon.isUndroppable(player.getInventory().getItem(button))) {
 			ci.cancel();
 		}
 	}

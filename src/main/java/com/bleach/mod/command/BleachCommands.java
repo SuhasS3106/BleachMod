@@ -14,7 +14,7 @@ import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.attachment.SpiritualData;
 import com.bleach.mod.attachment.SpiritualTicker;
 import com.bleach.mod.effect.ReiatsuEffect;
-import com.bleach.mod.item.Zanpakuto;
+import com.bleach.mod.item.SpiritWeapon;
 import com.bleach.mod.progression.SoulLevel;
 import com.bleach.mod.progression.WorldSoulLevel;
 import com.bleach.mod.tuning.BleachTuning;
@@ -557,7 +557,7 @@ public final class BleachCommands {
 		String line = kit == null
 				? "No zanpakutō" + (data.hasCharacter() ? " (unknown kit " + data.characterId + ")" : "")
 				: String.format("%s · %s · FS range ×%.2f · FS cooldown ×%.2f",
-						kit.displayName(), Zanpakuto.isDrawn(player) ? "drawn" : "sheathed",
+						kit.displayName(), SpiritWeapon.isDrawn(player) ? "drawn" : "sheathed",
 						kit.flashStepRangeMult(), kit.flashStepCooldownMult());
 
 		player.displayClientMessage(Component.literal(line), true);
@@ -581,10 +581,10 @@ public final class BleachCommands {
 		if (data.isTransformed()) {
 			SpiritualTicker.forceRevert(player, data);
 		}
-		Zanpakuto.stow(player, data);
+		SpiritWeapon.stow(player, data);
 		data.characterId = kit.storageId();
-		data.zanpakuto = Zanpakuto.stackFor(kit.id());
-		Zanpakuto.draw(player, data);
+		data.zanpakuto = SpiritWeapon.stackFor(kit.id());
+		SpiritWeapon.draw(player, data);
 
 		SpiritualTicker.sync(player, true);
 		return reportKit(ctx);
@@ -599,10 +599,10 @@ public final class BleachCommands {
 		if (data.isTransformed()) {
 			SpiritualTicker.forceRevert(player, data);
 		}
-		Zanpakuto.stow(player, data);
+		SpiritWeapon.stow(player, data);
 		data.zanpakuto = ItemStack.EMPTY;
 		data.characterId = null;
-		Zanpakuto.ensureAsauchi(player, data);
+		SpiritWeapon.ensureAsauchi(player, data);
 
 		SpiritualTicker.sync(player, true);
 		return reportKit(ctx);

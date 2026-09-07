@@ -3,7 +3,7 @@ package com.bleach.mod.progression;
 import org.jetbrains.annotations.Nullable;
 
 import com.bleach.mod.attachment.BleachAttachments;
-import com.bleach.mod.item.Zanpakuto;
+import com.bleach.mod.item.SpiritWeapon;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
@@ -93,7 +93,7 @@ public final class KillAttribution {
 		if (killer == null || !credit.soleDamager.equals(killer.getUUID())) {
 			return null;
 		}
-		if (source.getDirectEntity() != killer || !Zanpakuto.isDrawn(killer)) {
+		if (source.getDirectEntity() != killer || !SpiritWeapon.isDrawn(killer)) {
 			return null;
 		}
 		return killer;

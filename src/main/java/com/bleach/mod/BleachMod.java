@@ -10,7 +10,7 @@ import com.bleach.mod.effect.BleachEffects;
 import com.bleach.mod.entity.BleachEntities;
 import com.bleach.mod.item.BleachItems;
 import com.bleach.mod.particle.BleachParticles;
-import com.bleach.mod.item.Zanpakuto;
+import com.bleach.mod.item.SpiritWeapon;
 import com.bleach.mod.network.BleachNetworking;
 import com.bleach.mod.progression.SoulLevel;
 import com.bleach.mod.progression.SpxTable;
@@ -57,7 +57,7 @@ public class BleachMod implements ModInitializer {
 		AbilityCooldowns.register();
 		AbilityRegistry.registerDefaults();
 		MeleeHooks.register();
-		Zanpakuto.register();
+		SpiritWeapon.register();
 		SoulLevel.register();
 		ModToggle.register();
 		SpiritualTicker.register();

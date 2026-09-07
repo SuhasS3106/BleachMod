@@ -3,7 +3,7 @@ package com.bleach.mod.damage;
 import org.jetbrains.annotations.Nullable;
 
 import com.bleach.mod.BleachMod;
-import com.bleach.mod.item.Zanpakuto;
+import com.bleach.mod.item.SpiritWeapon;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -83,7 +83,7 @@ public final class BleachDamage {
 		if (source.is(BLEACH)) {
 			return true;
 		}
-		return source.getDirectEntity() instanceof Player player && Zanpakuto.isDrawn(player);
+		return source.getDirectEntity() instanceof Player player && SpiritWeapon.isDrawn(player);
 	}
 
 	/** Whether this source ignores the victim's Soul Level reductions. */

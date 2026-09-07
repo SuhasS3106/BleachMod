@@ -8,7 +8,7 @@ import com.bleach.mod.ability.common.SpiritualFlex;
 import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.attachment.SpiritualData;
 import com.bleach.mod.attachment.SpiritualTicker;
-import com.bleach.mod.item.Zanpakuto;
+import com.bleach.mod.item.SpiritWeapon;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.network.chat.Component;
@@ -43,7 +43,7 @@ public final class AbilityDispatcher {
 
 	/** PRD §3.2: drawn means the blade is in the main hand, nothing weaker. */
 	private static boolean hasDrawnSword(ServerPlayer player) {
-		return Zanpakuto.isDrawn(player);
+		return SpiritWeapon.isDrawn(player);
 	}
 
 	public static void handle(ServerPlayer player, int index) {
@@ -267,7 +267,7 @@ public final class AbilityDispatcher {
 	}
 
 	/**
-	 * The draw/sheathe key · PRD §3.2. {@link Zanpakuto#sheathe} routes through
+	 * The draw/sheathe key · PRD §3.2. {@link SpiritWeapon#sheathe} routes through
 	 * {@code SpiritualTicker.forceRevert}, since a released state cannot outlive the blade that
 	 * holds it — and a sheathe that skipped the revert would be the Bankai claw-back exploit again
 	 * by another route.
@@ -280,9 +280,9 @@ public final class AbilityDispatcher {
 
 		// Auto-restore before the swap rather than only on join: a player who lost the blade to a
 		// bug should get it back on the next keypress, not on the next login.
-		Zanpakuto.ensureRestored(player, data);
+		SpiritWeapon.ensureRestored(player, data);
 
-		if (Zanpakuto.toggle(player, data)) {
+		if (SpiritWeapon.toggle(player, data)) {
 			SpiritualTicker.sync(player, true);
 		}
 	}

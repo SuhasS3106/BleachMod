@@ -1,6 +1,6 @@
 package com.bleach.mod.mixin;
 
-import com.bleach.mod.item.Zanpakuto;
+import com.bleach.mod.item.SpiritWeapon;
 
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
@@ -20,7 +20,7 @@ public abstract class PlayerDropMixin {
 	@Inject(method = "drop(Lnet/minecraft/world/item/ItemStack;ZZ)Lnet/minecraft/world/entity/item/ItemEntity;", at = @At("HEAD"), cancellable = true)
 	private void bleach$preventItemEntityDrop(ItemStack stack, boolean dropAround, boolean includeName,
 			CallbackInfoReturnable<ItemEntity> cir) {
-		if (Zanpakuto.isUndroppable(stack)) {
+		if (SpiritWeapon.isUndroppable(stack)) {
 			cir.setReturnValue(null);
 		}
 	}

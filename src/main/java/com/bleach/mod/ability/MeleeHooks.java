@@ -3,7 +3,7 @@ package com.bleach.mod.ability;
 import com.bleach.mod.ModToggle;
 import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.attachment.SpiritualData;
-import com.bleach.mod.item.Zanpakuto;
+import com.bleach.mod.item.SpiritWeapon;
 
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.minecraft.server.level.ServerPlayer;
@@ -58,7 +58,7 @@ public final class MeleeHooks {
 			return;
 		}
 
-		if (!source.is(DamageTypes.PLAYER_ATTACK) || !Zanpakuto.isDrawn(attacker)) {
+		if (!source.is(DamageTypes.PLAYER_ATTACK) || !SpiritWeapon.isDrawn(attacker)) {
 			return;
 		}
 

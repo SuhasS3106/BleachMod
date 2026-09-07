@@ -1,11 +1,13 @@
 package com.bleach.mod.ability.kits;
 
 import java.util.List;
+import java.util.Map;
 
 import com.bleach.mod.BleachMod;
 import com.bleach.mod.ability.AbilityRegistry;
 import com.bleach.mod.ability.Kit;
 import com.bleach.mod.attachment.SpiritualData;
+import com.bleach.mod.race.Race;
 import com.bleach.mod.race.Races;
 import com.bleach.mod.tuning.BleachTuning;
 
@@ -38,6 +40,24 @@ public final class BleachKits {
 	/** Every kit id, in menu order. Read by {@code BleachItems} to mint one sword per kit. */
 	public static final List<ResourceLocation> IDS = List.of(
 			ICHIGO, YAMAMOTO, SUIFENG, RUKIA, SHINJI, AIZEN, TOSEN, GIN);
+
+	/**
+	 * Which race each kit belongs to. Read by {@code BleachItems} before any Kit object exists.
+	 *
+	 * <p><b>Consistency risk:</b> this and the {@code Races.X} argument passed to each
+	 * {@code new Kit(...)} below are two statements of the same fact and can drift. {@code /bleach
+	 * test race} (Task 16) asserts they agree for every kit; this map is not unified with
+	 * {@link Kit#race()} here.
+	 */
+	private static final Map<ResourceLocation, Race> RACE_OF = Map.of(
+			ICHIGO, Races.SHINIGAMI, YAMAMOTO, Races.SHINIGAMI, SUIFENG, Races.SHINIGAMI,
+			RUKIA, Races.SHINIGAMI, SHINJI, Races.SHINIGAMI, AIZEN, Races.SHINIGAMI,
+			TOSEN, Races.SHINIGAMI, GIN, Races.SHINIGAMI);
+
+	/** Never null — an unlisted kit is treated as Shinigami, which is the pre-race behaviour. */
+	public static Race raceOf(ResourceLocation kitId) {
+		return RACE_OF.getOrDefault(kitId, Races.SHINIGAMI);
+	}
 
 	/**
 	 * Called once from {@code AbilityRegistry#registerDefaults}. Registers all eight playable kits

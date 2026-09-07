@@ -9,7 +9,7 @@ import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.attachment.SpiritualData;
 import com.bleach.mod.attachment.SpiritualTicker;
 import com.bleach.mod.item.BleachItems;
-import com.bleach.mod.item.Zanpakuto;
+import com.bleach.mod.item.SpiritWeapon;
 import com.bleach.mod.race.Race;
 import com.bleach.mod.race.Races;
 
@@ -121,7 +121,7 @@ public class ZanpakutoSelectMenu extends ChestMenu {
 	}
 
 	private static ItemStack displayStack(Kit kit) {
-		ItemStack stack = Zanpakuto.stackFor(kit.id());
+		ItemStack stack = SpiritWeapon.stackFor(kit.id());
 		if (stack.isEmpty()) {
 			return ItemStack.EMPTY;
 		}
@@ -194,7 +194,7 @@ public class ZanpakutoSelectMenu extends ChestMenu {
 			return;
 		}
 
-		ItemStack blade = Zanpakuto.stackFor(kitId);
+		ItemStack blade = SpiritWeapon.stackFor(kitId);
 		if (blade.isEmpty()) {
 			return;
 		}
@@ -222,10 +222,10 @@ public class ZanpakutoSelectMenu extends ChestMenu {
 		inventory.removeItem(token, 1);
 
 		// Re-choosing with a Reforged Asauchi: the old blade goes away with the old character.
-		Zanpakuto.stow(player, data);
+		SpiritWeapon.stow(player, data);
 		data.characterId = kitId.toString();
 		data.zanpakuto = blade;
-		Zanpakuto.draw(player, data);
+		SpiritWeapon.draw(player, data);
 
 		player.displayClientMessage(
 				Component.literal("You are now " + kit.displayName() + "."),

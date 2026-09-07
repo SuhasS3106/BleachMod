@@ -1,10 +1,14 @@
 package com.bleach.mod.item;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.bleach.mod.BleachMod;
 import com.bleach.mod.ability.kits.BleachKits;
+import com.bleach.mod.race.Race;
+import com.bleach.mod.race.RaceWeapons;
 import org.jetbrains.annotations.Nullable;
 
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
@@ -39,17 +43,18 @@ public final class BleachItems {
 	public static final AsauchiItem ASAUCHI = new AsauchiItem();
 	public static final ReforgedAsauchiItem REFORGED_ASAUCHI = new ReforgedAsauchiItem();
 
-	/** One blade per kit, in {@link BleachKits#IDS} order. */
-	private static final Map<ResourceLocation, ZanpakutoItem> ZANPAKUTO = new LinkedHashMap<>();
+	/** One weapon per kit, in {@link BleachKits#IDS} order. */
+	private static final Map<ResourceLocation, Item> WEAPONS = new LinkedHashMap<>();
 
 	public static void register() {
 		register("asauchi", ASAUCHI);
 		register("reforged_asauchi", REFORGED_ASAUCHI);
 
 		for (ResourceLocation kitId : BleachKits.IDS) {
-			ZanpakutoItem blade = new ZanpakutoItem(kitId);
-			ZANPAKUTO.put(kitId, blade);
-			register("zanpakuto_" + kitId.getPath(), blade);
+			Race race = BleachKits.raceOf(kitId);
+			Item weapon = RaceWeapons.factoryFor(race).apply(kitId);
+			WEAPONS.put(kitId, weapon);
+			register(race.weaponPrefix() + "_" + kitId.getPath(), weapon);
 		}
 
 		// Combat rather than a tab of our own: seven items do not fill a tab, and an operator looking
@@ -57,8 +62,8 @@ public final class BleachItems {
 		ItemGroupEvents.modifyEntriesEvent(COMBAT_TAB).register(entries -> {
 			entries.accept(ASAUCHI);
 			entries.accept(REFORGED_ASAUCHI);
-			for (ZanpakutoItem blade : ZANPAKUTO.values()) {
-				entries.accept(blade);
+			for (Item weapon : WEAPONS.values()) {
+				entries.accept(weapon);
 			}
 		});
 	}
@@ -69,13 +74,19 @@ public final class BleachItems {
 
 	/** Every registered blade. Used client-side to hang the released-state model predicate on each. */
 	public static Iterable<ZanpakutoItem> zanpakuto() {
-		return ZANPAKUTO.values();
+		List<ZanpakutoItem> blades = new ArrayList<>();
+		for (Item weapon : WEAPONS.values()) {
+			if (weapon instanceof ZanpakutoItem blade) {
+				blades.add(blade);
+			}
+		}
+		return blades;
 	}
 
-	/** The blade for a kit id, or null if that kit has none. */
+	/** The spirit weapon item for a kit, or null if that kit has none. */
 	@Nullable
-	public static ZanpakutoItem zanpakutoFor(ResourceLocation kitId) {
-		return ZANPAKUTO.get(kitId);
+	public static Item weaponFor(ResourceLocation kitId) {
+		return WEAPONS.get(kitId);
 	}
 
 	/** Either flavour of Asauchi — the tokens that open the picker. */

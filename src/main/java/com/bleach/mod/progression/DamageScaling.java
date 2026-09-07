@@ -5,7 +5,7 @@ import com.bleach.mod.ability.TransformAbility;
 import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.attachment.SpiritualData;
 import com.bleach.mod.damage.BleachDamage;
-import com.bleach.mod.item.Zanpakuto;
+import com.bleach.mod.item.SpiritWeapon;
 import com.bleach.mod.tuning.BleachTuning;
 
 import net.minecraft.server.level.ServerPlayer;
@@ -59,7 +59,7 @@ public final class DamageScaling {
 		// which is what keeps gear relevant · PRD §2.4.
 		if (bleach) {
 			ServerPlayer attacker = KillAttribution.attackerOf(source);
-			if (attacker != null && Zanpakuto.isDrawn(attacker)) {
+			if (attacker != null && SpiritWeapon.isDrawn(attacker)) {
 				SpiritualData attackerData = BleachAttachments.get(attacker);
 				int level = attackerData.soulLevel;
 				damage *= 1.0 + BleachTuning.SL_BLEACH_DMG_DEALT_PER_LEVEL * (level - 1);

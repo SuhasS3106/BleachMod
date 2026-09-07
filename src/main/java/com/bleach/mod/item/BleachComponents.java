@@ -32,7 +32,7 @@ public final class BleachComponents {
 
 	/**
 	 * The wielder's released state, as {@link SpiritualData#STATE_BASE} / {@code STATE_SHIKAI} /
-	 * {@code STATE_BANKAI} · stamped by {@link Zanpakuto#markReleased}.
+	 * {@code STATE_BANKAI} · stamped by {@link SpiritWeapon#markReleased}.
 	 *
 	 * <p><b>Absent means base.</b> The component is removed rather than set to zero on revert, so a
 	 * sheathed blade is byte-identical to a freshly minted one and nothing accumulates junk NBT on

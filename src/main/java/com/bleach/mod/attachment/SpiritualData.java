@@ -289,13 +289,13 @@ public class SpiritualData {
 		this.race = other.race;
 
 		// PRD §3.2: the zanpakutō is kept on death. It is already back in the attachment by this
-		// point — Zanpakuto's ALLOW_DEATH handler sheathes before the inventory is allowed to drop —
+		// point — SpiritWeapon's ALLOW_DEATH handler sheathes before the inventory is allowed to drop —
 		// so carrying the field forward is the whole of "survives death".
 		this.zanpakuto = other.zanpakuto;
 		this.stowedItem = other.stowedItem;
 
 		// And the same for an unused Reforged Asauchi, which death took off the corpse a moment ago
-		// and which only this field remembers is owed · Zanpakuto#stripSelectors.
+		// and which only this field remembers is owed · SpiritWeapon#stripSelectors.
 		this.stowedReforged = other.stowedReforged;
 	}
 
