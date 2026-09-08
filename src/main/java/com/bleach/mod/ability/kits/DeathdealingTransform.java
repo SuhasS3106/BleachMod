@@ -337,6 +337,18 @@ public final class DeathdealingTransform {
 			return player.isShiftKeyDown() && giftRing(player, draw);
 		}
 
+		/**
+		 * Hasshein reaches a full-power shot in half the time — 10 ticks rather than vanilla's 20.
+		 *
+		 * <p>Only Askin's Vollständig, not every Quincy's: this sits on the subclass rather than on
+		 * {@link QuincyTransform} so Candice keeps a vanilla-paced bow. Another Schrift that wants it
+		 * is one override.
+		 */
+		@Override
+		public double bowDrawSpeedMult() {
+			return BleachTuning.DEATHDEALING_VOLL_DRAW_MULT;
+		}
+
 		@Override
 		protected WingStyle wingStyle() {
 			return WingStyle.MOLECULE;

@@ -872,11 +872,11 @@ public final class BleachTuning {
 	/** Pitch of that bell. Below 1 reads as a heavy toll rather than a village bell. */
 	public static double VOLL_BELL_PITCH = 0.7;
 	/**
-	 * How much faster the Heilig Bogen reaches a full draw in Vollstandig. 2.0 halves the charge
+	 * How much faster Askin's Heilig Bogen reaches a full draw in Vollstandig. 2.0 halves the charge
 	 * time. <b>Set this below 1.0 to make the draw slower instead</b> — the sign of the change is one
 	 * number, not a code change.
 	 */
-	public static double VOLL_BOW_DRAW_MULT = 2.0;
+	public static double DEATHDEALING_VOLL_DRAW_MULT = 2.0;
 	/**
 	 * Sideways kick of each zigzag step on a jagged wing, blocks. Only read by Schrifts whose
 	 * {@code wingJagged()} is true; a smooth-winged Schrift ignores it.

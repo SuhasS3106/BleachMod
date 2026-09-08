@@ -159,10 +159,6 @@ public abstract class QuincyTransform implements TransformAbility {
 		return isVollstandig() ? BleachTuning.VOLL_DMG : 0.0;
 	}
 
-	@Override
-	public double bowDrawSpeedMult() {
-		return isVollstandig() ? BleachTuning.VOLL_BOW_DRAW_MULT : 1.0;
-	}
 
 	private static void applySpeed(ServerPlayer player) {
 		AttributeInstance speed = player.getAttribute(Attributes.MOVEMENT_SPEED);

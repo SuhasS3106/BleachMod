@@ -83,6 +83,20 @@ public final class BleachItems {
 		return blades;
 	}
 
+	/**
+	 * Every registered bow. The mirror of {@link #zanpakuto()}, and used the same way: client-side,
+	 * to hang the draw predicates on each.
+	 */
+	public static Iterable<HeiligBogenItem> heiligBogen() {
+		List<HeiligBogenItem> bows = new ArrayList<>();
+		for (Item weapon : WEAPONS.values()) {
+			if (weapon instanceof HeiligBogenItem bow) {
+				bows.add(bow);
+			}
+		}
+		return bows;
+	}
+
 	/** The spirit weapon item for a kit, or null if that kit has none. */
 	@Nullable
 	public static Item weaponFor(ResourceLocation kitId) {

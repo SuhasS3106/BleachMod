@@ -77,6 +77,7 @@ public class BleachModClient implements ClientModInitializer {
 		// layer as well as everything under it, and the auras are drawn in front of the lid.
 		com.bleach.mod.client.AuraSenseOverlay.register();
 		com.bleach.mod.client.DomeTintOverlay.register();
+		com.bleach.mod.client.HeiligBogenModels.register();
 		SpiritualHud.register();
 	}
 }
