@@ -2,9 +2,11 @@ package com.bleach.mod.ability.kits;
 
 import com.bleach.mod.ability.TransformAbility;
 import com.bleach.mod.attachment.SpiritualData;
-import com.bleach.mod.particle.PressureParticleOptions;
 import com.bleach.mod.tuning.BleachTuning;
 
+import org.joml.Vector3f;
+
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -113,31 +115,94 @@ public abstract class QuincyTransform implements TransformAbility {
 	}
 
 	/**
-	 * The wings — an arc of pressure particles behind the shoulders, tinted by the kit colour. No
+	 * The wings — two fans of feathers swept back from the shoulders, tinted by the kit colour. No
 	 * model and no texture; this is the one visual that reads at range as "in Vollständig".
+	 *
+	 * <h2>Why this does not use the mod's own pressure particle</h2>
+	 *
+	 * <p>It did, and it did not work. {@code PressureParticle} is a needle that <em>rises</em> —
+	 * {@code RISE_ACCEL} climbing to {@code RISE_MAX} across a 10–22 tick life — because its job
+	 * everywhere else is to be a column of pressure venting off a player. Any static shape drawn
+	 * with it smears upward within a few ticks, so the wings read as a vertical sprinkle rather than
+	 * as wings. That is a property of the particle, not of the geometry: no amount of redrawing
+	 * fixes a mark that leaves as soon as it is placed.
+	 *
+	 * <p>Vanilla's dust particle is the right tool instead. It takes an arbitrary RGB tint, so the
+	 * per-kit colour survives, and it essentially stays where it is put — which is the whole
+	 * requirement for a shape redrawn every few ticks.
+	 *
+	 * <h2>The shape</h2>
+	 *
+	 * <p>Each wing is {@code VOLL_WING_FEATHERS} feathers fanned from near-horizontal to steeply
+	 * raised, each drawn as {@code VOLL_WING_SEGMENTS} points along its length, and each swept
+	 * backwards in proportion to how far out it reaches — which is what stops the fan reading as a
+	 * flat disc. Both wings are drawn from the same shoulder line, mirrored through {@code side}.
 	 */
 	private void drawWings(ServerPlayer player) {
 		if (!(player.level() instanceof ServerLevel level)) {
 			return;
 		}
 
-		double yaw = Math.toRadians(player.getYRot());
-		double backX = Math.sin(yaw) * BleachTuning.VOLL_WING_OFFSET;
-		double backZ = -Math.cos(yaw) * BleachTuning.VOLL_WING_OFFSET;
-
-		int count = Math.max(1, BleachTuning.VOLL_WING_PARTICLES);
-		for (int i = 0; i < count; i++) {
-			double t = (i / (double) count) * Math.PI;
-			double spread = Math.cos(t) * BleachTuning.VOLL_WING_RADIUS;
-			double lift = Math.sin(t) * BleachTuning.VOLL_WING_RADIUS;
-
-			level.sendParticles(
-					new PressureParticleOptions(wingColour(), (float) BleachTuning.VOLL_WING_PARTICLE_SCALE),
-					player.getX() + backX + Math.cos(yaw) * spread,
-					player.getY() + 1.0 + lift,
-					player.getZ() + backZ + Math.sin(yaw) * spread,
-					1, 0.0, 0.0, 0.0, 0.0);
+		int interval = Math.max(1, BleachTuning.VOLL_WING_INTERVAL);
+		if (player.tickCount % interval != 0) {
+			return;
 		}
+
+		double yaw = Math.toRadians(player.getYRot());
+		// Minecraft yaw 0 faces +Z, so forward is (-sin, cos); right and back follow from it.
+		double rightX = Math.cos(yaw);
+		double rightZ = Math.sin(yaw);
+		double backX = Math.sin(yaw);
+		double backZ = -Math.cos(yaw);
+
+		DustParticleOptions dust = wingDust();
+		int feathers = Math.max(1, BleachTuning.VOLL_WING_FEATHERS);
+		int segments = Math.max(1, BleachTuning.VOLL_WING_SEGMENTS);
+		double radius = BleachTuning.VOLL_WING_RADIUS;
+		double shoulder = BleachTuning.VOLL_WING_OFFSET;
+
+		for (int side = -1; side <= 1; side += 2) {
+			for (int f = 0; f < feathers; f++) {
+				// 0 is the lowest feather, 1 the highest; the fan sweeps up and slightly inward.
+				double u = feathers == 1 ? 0.5 : f / (double) (feathers - 1);
+				double angle = Math.toRadians(WING_MIN_ANGLE + u * (WING_MAX_ANGLE - WING_MIN_ANGLE));
+				double length = radius * (WING_MIN_LENGTH + (1.0 - u) * (1.0 - WING_MIN_LENGTH));
+
+				for (int s = 1; s <= segments; s++) {
+					double t = s / (double) segments;
+					double out = Math.cos(angle) * length * t;
+					double up = Math.sin(angle) * length * t;
+					double back = shoulder + out * WING_SWEEP;
+
+					level.sendParticles(dust,
+							player.getX() + rightX * out * side + backX * back,
+							player.getY() + WING_SHOULDER_HEIGHT + up,
+							player.getZ() + rightZ * out * side + backZ * back,
+							1, 0.0, 0.0, 0.0, 0.0);
+				}
+			}
+		}
+	}
+
+	/** Lowest feather's angle above horizontal, degrees. */
+	private static final double WING_MIN_ANGLE = -5.0;
+	/** Highest feather's angle above horizontal, degrees. */
+	private static final double WING_MAX_ANGLE = 75.0;
+	/** Length of the shortest (highest) feather as a fraction of the longest. */
+	private static final double WING_MIN_LENGTH = 0.55;
+	/** How far back a feather is swept per block it reaches outward. Keeps the fan from reading flat. */
+	private static final double WING_SWEEP = 0.35;
+	/** Height of the shoulder line above the player's feet, blocks. */
+	private static final double WING_SHOULDER_HEIGHT = 1.15;
+
+	/** The kit-tinted dust the wings are drawn in. */
+	private DustParticleOptions wingDust() {
+		int rgb = wingColour();
+		return new DustParticleOptions(
+				new Vector3f(((rgb >> 16) & 0xFF) / 255.0f,
+						((rgb >> 8) & 0xFF) / 255.0f,
+						(rgb & 0xFF) / 255.0f),
+				(float) BleachTuning.VOLL_WING_PARTICLE_SCALE);
 	}
 
 	/** Overridden by a Schrift that wants its own wing colour; defaults to white. */

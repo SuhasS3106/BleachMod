@@ -944,10 +944,23 @@ all of them immediately.
 | `VOLL_SPEED` | 0.35 | frac | Movement speed bonus, `ADD_MULTIPLIED_TOTAL` |
 | `VOLL_DMG` | 0.45 | frac | Melee and arrow damage bonus while in Vollständig |
 | `VOLL_FS_RANGE_MULT` | 1.35 | × | Hirenkyaku (Flash Step) range multiplier, stacked on the kit's own |
-| `VOLL_WING_PARTICLES` | 6 | count | Wing particles emitted per tick behind the shoulders |
-| `VOLL_WING_OFFSET` | 0.45 | blocks | How far behind the player the wing arc sits |
-| `VOLL_WING_RADIUS` | 1.1 | blocks | Radius of the wing arc |
-| `VOLL_WING_PARTICLE_SCALE` | 0.7 | × | Quad size of a single wing particle |
+| `VOLL_WING_FEATHERS` | 5 | count | Feathers per wing |
+| `VOLL_WING_SEGMENTS` | 4 | count | Points drawn along each feather |
+| `VOLL_WING_INTERVAL` | 2 | ticks | Gap between wing redraws |
+| `VOLL_WING_OFFSET` | 0.45 | blocks | How far behind the shoulder line the fan starts |
+| `VOLL_WING_RADIUS` | 1.1 | blocks | Length of the longest feather |
+| `VOLL_WING_PARTICLE_SCALE` | 0.7 | × | Size of a single wing particle |
+| ~~`VOLL_WING_PARTICLES`~~ | 6 | count | **Dead.** Superseded by feathers × segments; kept only so an existing `tuning.json` still loads |
+
+The wings are drawn in vanilla's **dust** particle, not the mod's own pressure needle. That is not a
+style choice: `PressureParticle` accelerates upward across its 10–22 tick life, because its job
+everywhere else is to be a column venting off a player. Any static shape drawn with it smears into a
+vertical sprinkle within a few ticks — no redraw rate fixes a mark that leaves as soon as it lands.
+Dust takes an arbitrary RGB tint, so the per-kit colour survives the swap.
+
+Cost is `feathers × segments × 2` particles every `VOLL_WING_INTERVAL` ticks — 40 per 2 ticks at
+defaults. Raise the interval before lowering the feather count if it ever needs trimming; the shape
+degrades much faster than the refresh rate does.
 
 `VOLL_FS_RANGE_MULT` multiplies the kit's `flashStepRangeMult()` rather than replacing it, so a
 Schrift that is already fast stays proportionally fast in Vollständig. It reaches `FlashStep`

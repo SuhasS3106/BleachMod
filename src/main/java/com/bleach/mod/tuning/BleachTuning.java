@@ -846,8 +846,21 @@ public final class BleachTuning {
 	public static double VOLL_DMG = 0.45;
 	/** Vollstandig Flash Step (Hirenkyaku) range multiplier while active. */
 	public static double VOLL_FS_RANGE_MULT = 1.35;
-	/** Wing particles emitted per tick behind the shoulders. */
+	/**
+	 * Unused since the wings were rebuilt as two feather fans — the shape is now described by
+	 * {@link #VOLL_WING_FEATHERS} × {@link #VOLL_WING_SEGMENTS} per wing. Kept so an existing
+	 * {@code tuning.json} carrying this key still loads.
+	 *
+	 * @deprecated read nothing; remove once no shipped config mentions it.
+	 */
+	@Deprecated
 	public static int VOLL_WING_PARTICLES = 6;
+	/** Feathers per wing. Each is drawn as a line of {@link #VOLL_WING_SEGMENTS} points. */
+	public static int VOLL_WING_FEATHERS = 5;
+	/** Points drawn along each feather. Total per tick is feathers × segments × 2 wings. */
+	public static int VOLL_WING_SEGMENTS = 4;
+	/** Ticks between wing redraws. 2 halves the particle load with no visible flicker. */
+	public static int VOLL_WING_INTERVAL = 2;
 	/** How far behind the player the wing arc sits, blocks. */
 	public static double VOLL_WING_OFFSET = 0.45;
 	/** Radius of the wing arc, blocks. */
