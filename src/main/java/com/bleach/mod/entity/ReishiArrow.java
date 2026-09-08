@@ -52,8 +52,19 @@ public class ReishiArrow extends AbstractArrow {
 		this.pickup = Pickup.DISALLOWED;
 	}
 
+	/**
+	 * <b>The pickup stack must not be empty.</b> {@code AbstractArrow.addAdditionalSaveData} writes
+	 * it unconditionally, and since 1.20.5 {@code ItemStack.save} throws on an empty stack — so an
+	 * {@code ItemStack.EMPTY} here crashes the server the moment a chunk holding an arrow in flight
+	 * autosaves. It cannot leak a real item regardless, because {@link Pickup#DISALLOWED} below is
+	 * what decides whether anything is ever dropped or picked up.
+	 *
+	 * <p>This mirrors {@link #getDefaultPickupItem()}, which the supertype consults only on the
+	 * deserialization path — it cannot be called here, since {@code super(...)} runs before
+	 * {@code this} exists.
+	 */
 	public ReishiArrow(LivingEntity shooter, Level level, @Nullable ResourceLocation kitId) {
-		super(BleachEntities.REISHI_ARROW, shooter, level, ItemStack.EMPTY, null);
+		super(BleachEntities.REISHI_ARROW, shooter, level, new ItemStack(Items.ARROW), null);
 		this.pickup = Pickup.DISALLOWED;
 		this.kitId = kitId;
 	}
