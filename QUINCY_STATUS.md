@@ -2,8 +2,12 @@
 
 **State:** **the 18-task foundation is complete** — all 17 numbered tasks plus 2b have landed on a
 local `quincy` branch. `./gradlew build` and `./gradlew test` are both green (25 JUnit tests).
-Nothing pushed. **Nothing is in-world verified** — see §7, which is still the single largest caveat
-on the whole branch, now with `/bleach test` as the designed compensating control.
+**Nothing is in-world verified** — see §7, which is still the single largest caveat on the whole
+branch, now with `/bleach test` as the designed compensating control.
+
+**Nothing is pushed yet, but the endpoint has changed** (2026-09-08): the branch is to be merged up
+to `origin/main` **as a pull request for Suhas to review**, rather than kept local indefinitely.
+See §8 for the plan and the blockers. **Not started — do not execute any of §8 without the user.**
 **Last session:** 2026-09-08.
 
 **Branch:** `quincy`, branched from `main` @ `750cfb2`. 22 commits, all local.
@@ -115,7 +119,37 @@ Build order agreed for the mod as a whole: **abilities → animations** (bow dra
 
 **Long-term:** race is chosen once, at the start, and cannot be changed. At that point the race model should be upgraded from B to C (see decision #11) — a first-class `Race` subsystem owning weapon lifecycle, ability overrides and progression hooks.
 
-### Known coordination risk — accepted
+### Known coordination risk — **it has now happened** (2026-09-08)
+
+`origin/main` moved to **`d2d1722`** on 2026-09-07 while this branch was being built. The commit is
+titled "TODO List: Notes & upcoming fixes" and its message *is* a playtest TODO list — but it
+carries ~1,500 lines of new code, and it is authored by **Adil**, not Suhas.
+
+**What landed upstream:**
+
+- **A 9th kit, Shunsui Kyōraku** — `ShunsuiTransform`, `KaromatsuManager` (644 lines),
+  `KatenShikaiManager`, a `KaromatsuSyncPayload`, a client state class and a HUD overlay.
+- `BleachKits.IDS` is now **9 entries**, and `BleachTuning` grew ~122 lines of `KIT_SHUNSUI_*` and
+  `SHUNSUI_*` / Karomatsu constants.
+- `.gitignore` was reorganised and now also ignores `run/`, `logs/`, `crash-reports/` and `*.log`.
+- One new asset: `models/item/zanpakuto_shunsui.json`, which is the usual three-line
+  `{"parent": "bleach_mod:item/asauchi"}`.
+
+**Two consequences that are not about merging:**
+
+1. **The picker is now exactly full.** `ROW = 9` and Shinigami has 9 kits, so the race-two screen
+   holds them with zero slots to spare. A 10th Shinigami kit is unselectable — it will now *say so*
+   loudly (Task 8's guard) rather than vanishing silently, but it still will not appear. **Suhas and
+   Adil need to know this before someone starts a 10th kit**; §4.1's "the failure mode only moved"
+   note has stopped being theoretical.
+2. **Playtest notes #6 and #7 land on Quincy.** #6 wants max Soul Level raised from 20 to ~100; #7
+   wants Shikai drain tapering to zero past level 60–70 and Bankai drain reduced but never zero.
+   Decision #2 has Quincy reusing `DRAIN_SHIKAI`, `DRAIN_BANKAI` and `SpiritualData.gatePercent`
+   verbatim, so **Quincy would inherit both changes for free** — that is the good outcome and is
+   exactly why decision #2 was taken. But §2.3's balance-parity question must be re-answered against
+   a 100-level curve rather than a 20-level one, and `BALANCE.md` §D/§E assume 20 throughout.
+
+### The original accepted risk
 
 Adil is building Hollows on the same seam this design introduces (`SpiritualData`, the sync payload, `tickRegen`, the picker). Decision #12 is to build Quincy-shaped and reconcile afterwards rather than landing shared groundwork first.
 
@@ -373,3 +407,55 @@ empty-not-null contract.
   carries a `double reishiSensitivity` rather than a `ToDoubleFunction<ServerPlayer>`, and the weapon
   factory moved to a separate `RaceWeapons`. Recorded in the plan's File Structure section.
 - Nothing is pushed. `origin` is Suhas's repo; the working agreement is local only.
+
+---
+
+## 8. Landing the branch — merge up as a PR
+
+**Decided 2026-09-08 by the user.** The working agreement is no longer "local forever": this branch
+is to go up to `origin/main` **as a pull request**, so Suhas reviews it rather than receiving a push.
+Adil is the other active contributor and the last person to touch the shared seam.
+
+**Status: not started.** Nothing has been pushed, no remote branch exists, no PR exists. The user
+explicitly deferred execution. **Do not run any of the steps below without them.**
+
+### 8.1 Merge first, PR second
+
+`origin/main` is one commit ahead (`d2d1722`, see §3) and it conflicts. Merge `origin/main` **into**
+`quincy` locally and resolve there, so the PR arrives clean and Suhas reviews Quincy rather than
+refereeing a merge.
+
+### 8.2 The five conflicting files
+
+Computed 2026-09-08 by intersecting `git diff --name-only 750cfb2 d2d1722` with the same against
+`quincy`. Two are real; three are additive and should merge on their own.
+
+| File | Conflict | Resolution |
+|---|---|---|
+| **`SpiritualTicker.java`** | **Real, two hunks.** Both branches edited the *same two lines*: the `perTick` line in `tickRegen` (we multiply in `environmentMultiplier`, they add a flat Shunsui idle-regen bonus after it) and the drain line in `tickTransformed` (we left it alone, they gate it behind `KaromatsuManager.isInAct3`). | Keep **both** sides in both hunks. Their Shunsui bonus is added *after* the multiplied regen, so it deliberately bypasses the reishi multiplier — harmless today (Shunsui is Shinigami, sensitivity 0) but **note it in review**: any future flat post-multiplier bonus given to a *Quincy* would silently escape environment scaling and break the §7.2 item 5 invariant. Also check our `Blut.tickAll` call and `environmentMultiplier` still sit outside their hunks. |
+| **`BleachKits.java`** | **Real, and it will not compile if merged naively.** They added `SHUNSUI` + an `IDS` entry + a `registerKit(new Kit(SHUNSUI, …))` with the **7-argument** constructor. Our branch made `race` a mandatory 8th argument and added the `RACE_OF` map. | Add `Races.SHINIGAMI` as the 8th argument to the Shunsui `Kit`, and add `SHUNSUI, Races.SHINIGAMI` to `RACE_OF`. `raceOf` would default it to Shinigami anyway, but `/bleach test race` asserts the two agree *explicitly*, and an implicit default is exactly the drift that check exists to catch. |
+| `BleachTuning.java` | Additive, different regions — they appended `KIT_SHUNSUI_*` / Karomatsu keys, we appended §P.3 and §P.4. | Should auto-merge. Verify §P.3/§P.4 survive and `BALANCE.md`'s §L rows still point at real symbols. |
+| `BleachModClient.java` | Additive — they registered a Karomatsu receiver and overlay, we registered the arrow renderer. | Should auto-merge. |
+| `lang/en_us.json` | Additive — they added Shunsui strings, we added `key.bleach_mod.blut`. | Should auto-merge; watch the trailing comma. |
+
+### 8.3 Do before opening the PR
+
+1. **Resolve the merge, then `./gradlew build` *and* `./gradlew test`.** 25 tests must still pass.
+   The Shunsui kit arriving means `/bleach test race` now has a 9th kit to check — that assertion has
+   never run against a kit somebody else wrote.
+2. **Run the manual pass (§7.2) at least as far as items 1–4.** Right now the honest PR description
+   is "none of this has been in-world verified", which is a bad thing to hand a reviewer. The dev
+   client works — assets are cached, `./gradlew runClient` starts in seconds — so this is cheap now.
+3. **Get a whole-branch review.** Tasks 12–17 were executed in one deadline session with no second
+   pair of eyes (§6). Reviewing them *before* Suhas sees them is cheaper than after.
+4. **Decide what the PR actually claims.** It is a *foundation*, not a feature: no playable Quincy,
+   no Schrift, no bow in the world. The PR description must lead with that or it will be reviewed as
+   a broken feature rather than a complete chassis. It should also carry §7.3's list of judgement
+   calls and §7.4's plan defects, since several are decisions Suhas may want to reverse.
+
+### 8.4 Two things to raise with Suhas and Adil directly, not in the PR
+
+- **The 9-kit picker cap** (§3). This constrains *their* roadmap, not ours, and it should not be
+  buried in a Quincy PR.
+- **The lava ruling** (§7.3): "submerged" was taken to include lava. Still worth confirming.
+

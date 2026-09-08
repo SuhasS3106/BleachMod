@@ -182,9 +182,8 @@ public final class SpiritualTicker {
 	 * A Quincy draws power from the world rather than producing it · design §3.5. Exactly 1.0 for
 	 * a Shinigami, whose race declares zero sensitivity, so this costs the existing path nothing
 	 * beyond one field read and a branch that is never taken.
-	 */
-	/**
-	 * Public so {@code /bleach test reishi} can sample the <em>real</em> regen path rather than a
+	 *
+	 * <p>Public so {@code /bleach test reishi} can sample the <em>real</em> regen path rather than a
 	 * copy of it — a duplicated formula in the command would pass while this one was wrong, which is
 	 * exactly the failure that acceptance command exists to catch.
 	 */
