@@ -8,10 +8,12 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.bleach.mod.damage.BleachDamage;
+import com.bleach.mod.network.DomeTintPayload;
 import com.bleach.mod.tuning.BleachTuning;
 
 import org.joml.Vector3f;
 
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -20,7 +22,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -100,13 +104,37 @@ public final class PoisonDome {
 					new AABB(dome.centre(), dome.centre()).inflate(radius),
 					entity -> entity.isAlive() && inside(dome, entity, radius))) {
 				dome.members.add(candidate.getUUID());
+				tell(candidate, true);
 			}
 		}
 	}
 
-	/** Drops a player's dome. Idempotent — every revert path reaches it. */
+	/**
+	 * Drops a player's dome. Idempotent — every revert path reaches it.
+	 *
+	 * <p>Everyone it was holding is told the tint is over. Without this a player who was inside a
+	 * dome that vanished keeps a purple screen with nothing causing it, and no way to clear it short
+	 * of relogging: the tint is driven by edges, so a missed falling edge is permanent.
+	 */
 	public static void remove(ServerPlayer player) {
-		ACTIVE.remove(player.getUUID());
+		Dome dome = ACTIVE.remove(player.getUUID());
+		if (dome == null) {
+			return;
+		}
+
+		for (UUID id : dome.members) {
+			ServerPlayer held = player.server.getPlayerList().getPlayer(id);
+			if (held != null) {
+				tell(held, false);
+			}
+		}
+	}
+
+	/** Tells a player whether their screen should be washed purple. Silent for non-players. */
+	private static void tell(LivingEntity entity, boolean inside) {
+		if (entity instanceof ServerPlayer player) {
+			ServerPlayNetworking.send(player, new DomeTintPayload(inside));
+		}
 	}
 
 	/** Whether the given player currently owns a dome. */
@@ -222,6 +250,7 @@ public final class PoisonDome {
 			// the below-anchor bug did.
 			if (member && distanceFrom(dome, entity) > radius * BleachTuning.DOME_RELEASE_FACTOR) {
 				dome.members.remove(entity.getUUID());
+				tell(entity, false);
 				continue;
 			}
 
@@ -250,7 +279,7 @@ public final class PoisonDome {
 		// Above the crown: the only case that is genuinely a vertical correction. Handled first so
 		// the horizontal path below never has to reason about it.
 		if (dy > radius) {
-			entity.teleportTo(entity.getX(), dome.centre().y + radius + offset, entity.getZ());
+			place(entity, entity.getX(), dome.centre().y + radius + offset, entity.getZ());
 			damp(entity, new Vec3(0.0, 1.0, 0.0));
 			return;
 		}
@@ -266,8 +295,25 @@ public final class PoisonDome {
 		double limit = Math.sqrt(Math.max(0.0, radius * radius - dy * dy)) + offset;
 		double scale = limit / horizontal;
 
-		entity.teleportTo(dome.centre().x + dx * scale, entity.getY(), dome.centre().z + dz * scale);
+		place(entity, dome.centre().x + dx * scale, entity.getY(), dome.centre().z + dz * scale);
 		damp(entity, new Vec3(dx / horizontal, 0.0, dz / horizontal));
+	}
+
+	/**
+	 * Moves an entity, using the route that actually holds for the kind of entity it is.
+	 *
+	 * <p><b>A {@code ServerPlayer} must be moved through its connection.</b> {@code teleportTo} only
+	 * changes the server's copy of the position; the client keeps sending its own movement packets
+	 * from where it thinks it is, and the server accepts them, so the correction is undone within a
+	 * tick or two. That is why the wall stopped mobs reliably but a player could push through it —
+	 * and why a Flash Step across the boundary was never pulled back.
+	 */
+	private static void place(LivingEntity entity, double x, double y, double z) {
+		if (entity instanceof ServerPlayer player) {
+			player.connection.teleport(x, y, z, player.getYRot(), player.getXRot());
+		} else {
+			entity.teleportTo(x, y, z);
+		}
 	}
 
 	/**
@@ -363,13 +409,39 @@ public final class PoisonDome {
 	private static void drawFootprint(ServerLevel level, Dome dome, DustParticleOptions dust,
 			double radius, double spacing, int stride, int phase) {
 		int points = (int) Math.max(8, Math.ceil(2.0 * Math.PI * radius / (spacing * 0.5)));
+		double skirtLimit = BleachTuning.DOME_SKIRT_DEPTH;
+
 		for (int i = phase; i < points; i += stride) {
 			double angle = (i / (double) points) * Math.PI * 2.0;
-			level.sendParticles(dust,
-					dome.centre().x + Math.cos(angle) * radius,
-					dome.centre().y + 0.1,
-					dome.centre().z + Math.sin(angle) * radius,
-					1, 0.0, 0.0, 0.0, 0.0);
+			double x = dome.centre().x + Math.cos(angle) * radius;
+			double z = dome.centre().z + Math.sin(angle) * radius;
+
+			level.sendParticles(dust, x, dome.centre().y + 0.1, z, 1, 0.0, 0.0, 0.0, 0.0);
+			drawSkirt(level, dust, x, z, dome.centre().y, skirtLimit);
+		}
+	}
+
+	/**
+	 * The skirt — the wall hanging from the rim down to whatever the ground actually is at that
+	 * column.
+	 *
+	 * <p>The shell is anchored at the caster's feet, so on sloping terrain its rim floats above
+	 * ground that falls away, leaving a visible arch you can see straight under. Containment already
+	 * covers that gap — below the anchor counts as inside — but the picture said otherwise, and a
+	 * barrier that <em>looks</em> open is one people will keep trying to walk under and then report
+	 * as broken. This closes the picture rather than the mechanic.
+	 *
+	 * <p>Capped at {@link BleachTuning#DOME_SKIRT_DEPTH} so a dome placed on a clifftop draws a
+	 * reasonable curtain rather than a column all the way to bedrock.
+	 */
+	private static void drawSkirt(ServerLevel level, DustParticleOptions dust,
+			double x, double z, double rimY, double maxDepth) {
+		int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+				Mth.floor(x), Mth.floor(z));
+
+		double bottom = Math.max(ground, rimY - maxDepth);
+		for (double y = rimY - 1.0; y >= bottom; y -= 1.0) {
+			level.sendParticles(dust, x, y, z, 1, 0.0, 0.0, 0.0, 0.0);
 		}
 	}
 

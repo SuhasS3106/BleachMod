@@ -936,6 +936,15 @@ public final class BleachTuning {
 	 * The escape hatch for any state that would otherwise pin a player in place indefinitely.
 	 */
 	public static double DOME_RELEASE_FACTOR = 1.5;
+	/**
+	 * How far below the rim the shell's skirt is drawn when terrain falls away, blocks. Capped so a
+	 * dome on a clifftop draws a curtain rather than a column to bedrock.
+	 */
+	public static double DOME_SKIRT_DEPTH = 12.0;
+	/** Peak alpha of the purple wash on a contained player's screen, 0-255. */
+	public static int DOME_TINT_MAX_ALPHA = 70;
+	/** How fast that wash fades in and out, full travel per second. */
+	public static double DOME_TINT_FADE_PER_SECOND = 2.5;
 
 	/** Radius of Gift Bad Sonnenschein, blocks. It is a hemisphere, so this is also its height. */
 	public static double DOME_RADIUS = 36.0;
