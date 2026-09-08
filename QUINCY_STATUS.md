@@ -1,13 +1,14 @@
 # Quincy Faction — Status
 
-**State:** the 18-task foundation is complete, and **there is now a playable Quincy** — Schrift T,
-The Thunderbolt, landed 2026-09-08 (§9). `./gradlew build` and `./gradlew test` are green
-(**34 JUnit tests**). `BleachKits.IDS` has a Quincy entry, so the race picker leads somewhere, the
-Heilig Bogen mints, and §7.2 items 7–8 are testable for the first time.
+**State:** the 18-task foundation is complete and **two Schrifts are playable** — T, The Thunderbolt
+(§9) and D, The Deathdealing (§10), both landed 2026-09-08. `./gradlew build` and `./gradlew test`
+are green (**42 JUnit tests**). Vollständig's presentation was reworked the same day (§11).
 
-**In-world verification has begun but is not finished** — see §7.1. The first client session ran
-2026-09-08: `/bleach test race`, `blut` and `bow` all PASS, the two-step picker works, and the
-empty-race path degrades gracefully. Everything else in §7.2 is still unrun.
+**In-world verification has begun but is not finished** — see §7.1. Playtesting on 2026-09-08 ran
+`/bleach test race`, `blut` and `bow` (all PASS), confirmed the two-step picker, and **found two
+real bugs nothing else would have**: a server crash on autosave with an arrow in flight (`85f5fcf`,
+latent since Task 11), and wings that rendered as a vertical sprinkle. `/bleach test attribution`
+still has no recorded result. §10.3 and §11 list what remains unchecked.
 
 **Nothing is pushed yet, but the endpoint has changed** (2026-09-08): the branch is to be merged up
 to `origin/main` **as a pull request for Suhas to review**, rather than kept local indefinitely.
@@ -49,16 +50,22 @@ The foundation was the **chassis**, and until 2026-09-08 there was no playable Q
 `BleachKits.IDS` had no Quincy entry, so `AbilityRegistry.kitsFor(QUINCY)` was empty, the race
 screen showed Quincy with no kits behind it, and nothing minted a Heilig Bogen.
 
-**Schrift T closed that** — see §9. One kit entry turned the whole chassis on. The remaining three
-letters (D, M, Z) are still undesigned; §9 is the template they should follow, and Z still ships
+**Schrift T closed that** — see §9. One kit entry turned the whole chassis on, and **D followed the
+same day** (§10), which is the evidence that `QuincyTransform`'s "one power at two intensities" shape
+generalises rather than having only ever fitted T. **M and Z remain undesigned**, and Z still ships
 last for the reason in §4.3.
 
 | Document | Path |
 |---|---|
 | Design spec | `docs/superpowers/specs/2026-09-07-quincy-faction-design.md` |
 | Foundation plan (17 tasks) | `docs/superpowers/plans/2026-09-07-quincy-foundation.md` |
-| Schrift T design | §9 of this file — built on the compressed path, by the user's choice, so it has no separate spec or plan document |
-| Schrift plan (D/M/Z) | not written yet |
+| Schrift T design | §9 of this file |
+| Schrift D design | §10 of this file |
+| Schrift plan (M/Z) | not written yet |
+
+Both Schrifts were built on the **compressed path by the user's explicit choice** — design agreed in
+chat, recorded here, no separate spec or plan document, no per-task subagent review. That is a
+deliberate trade and it is the third body of code on this branch in that condition; see §6.
 
 All three files, plus this one, are still **untracked** — deliberately. The 16 implementation commits
 are tracked and local-only.
@@ -527,3 +534,67 @@ Everything in this section is compile-and-unit-test verified only. Specifically 
 3. **Bow-bash inertness** — enter tier 1, club a mob with the bow, confirm no bolt.
 4. **The cooldown reads as a rhythm**, not as a broken power. 3s in tier 1 may be too slow to feel.
 5. **§7.2 items 7 and 8** (bow and arrow) are finally reachable and have never been run.
+
+---
+
+## 10. Schrift D — The Deathdealing · landed 2026-09-08
+
+Askin Nakk Le Vaar (`bleach_mod:deathdealing`), the second Quincy. Numbers in `BALANCE.md` §P.6.
+
+### 10.1 What it does
+
+The letter is about how much of a thing a body can take, so the mechanic is a **dose**. Every landed
+arrow leaves one; every dose raises the damage that target takes from *everything, from anyone*.
+Doses bleed off untended, so D is a clock — commit and finish while the stack is up.
+
+| | Tier 1 — Schrift (`R`) | Tier 2 — Vollständig (`G`) |
+|---|---|---|
+| Arrows | 1 dose per hit | 2 doses per hit |
+| Field | — | **Gift Bad Sonnenschein** — a 7-block dome anchored where you released |
+| Dome effect | — | 1.5 bleach damage + 1 dose per second to everything inside but you |
+
+Same power at two intensities: the dome is the dose mechanic applied to a volume instead of to one
+arrow at a time.
+
+### 10.2 Decisions taken
+
+| Decision | Why | Cost if wrong |
+|---|---|---|
+| **No outright kill** — doses multiply damage taken, they do not cross a death threshold | *User's call, 2026-09-08.* A guaranteed delete makes one kit mandatory and every fight against it un-fun. Keeps the "things die faster the longer you work them" identity without the button | D is less faithful to Askin, and less feared. One threshold check to add if it ever wants to be |
+| **The dome stays where you popped it** | *User's call, 2026-09-08.* Every other tier is a stance that follows you; a fixed field is terrain — bait, zone, get caught out of. It is the entire reason the letter plays unlike anything else here | More machinery than a stance: the dome needs its own position, owner and teardown |
+| **Poison is cosmetic; `DOME_DAMAGE` is real** | Vanilla Poison **cannot kill** — it floors at half a heart — so it can never be the damage. It rides along purely as the on-screen tell | Nothing; the alternative does not work |
+| **A dome dies with its owner's logout** | Nothing else in the world holds a reference to one. An orphaned dome is a permanent poison field nobody can switch off | A player who relogs mid-fight loses their field |
+| **The dose multiplier sits outside `DamageScaling`'s `ServerPlayer` block** | Doses land on mobs, and mobs carry no `SpiritualData` | — |
+| **Doses are keyed by entity UUID, not held on the entity** | Same reason | Entries are dropped as they empty, so the map only ever holds recently-dosed targets |
+| **Decay uses the server tick, not the dosing player's** | A player dying, changing dimension or logging out mid-stack must not reset or freeze the clock on targets they already dosed | — |
+
+### 10.3 Still unverified in-world
+
+Compile-and-unit-test verified only. 42 JUnit tests green; the eight new ones cover the dose
+arithmetic and its config guards, which is all that is reachable without a server.
+
+1. **Does the dome actually damage and dose?** Pop tier 2 in a mob group; health should tick down
+   once a second and the purple shell should be visible.
+2. **Does it stay put when you walk away, and vanish when you revert?**
+3. **Do doses actually raise damage taken?** Dose a high-health mob, then hit it with something
+   *unrelated* — a vanilla sword — and confirm it takes more. That is the whole mechanic and it is
+   the one thing no unit test reaches.
+4. **Does the dome survive a relog?** It should not.
+5. **Do doses decay?** Dose a target, wait, confirm the damage bonus falls off.
+
+## 11. Vollständig presentation — reworked 2026-09-08
+
+Three passes, all driven by playtest rather than by design:
+
+1. **The particle was wrong.** `PressureParticle` rises by design, so any static shape smeared into a
+   vertical sprinkle. Wings now use vanilla dust, which stays put and still takes a per-kit tint.
+2. **The geometry was wrong.** Six points traced one arch over the player's head. Now two mirrored
+   feather fans, length peaking mid-fan, swept back in proportion to reach.
+3. **The style is now per-Schrift.** `wingJagged()` defaults to smooth and T overrides it to draw
+   zigzag lightning; colour already came from the kit. T is Candice's electric green (`0x5CFF9E`),
+   dense (7 × 12 per wing) and big (radius 2.0).
+
+Also added: **a bell on entering Vollständig**, broadcast rather than sent to the releasing player;
+and an **aura** — a loose column of the kit's colour that is always on while released. **The wings
+only unfurl when standing still**; moving, they furl and the aura carries it alone. That is how the
+release reads on screen, and it also drops a running Quincy from 84 particles a tick to 10.

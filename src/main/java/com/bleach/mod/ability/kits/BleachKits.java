@@ -40,6 +40,9 @@ public final class BleachKits {
 	/** Schrift T · the first Quincy. Carries a Heilig Bogen, not a blade. */
 	public static final ResourceLocation THUNDERBOLT = BleachMod.id("thunderbolt");
 
+	/** Schrift D · the second Quincy. */
+	public static final ResourceLocation DEATHDEALING = BleachMod.id("deathdealing");
+
 	/**
 	 * Every kit id, in menu order. Read by {@code BleachItems} to mint one weapon per kit — a
 	 * zanpakutō or a Heilig Bogen, whichever {@code RaceWeapons} says the kit's race carries.
@@ -48,7 +51,7 @@ public final class BleachKits {
 	 * of the picker is filtered by race, so this list's order is what each race's own screen shows.
 	 */
 	public static final List<ResourceLocation> IDS = List.of(
-			ICHIGO, YAMAMOTO, SUIFENG, RUKIA, SHINJI, AIZEN, TOSEN, GIN, THUNDERBOLT);
+			ICHIGO, YAMAMOTO, SUIFENG, RUKIA, SHINJI, AIZEN, TOSEN, GIN, THUNDERBOLT, DEATHDEALING);
 
 	/**
 	 * Which race each kit belongs to. Read by {@code BleachItems} before any Kit object exists.
@@ -62,7 +65,7 @@ public final class BleachKits {
 			ICHIGO, Races.SHINIGAMI, YAMAMOTO, Races.SHINIGAMI, SUIFENG, Races.SHINIGAMI,
 			RUKIA, Races.SHINIGAMI, SHINJI, Races.SHINIGAMI, AIZEN, Races.SHINIGAMI,
 			TOSEN, Races.SHINIGAMI, GIN, Races.SHINIGAMI,
-			THUNDERBOLT, Races.QUINCY);
+			THUNDERBOLT, Races.QUINCY, DEATHDEALING, Races.QUINCY);
 
 	/** Never null — an unlisted kit is treated as Shinigami, which is the pre-race behaviour. */
 	public static Race raceOf(ResourceLocation kitId) {
@@ -118,5 +121,10 @@ public final class BleachKits {
 				ThunderboltTransform.schrift(), ThunderboltTransform.vollstandig(),
 				BleachTuning.KIT_THUNDERBOLT_FS_RANGE_MULT, BleachTuning.KIT_THUNDERBOLT_FS_COOLDOWN_MULT,
 				BleachTuning.KIT_THUNDERBOLT_PARTICLE_COLOR, Races.QUINCY));
+
+		AbilityRegistry.registerKit(new Kit(DEATHDEALING, "Askin Nakk Le Vaar",
+				DeathdealingTransform.schrift(), DeathdealingTransform.vollstandig(),
+				BleachTuning.KIT_DEATHDEALING_FS_RANGE_MULT, BleachTuning.KIT_DEATHDEALING_FS_COOLDOWN_MULT,
+				BleachTuning.KIT_DEATHDEALING_PARTICLE_COLOR, Races.QUINCY));
 	}
 }

@@ -9,6 +9,8 @@ import com.bleach.mod.ability.AbilityDispatcher;
 import com.bleach.mod.ability.TransformAbility;
 import com.bleach.mod.ability.common.AuraSense;
 import com.bleach.mod.ability.common.Blut;
+import com.bleach.mod.ability.kits.Doses;
+import com.bleach.mod.ability.kits.PoisonDome;
 import com.bleach.mod.ability.common.Hover;
 import com.bleach.mod.ability.common.SpiritualFlex;
 import com.bleach.mod.ability.kits.IchigoTransform;
@@ -132,6 +134,12 @@ public final class SpiritualTicker {
 		// Blut is not a channel but bills the same way — through data.spend(), stacking on top of any
 		// release drain — so it belongs in the same slot, before the pool pass syncs the bar.
 		Blut.tickAll(server);
+
+		// Schrift D · design §P.6. Neither of these is billed to a player's pool — doses live on the
+		// targets and the dome lives on the world — so they sit after the channels rather than among
+		// them. The dome must tick even when its owner is nowhere near it: that is the point of it.
+		Doses.tickAll(server);
+		PoisonDome.tickAll(server);
 
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 			SpiritualData data = BleachAttachments.get(player);

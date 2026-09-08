@@ -224,6 +224,11 @@ public final class ThunderboltTransform {
 		}
 
 		@Override
+		protected boolean wingJagged() {
+			return true;
+		}
+
+		@Override
 		protected int wingColour() {
 			return BleachTuning.KIT_THUNDERBOLT_PARTICLE_COLOR;
 		}
@@ -253,6 +258,11 @@ public final class ThunderboltTransform {
 		public void onProjectileHit(ServerPlayer player, LivingEntity target, float damage) {
 			tryBolt(player, target, BleachTuning.THUNDER_VOLL_COOLDOWN_TICKS,
 					BleachTuning.THUNDER_CHAIN_COUNT);
+		}
+
+		@Override
+		protected boolean wingJagged() {
+			return true;
 		}
 
 		@Override

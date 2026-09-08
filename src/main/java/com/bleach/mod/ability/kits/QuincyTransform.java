@@ -86,9 +86,54 @@ public abstract class QuincyTransform implements TransformAbility {
 	@Override
 	public void onTick(ServerPlayer player, SpiritualData data) {
 		if (isVollstandig()) {
-			drawWings(player);
+			drawAura(player);
+			if (isStill(player)) {
+				drawWings(player);
+			}
 		}
 		onTierTick(player, data);
+	}
+
+	/**
+	 * Whether the player has effectively not moved this tick. The wings only unfurl when they are
+	 * standing — moving, they furl and leave the aura alone, which is both how Vollständig reads on
+	 * screen and a large saving on particle count while a player is running around.
+	 *
+	 * <p>Measured from the entity's own previous position rather than {@code getDeltaMovement},
+	 * which on a server-side player is frequently near zero while walking.
+	 */
+	private static boolean isStill(ServerPlayer player) {
+		double dx = player.getX() - player.xo;
+		double dy = player.getY() - player.yo;
+		double dz = player.getZ() - player.zo;
+		return dx * dx + dy * dy + dz * dz <= BleachTuning.VOLL_WING_STILL_THRESHOLD;
+	}
+
+	/**
+	 * The aura — a loose column of the kit's colour boiling around the player. Always on while in
+	 * Vollständig, so a Quincy in flight still reads as released even with the wings furled.
+	 */
+	private void drawAura(ServerPlayer player) {
+		if (!(player.level() instanceof ServerLevel level)) {
+			return;
+		}
+
+		DustParticleOptions dust = new DustParticleOptions(
+				colourVector(wingColour()), (float) BleachTuning.VOLL_AURA_PARTICLE_SCALE);
+
+		int count = Math.max(0, BleachTuning.VOLL_AURA_PARTICLES);
+		double radius = BleachTuning.VOLL_AURA_RADIUS;
+		double height = BleachTuning.VOLL_AURA_HEIGHT;
+
+		for (int i = 0; i < count; i++) {
+			double angle = player.getRandom().nextDouble() * Math.PI * 2.0;
+			double r = radius * Math.sqrt(player.getRandom().nextDouble());
+			level.sendParticles(dust,
+					player.getX() + Math.cos(angle) * r,
+					player.getY() + player.getRandom().nextDouble() * height,
+					player.getZ() + Math.sin(angle) * r,
+					1, 0.0, 0.0, 0.0, 0.0);
+		}
 	}
 
 	/**
@@ -197,10 +242,21 @@ public abstract class QuincyTransform implements TransformAbility {
 				double length = radius * (WING_MIN_LENGTH
 						+ (1.0 - WING_MIN_LENGTH) * Math.sin(Math.PI * u));
 
+				// Perpendicular to the feather, within the wing plane — the axis a jagged wing
+				// zigzags along.
+				double perpOut = -Math.sin(angle);
+				double perpUp = Math.cos(angle);
+				double zigzag = wingJagged() ? BleachTuning.VOLL_WING_ZIGZAG : 0.0;
+
 				for (int s = 1; s <= segments; s++) {
 					double t = s / (double) segments;
-					double out = Math.cos(angle) * length * t * WING_SPREAD;
-					double up = Math.sin(angle) * length * t;
+
+					// Alternating kick, tapering toward the tip so the bolt narrows as it goes out
+					// rather than staying a constant-width ribbon.
+					double kick = zigzag * ((s % 2 == 0) ? 1.0 : -1.0) * (1.0 - t * 0.35);
+
+					double out = (Math.cos(angle) * length * t + perpOut * kick) * WING_SPREAD;
+					double up = Math.sin(angle) * length * t + perpUp * kick;
 					double back = shoulder + out * WING_SWEEP;
 
 					level.sendParticles(dust,
@@ -231,6 +287,22 @@ public abstract class QuincyTransform implements TransformAbility {
 	private static final double WING_FLAP_DEGREES = 14.0;
 	/** Share of the beat the root feather gets; the tip gets all of it. */
 	private static final double WING_FLAP_ROOT = 0.35;
+
+	/**
+	 * Whether this Schrift's wings are jagged lightning rather than smooth feathers. Defaulted off,
+	 * so a Schrift gets the smooth shape unless it asks otherwise — the seam exists so the four
+	 * letters can differ in silhouette, not only in colour.
+	 */
+	protected boolean wingJagged() {
+		return false;
+	}
+
+	/** Packed RGB to the float vector the dust particle wants. */
+	private static Vector3f colourVector(int rgb) {
+		return new Vector3f(((rgb >> 16) & 0xFF) / 255.0f,
+				((rgb >> 8) & 0xFF) / 255.0f,
+				(rgb & 0xFF) / 255.0f);
+	}
 
 	/** The kit-tinted dust the wings are drawn in. */
 	private DustParticleOptions wingDust() {

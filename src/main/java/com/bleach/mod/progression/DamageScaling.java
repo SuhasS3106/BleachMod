@@ -1,6 +1,7 @@
 package com.bleach.mod.progression;
 
 import com.bleach.mod.ability.AbilityDispatcher;
+import com.bleach.mod.ability.kits.Doses;
 import com.bleach.mod.ability.TransformAbility;
 import com.bleach.mod.ability.common.Blut;
 import com.bleach.mod.attachment.BleachAttachments;
@@ -60,6 +61,13 @@ public final class DamageScaling {
 			// `bleach`: hardened blood stops a skeleton's arrow as well as a zanpakutō.
 			damage *= Blut.damageTakenMultiplier(BleachAttachments.get(victimPlayer).blut);
 		}
+
+		// 2c. Schrift D's doses · design §P.6. A dosed target takes more from everything, from
+		// anyone — the dose is a property of the victim, not of who is hitting it, which is what
+		// makes The Deathdealing a setup power rather than a personal damage buff. It sits outside
+		// the ServerPlayer block above because doses apply to mobs too, and mobs carry no
+		// SpiritualData.
+		damage *= Doses.damageTakenMultiplier(victim);
 
 		// 3. Bleach damage dealt. Never applies to vanilla weapons — a bow is a bow at every level,
 		// which is what keeps gear relevant · PRD §2.4.

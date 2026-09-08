@@ -949,7 +949,15 @@ all of them immediately.
 | `VOLL_WING_INTERVAL` | 2 | ticks | Gap between wing redraws |
 | `VOLL_WING_OFFSET` | 0.45 | blocks | How far behind the shoulder line the fan starts |
 | `VOLL_WING_RADIUS` | 1.1 | blocks | Length of the longest feather |
-| `VOLL_WING_PARTICLE_SCALE` | 0.7 | × | Size of a single wing particle |
+| `VOLL_WING_PARTICLE_SCALE` | 0.45 | × | Size of a single wing particle |
+| `VOLL_WING_ZIGZAG` | 0.22 | blocks | Sideways kick per zigzag step, jagged-winged Schrifts only |
+| `VOLL_WING_STILL_THRESHOLD` | 0.0016 | blocks² | Movement per tick above which the wings furl |
+| `VOLL_AURA_PARTICLES` | 10 | count | Aura particles per tick |
+| `VOLL_AURA_RADIUS` | 0.85 | blocks | Radius of the aura cylinder |
+| `VOLL_AURA_HEIGHT` | 2.0 | blocks | Height of the aura cylinder |
+| `VOLL_AURA_PARTICLE_SCALE` | 0.6 | × | Size of a single aura particle |
+| `VOLL_BELL_VOLUME` | 1.0 | × | Volume of the bell struck on entry |
+| `VOLL_BELL_PITCH` | 0.7 | × | Pitch of that bell; below 1 tolls rather than chimes |
 | ~~`VOLL_WING_PARTICLES`~~ | 6 | count | **Dead.** Superseded by feathers × segments; kept only so an existing `tuning.json` still loads |
 
 The wings are drawn in vanilla's **dust** particle, not the mod's own pressure needle. That is not a
@@ -958,9 +966,22 @@ everywhere else is to be a column venting off a player. Any static shape drawn w
 vertical sprinkle within a few ticks — no redraw rate fixes a mark that leaves as soon as it lands.
 Dust takes an arbitrary RGB tint, so the per-kit colour survives the swap.
 
-Cost is `feathers × segments × 2` particles every `VOLL_WING_INTERVAL` ticks — 40 per 2 ticks at
+Cost is `feathers × segments × 2` particles every `VOLL_WING_INTERVAL` ticks — 168 per 2 ticks at
 defaults. Raise the interval before lowering the feather count if it ever needs trimming; the shape
 degrades much faster than the refresh rate does.
+
+**The wings only unfurl when the player is standing still.** Moving, they furl and the aura carries
+the release on its own. That is a presentation decision first — it is how Vollständig reads on
+screen — but it also means a Quincy running around costs the aura's 10 particles a tick rather than
+the wings' 84.
+
+The wing *silhouette* is per-Schrift, not shared: `QuincyTransform.wingJagged()` defaults to smooth
+feathers, and a Schrift overrides it to get lightning instead. Colour comes from the kit's own
+`particleColor` through `wingColour()`. Between them the four letters can be told apart at range
+without any of them needing a model.
+
+Entering Vollständig **tolls a bell**, which is the release's only audio cue and is broadcast rather
+than sent to the releasing player alone.
 
 `VOLL_FS_RANGE_MULT` multiplies the kit's `flashStepRangeMult()` rather than replacing it, so a
 Schrift that is already fast stays proportionally fast in Vollständig. It reaches `FlashStep`
@@ -1020,6 +1041,54 @@ mob conversions do not happen**: no charged creepers, no witches, no zombified p
 `THUNDER_CHAIN_FALLOFF` is clamped at zero before exponentiation, so no config value can make a
 chain link amplify rather than decay, or flip its sign.
 
+### P.6 Schrift D · The Deathdealing · *design: `QUINCY_STATUS.md` §10*
+
+Askin Nakk Le Vaar. The letter is about how much of a thing a body can take, so the mechanic is a
+**dose**: every landed arrow leaves one, and every dose raises the damage that target takes from
+*everything, from anyone*. Doses bleed off if nobody keeps applying them, which makes D a clock —
+commit to a target and finish it while the stack is up.
+
+**It is deliberately not an outright kill.** A guaranteed death threshold makes one kit a mandatory
+pick and every fight against it un-fun. The stack is a vulnerability multiplier instead, which keeps
+the identity — things die faster the longer you work them — without the delete button. That is also
+what separates it in play from Suì-Fēng, whose two-strike kill *is* outright: hers is a position,
+this is a countdown.
+
+| Symbol | Default | Unit | Meaning |
+|---|---|---|---|
+| `DOSE_DAMAGE_PER` | 0.09 | frac | Damage-taken increase per dose |
+| `DOSE_MAX` | 10 | count | Dose cap; also caps the multiplier at ×1.90 |
+| `DOSE_DECAY_TICKS` | 60 | ticks | Time without a fresh dose before one bleeds off |
+| `DOSE_PER_ARROW` | 1 | count | Doses per landed arrow in the Schrift tier |
+| `DOSE_PER_ARROW_VOLL` | 2 | count | Doses per landed arrow in Vollständig |
+| `DOME_RADIUS` | 7.0 | blocks | Radius of Gift Bad Sonnenschein |
+| `DOME_DAMAGE` | 1.5 | HP | Bleach damage per damage tick inside the dome |
+| `DOME_DAMAGE_INTERVAL` | 20 | ticks | Gap between damage-and-dose passes |
+| `DOME_DOSES_PER_TICK` | 1 | count | Doses applied by each pass |
+| `DOME_POISON_TICKS` | 40 | ticks | Duration of the cosmetic Poison effect |
+| `DOME_PARTICLES` | 40 | count | Shell particles per draw pass |
+| `DOME_PARTICLE_INTERVAL` | 4 | ticks | Gap between draw passes |
+| `DOME_PARTICLE_SCALE` | 1.0 | × | Size of a single dome particle |
+| `DOME_COLOR` | `0xA855F7` | RGB | Askin's purple |
+| `KIT_DEATHDEALING_PARTICLE_COLOR` | `0xA855F7` | RGB | The same purple, for arrows and Flash Step |
+
+**The dome does not follow the player.** It anchors where they released and stays there — walk out
+and you leave it behind. Every other tier in this mod is a stance that travels with you; this one is
+terrain you make and then have to fight around, which is the whole reason the letter plays
+differently. It also means `onTierRevert` has real work to do, because nothing else in the world
+holds a reference to a dome.
+
+Vanilla's Poison effect is applied inside the dome as the **on-screen tell only**. Poison cannot
+kill — it stops at half a heart — so it can never be the damage itself; `DOME_DAMAGE` is.
+
+A dome whose owner logs out is dropped rather than left running. A permanent poison field nobody can
+switch off is the worst available failure mode for this feature.
+
+The dose multiplier is applied in `DamageScaling` **outside** the `ServerPlayer` block, because doses
+land on mobs too and only players carry a `SpiritualData`. It is a property of the victim rather than
+of whoever is hitting them, which is what makes D a setup power a whole team benefits from rather
+than a personal damage buff.
+
 ---
 
 ## L. Where each constant is consumed
@@ -1049,6 +1118,7 @@ Kept current so a balance change never requires a codebase search.
 | P.3 | `ability/kits/QuincyTransform`, `ability/common/FlashStep` (range multiplier) |
 | P.4 | `ability/common/Blut`, `progression/DamageScaling` (both multipliers), `client/SpiritualHud` (border colours) |
 | P.5 | `ability/kits/ThunderboltTransform`, `ability/kits/BleachKits` (kit registration) |
+| P.6 | `ability/kits/DeathdealingTransform`, `ability/kits/Doses`, `ability/kits/PoisonDome`, `progression/DamageScaling` (the dose multiplier), `attachment/SpiritualTicker` (both tick passes) |
 
 ---
 

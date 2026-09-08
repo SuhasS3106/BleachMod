@@ -399,8 +399,8 @@ public final class BleachTuning {
 	public static double KIT_THUNDERBOLT_FS_RANGE_MULT = 1.0;
 	/** Flash Step (Hirenkyaku) cooldown multiplier for Candice Catnipp. */
 	public static double KIT_THUNDERBOLT_FS_COOLDOWN_MULT = 1.0;
-	/** Electric cyan — the one hue unused by the eight Shinigami. */
-	public static int KIT_THUNDERBOLT_PARTICLE_COLOR = 0xA5F3FC;
+	/** Candice Catnipp's electric green · her Vollstandig lightning in the anime. */
+	public static int KIT_THUNDERBOLT_PARTICLE_COLOR = 0x5CFF9E;
 
 	// --- I.1 The zanpakutō item ------------------------------------------------------
 	//
@@ -856,21 +856,78 @@ public final class BleachTuning {
 	@Deprecated
 	public static int VOLL_WING_PARTICLES = 6;
 	/** Feathers per wing. Each is drawn as a line of {@link #VOLL_WING_SEGMENTS} points. */
-	public static int VOLL_WING_FEATHERS = 6;
+	public static int VOLL_WING_FEATHERS = 7;
 	/** Points drawn along each feather. Total per tick is feathers × segments × 2 wings. */
-	public static int VOLL_WING_SEGMENTS = 4;
+	public static int VOLL_WING_SEGMENTS = 12;
 	/** Ticks between wing redraws. 2 halves the particle load with no visible flicker. */
 	public static int VOLL_WING_INTERVAL = 2;
 	/** How far behind the player the wing arc sits, blocks. */
 	public static double VOLL_WING_OFFSET = 0.45;
 	/** Radius of the wing arc, blocks. */
-	public static double VOLL_WING_RADIUS = 1.1;
+	public static double VOLL_WING_RADIUS = 2.0;
 	/** Quad size of a single wing particle. */
 	public static double VOLL_WING_PARTICLE_SCALE = 0.45;
 	/** Volume of the bell struck on entering Vollstandig. */
 	public static double VOLL_BELL_VOLUME = 1.0;
 	/** Pitch of that bell. Below 1 reads as a heavy toll rather than a village bell. */
 	public static double VOLL_BELL_PITCH = 0.7;
+	/**
+	 * Sideways kick of each zigzag step on a jagged wing, blocks. Only read by Schrifts whose
+	 * {@code wingJagged()} is true; a smooth-winged Schrift ignores it.
+	 */
+	public static double VOLL_WING_ZIGZAG = 0.22;
+	/** Aura particles drawn around the player per tick while in Vollstandig. */
+	public static int VOLL_AURA_PARTICLES = 10;
+	/** Radius of the aura cylinder around the player, blocks. */
+	public static double VOLL_AURA_RADIUS = 0.85;
+	/** Height of the aura cylinder, blocks. */
+	public static double VOLL_AURA_HEIGHT = 2.0;
+	/** Size of a single aura particle. */
+	public static double VOLL_AURA_PARTICLE_SCALE = 0.6;
+	/**
+	 * Squared blocks moved in one tick above which the wings furl and only the aura remains. Small
+	 * on purpose — the intent is "standing still", not "walking slowly".
+	 */
+	public static double VOLL_WING_STILL_THRESHOLD = 0.0016;
+
+	// --- P.6 Quincy · Schrift D, The Deathdealing -------------------------------------
+
+	/** Damage-taken increase per dose on a target. */
+	public static double DOSE_DAMAGE_PER = 0.09;
+	/** Most doses a target can carry. Caps the vulnerability multiplier. */
+	public static int DOSE_MAX = 10;
+	/** Ticks without a fresh dose before one bleeds off. */
+	public static int DOSE_DECAY_TICKS = 60;
+	/** Doses left by one landed arrow in the Schrift tier. */
+	public static int DOSE_PER_ARROW = 1;
+	/** Doses left by one landed arrow in Vollstandig. */
+	public static int DOSE_PER_ARROW_VOLL = 2;
+
+	/** Radius of Gift Bad Sonnenschein, blocks. */
+	public static double DOME_RADIUS = 7.0;
+	/** Bleach damage dealt to everything inside the dome, per damage tick. */
+	public static double DOME_DAMAGE = 1.5;
+	/** Ticks between the dome's damage-and-dose passes. */
+	public static int DOME_DAMAGE_INTERVAL = 20;
+	/** Doses applied by each of those passes. */
+	public static int DOME_DOSES_PER_TICK = 1;
+	/** Duration of the cosmetic Poison effect refreshed on things inside, ticks. */
+	public static int DOME_POISON_TICKS = 40;
+	/** Shell particles drawn per draw pass. */
+	public static int DOME_PARTICLES = 40;
+	/** Ticks between draw passes. */
+	public static int DOME_PARTICLE_INTERVAL = 4;
+	/** Size of a single dome particle. */
+	public static double DOME_PARTICLE_SCALE = 1.0;
+	/** Askin's purple. */
+	public static int DOME_COLOR = 0xA855F7;
+
+	/** Flash Step (Hirenkyaku) range multiplier for Askin Nakk Le Vaar. */
+	public static double KIT_DEATHDEALING_FS_RANGE_MULT = 1.0;
+	/** Flash Step (Hirenkyaku) cooldown multiplier for Askin Nakk Le Vaar. */
+	public static double KIT_DEATHDEALING_FS_COOLDOWN_MULT = 1.0;
+	/** Askin's purple, matching the dome. */
+	public static int KIT_DEATHDEALING_PARTICLE_COLOR = 0xA855F7;
 
 	// --- P.5 Quincy · Schrift T, The Thunderbolt --------------------------------------
 
