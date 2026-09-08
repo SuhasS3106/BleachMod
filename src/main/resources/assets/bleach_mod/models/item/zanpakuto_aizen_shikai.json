@@ -3,25 +3,26 @@
 		"0": "bleach_mod:item/zanpakuto_aizen_shikai",
 		"particle": "bleach_mod:item/zanpakuto_aizen_shikai"
 	},
+	"__comment_display": "Same derivation as item/asauchi's hand poses, with the grip one unit lower (y=-4, this tsuka runs -6.5..-1.5) and this model's own scales.",
 	"display": {
 		"thirdperson_righthand": {
-			"rotation": [0, 180, 55],
-			"translation": [0, 4, 0.5],
+			"rotation": [-10, 180, 0],
+			"translation": [0, 7.1, 0],
 			"scale": [0.762, 0.762, 0.762]
 		},
 		"thirdperson_lefthand": {
-			"rotation": [0, -180, -55],
-			"translation": [0, 4, 0.5],
+			"rotation": [-10, -180, 0],
+			"translation": [0, 7.1, 0],
 			"scale": [0.762, 0.762, 0.762]
 		},
 		"firstperson_righthand": {
-			"rotation": [0, 180, 25],
-			"translation": [1.13, 3.2, 1.13],
+			"rotation": [20, 180, 0],
+			"translation": [1.13, 5.6, 2.0],
 			"scale": [0.61, 0.61, 0.61]
 		},
 		"firstperson_lefthand": {
-			"rotation": [0, -180, -25],
-			"translation": [1.13, 3.2, 1.13],
+			"rotation": [20, -180, 0],
+			"translation": [1.13, 5.6, 2.0],
 			"scale": [0.61, 0.61, 0.61]
 		},
 		"gui": {
