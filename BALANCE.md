@@ -976,6 +976,37 @@ deliberately **not** gated on the damage being bleach — hardened blood stops a
 well as a zanpakutō — while Arterie only moves bleach damage, which keeps "a bow is a bow at every
 level" (§E) intact.
 
+### P.5 Schrift T · The Thunderbolt · *design: `QUINCY_STATUS.md` §9*
+
+The first Schrift, and the first kit of any race whose power fires off a **projectile** rather than
+a swing. Both tiers are the same power at two intensities: tier 1 calls one bolt on the struck
+target, Vollständig chains that bolt outward and shortens the clock. Nothing here is activated —
+`BleachKeybinds` has no free key, so a tier is a stance and its power rides `onProjectileHit`.
+
+| Symbol | Default | Unit | Meaning |
+|---|---|---|---|
+| `THUNDER_BOLT_DAMAGE` | 6.0 | HP | Bolt damage on the struck target, before Soul Level scaling |
+| `THUNDER_COOLDOWN_TICKS` | 60 | ticks | Minimum gap between bolts in the Schrift tier |
+| `THUNDER_VOLL_COOLDOWN_TICKS` | 20 | ticks | Minimum gap between bolts in Vollständig |
+| `THUNDER_CHAIN_COUNT` | 3 | count | Further entities a Vollständig bolt chains to; 0 disables chaining |
+| `THUNDER_CHAIN_RADIUS` | 5.0 | blocks | Radius searched around the struck target for chain links |
+| `THUNDER_CHAIN_FALLOFF` | 0.5 | × | Damage retained by each successive chain link |
+| `KIT_THUNDERBOLT_PARTICLE_COLOR` | `0xA5F3FC` | RGB | Electric cyan; the one hue unused by the eight Shinigami |
+
+The bolt damage **stacks on the arrow's own** `BOW_ARROW_DAMAGE` (§P.2, 7.0), so a bolted full-draw
+shot lands 13 before scaling — roughly a zanpakutō combo, at range, once every three seconds, for
+the 6.0 SP the shot already costs. Vollständig's shorter clock is the real increase: three times the
+bolt rate plus up to 3 chain links at 3.0 / 1.5 / 0.75.
+
+Bolts are **visual-only** `LightningBolt` entities. That buys the flash, the thunderclap and the
+dynamic lighting for free while suppressing every vanilla side effect, and damage is then applied by
+hand as `SPIRIT_PRESSURE` — already in the `BLEACH` tag, so Soul Level scaling applies and these
+numbers stay governed here rather than escaping into vanilla's flat 5. **The deliberate cost is that
+mob conversions do not happen**: no charged creepers, no witches, no zombified piglins, and no fire.
+
+`THUNDER_CHAIN_FALLOFF` is clamped at zero before exponentiation, so no config value can make a
+chain link amplify rather than decay, or flip its sign.
+
 ---
 
 ## L. Where each constant is consumed
@@ -1004,6 +1035,7 @@ Kept current so a balance change never requires a codebase search.
 | P.2 | `item/HeiligBogenItem` |
 | P.3 | `ability/kits/QuincyTransform`, `ability/common/FlashStep` (range multiplier) |
 | P.4 | `ability/common/Blut`, `progression/DamageScaling` (both multipliers), `client/SpiritualHud` (border colours) |
+| P.5 | `ability/kits/ThunderboltTransform`, `ability/kits/BleachKits` (kit registration) |
 
 ---
 

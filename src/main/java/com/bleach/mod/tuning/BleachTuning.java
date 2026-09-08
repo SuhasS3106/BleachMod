@@ -395,6 +395,13 @@ public final class BleachTuning {
 	public static double KIT_GIN_FS_COOLDOWN_MULT = 0.8;
 	public static int KIT_GIN_PARTICLE_COLOR = 0xE2E8F0;
 
+	/** Flash Step (Hirenkyaku) range multiplier for Candice Catnipp. */
+	public static double KIT_THUNDERBOLT_FS_RANGE_MULT = 1.0;
+	/** Flash Step (Hirenkyaku) cooldown multiplier for Candice Catnipp. */
+	public static double KIT_THUNDERBOLT_FS_COOLDOWN_MULT = 1.0;
+	/** Electric cyan — the one hue unused by the eight Shinigami. */
+	public static int KIT_THUNDERBOLT_PARTICLE_COLOR = 0xA5F3FC;
+
 	// --- I.1 The zanpakutō item ------------------------------------------------------
 	//
 	// Read once, when BleachItems builds the Item.Properties at registration. Item attribute
@@ -847,6 +854,21 @@ public final class BleachTuning {
 	public static double VOLL_WING_RADIUS = 1.1;
 	/** Quad size of a single wing particle. */
 	public static double VOLL_WING_PARTICLE_SCALE = 0.7;
+
+	// --- P.5 Quincy · Schrift T, The Thunderbolt --------------------------------------
+
+	/** Bolt damage on the struck target, before Soul Level scaling. Stacks on the arrow's own. */
+	public static double THUNDER_BOLT_DAMAGE = 6.0;
+	/** Ticks between bolts in the Schrift tier. */
+	public static int THUNDER_COOLDOWN_TICKS = 60;
+	/** Ticks between bolts in Vollstandig. */
+	public static int THUNDER_VOLL_COOLDOWN_TICKS = 20;
+	/** Further entities a Vollstandig bolt chains to. Zero disables chaining. */
+	public static int THUNDER_CHAIN_COUNT = 3;
+	/** Radius searched around the struck target for chain links, blocks. */
+	public static double THUNDER_CHAIN_RADIUS = 5.0;
+	/** Damage retained by each successive chain link. */
+	public static double THUNDER_CHAIN_FALLOFF = 0.5;
 
 	// ================================================================================
 	// K. Networking and presentation · BALANCE.md §K

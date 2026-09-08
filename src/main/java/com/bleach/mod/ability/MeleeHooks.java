@@ -75,6 +75,13 @@ public final class MeleeHooks {
 			return;
 		}
 
+		// A bow-bash is a direct hit — it is recorded above, and Yamamoto's air-swing check still
+		// reads correctly — but it is not the character's offence, so it must not fire a Schrift's
+		// melee hook. See SpiritWeapon.isMeleeDrawn and QUINCY_STATUS.md §7.5.
+		if (!SpiritWeapon.isMeleeDrawn(attacker)) {
+			return;
+		}
+
 		TransformAbility active = AbilityDispatcher.activeTransform(data);
 		if (active != null) {
 			active.onMeleeHit(attacker, victim, damageTaken);

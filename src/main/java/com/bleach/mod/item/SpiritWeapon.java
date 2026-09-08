@@ -63,6 +63,24 @@ public final class SpiritWeapon {
 		return isSpiritWeapon(player.getMainHandItem());
 	}
 
+	/**
+	 * Whether the drawn weapon is one whose <em>swing</em> is the character's offence — true for a
+	 * blade, false for a bow.
+	 *
+	 * <p>{@link #isDrawn} deliberately went race-agnostic in the Task 9 rename, which is right for
+	 * the drop, death and respawn guarantees that gate on it. It is wrong for the melee ability
+	 * hook: a Quincy bashing a mob with the Heilig Bogen satisfies {@code isDrawn} and would fire
+	 * their Schrift's {@code onMeleeHit}, giving a bow-club the full power of a released state.
+	 * {@code QUINCY_STATUS.md} §7.5 records this as the gap no foundation task covered.
+	 *
+	 * <p>The bow's own power lives in {@code onProjectileHit} instead, so nothing is lost by the
+	 * exclusion — a Schrift that wants to react to a bash can still override {@code onMeleeHit} and
+	 * will simply never be called while the drawn weapon is a bow.
+	 */
+	public static boolean isMeleeDrawn(Player player) {
+		return player.getMainHandItem().getItem() instanceof ZanpakutoItem;
+	}
+
 	/** A fresh weapon for the given kit, or empty if that kit has no registered weapon. */
 	public static ItemStack stackFor(ResourceLocation kitId) {
 		Item item = BleachItems.weaponFor(kitId);

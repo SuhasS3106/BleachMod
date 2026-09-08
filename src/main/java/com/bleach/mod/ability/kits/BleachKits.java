@@ -37,9 +37,18 @@ public final class BleachKits {
 	public static final ResourceLocation TOSEN = BleachMod.id("tosen");
 	public static final ResourceLocation GIN = BleachMod.id("gin");
 
-	/** Every kit id, in menu order. Read by {@code BleachItems} to mint one sword per kit. */
+	/** Schrift T · the first Quincy. Carries a Heilig Bogen, not a blade. */
+	public static final ResourceLocation THUNDERBOLT = BleachMod.id("thunderbolt");
+
+	/**
+	 * Every kit id, in menu order. Read by {@code BleachItems} to mint one weapon per kit — a
+	 * zanpakutō or a Heilig Bogen, whichever {@code RaceWeapons} says the kit's race carries.
+	 *
+	 * <p>The Quincy sits last so the eight Shinigami keep their existing menu positions. Screen two
+	 * of the picker is filtered by race, so this list's order is what each race's own screen shows.
+	 */
 	public static final List<ResourceLocation> IDS = List.of(
-			ICHIGO, YAMAMOTO, SUIFENG, RUKIA, SHINJI, AIZEN, TOSEN, GIN);
+			ICHIGO, YAMAMOTO, SUIFENG, RUKIA, SHINJI, AIZEN, TOSEN, GIN, THUNDERBOLT);
 
 	/**
 	 * Which race each kit belongs to. Read by {@code BleachItems} before any Kit object exists.
@@ -52,7 +61,8 @@ public final class BleachKits {
 	private static final Map<ResourceLocation, Race> RACE_OF = Map.of(
 			ICHIGO, Races.SHINIGAMI, YAMAMOTO, Races.SHINIGAMI, SUIFENG, Races.SHINIGAMI,
 			RUKIA, Races.SHINIGAMI, SHINJI, Races.SHINIGAMI, AIZEN, Races.SHINIGAMI,
-			TOSEN, Races.SHINIGAMI, GIN, Races.SHINIGAMI);
+			TOSEN, Races.SHINIGAMI, GIN, Races.SHINIGAMI,
+			THUNDERBOLT, Races.QUINCY);
 
 	/** Never null — an unlisted kit is treated as Shinigami, which is the pre-race behaviour. */
 	public static Race raceOf(ResourceLocation kitId) {
@@ -103,5 +113,10 @@ public final class BleachKits {
 				GinTransform.shikai(), GinTransform.bankai(),
 				BleachTuning.KIT_GIN_FS_RANGE_MULT, BleachTuning.KIT_GIN_FS_COOLDOWN_MULT,
 				BleachTuning.KIT_GIN_PARTICLE_COLOR, Races.SHINIGAMI));
+
+		AbilityRegistry.registerKit(new Kit(THUNDERBOLT, "Candice Catnipp",
+				ThunderboltTransform.schrift(), ThunderboltTransform.vollstandig(),
+				BleachTuning.KIT_THUNDERBOLT_FS_RANGE_MULT, BleachTuning.KIT_THUNDERBOLT_FS_COOLDOWN_MULT,
+				BleachTuning.KIT_THUNDERBOLT_PARTICLE_COLOR, Races.QUINCY));
 	}
 }
