@@ -867,6 +867,10 @@ public final class BleachTuning {
 	public static double VOLL_WING_RADIUS = 1.1;
 	/** Quad size of a single wing particle. */
 	public static double VOLL_WING_PARTICLE_SCALE = 0.45;
+	/** Volume of the bell struck on entering Vollstandig. */
+	public static double VOLL_BELL_VOLUME = 1.0;
+	/** Pitch of that bell. Below 1 reads as a heavy toll rather than a village bell. */
+	public static double VOLL_BELL_PITCH = 0.7;
 
 	// --- P.5 Quincy · Schrift T, The Thunderbolt --------------------------------------
 

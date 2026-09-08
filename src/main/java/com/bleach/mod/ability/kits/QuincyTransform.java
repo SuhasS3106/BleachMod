@@ -8,6 +8,8 @@ import org.joml.Vector3f;
 
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -62,8 +64,23 @@ public abstract class QuincyTransform implements TransformAbility {
 	public void onEnter(ServerPlayer player, SpiritualData data) {
 		if (isVollstandig()) {
 			applySpeed(player);
+			ringVollstandig(player);
 		}
 		onTierEnter(player, data);
+	}
+
+	/**
+	 * The bell. Vollständig announces itself with a struck bell in both the manga and the anime, and
+	 * it is the one audio cue the release has — so it is broadcast from the player's position rather
+	 * than sent to them alone, and everyone nearby hears a Quincy go up.
+	 *
+	 * <p>Pitched below vanilla's bell by default: a full-height block bell reads as a village, and a
+	 * slower, heavier toll reads as a release.
+	 */
+	private static void ringVollstandig(ServerPlayer player) {
+		player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+				SoundEvents.BELL_BLOCK, SoundSource.PLAYERS,
+				(float) BleachTuning.VOLL_BELL_VOLUME, (float) BleachTuning.VOLL_BELL_PITCH);
 	}
 
 	@Override
