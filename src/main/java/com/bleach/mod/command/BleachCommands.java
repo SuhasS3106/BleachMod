@@ -8,14 +8,19 @@ import com.bleach.mod.ability.Ability;
 import com.bleach.mod.ability.AbilityCooldowns;
 import com.bleach.mod.ability.AbilityRegistry;
 import com.bleach.mod.ability.Kit;
+import com.bleach.mod.ability.kits.BleachKits;
+import com.bleach.mod.ability.common.Blut;
 import com.bleach.mod.ability.common.FlashStep;
 import com.bleach.mod.ability.common.SpiritualFlex;
 import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.attachment.SpiritualData;
 import com.bleach.mod.attachment.SpiritualTicker;
 import com.bleach.mod.effect.ReiatsuEffect;
+import com.bleach.mod.damage.BleachDamage;
+import com.bleach.mod.item.BleachItems;
 import com.bleach.mod.item.SpiritWeapon;
 import com.bleach.mod.progression.SoulLevel;
+import com.bleach.mod.race.Races;
 import com.bleach.mod.progression.WorldSoulLevel;
 import com.bleach.mod.tuning.BleachTuning;
 import com.bleach.mod.util.BlockQueue;
@@ -25,6 +30,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -33,11 +39,15 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -87,6 +97,13 @@ public final class BleachCommands {
 	 * the keybinds were was to hand them operator. That is a lot of trust to buy a help page. The
 	 * gate is per-branch now, and the two read-only branches below it are open to everyone.
 	 */
+	/** Day-time tick for full noon, and for full midnight — the two ends of the sky-light sweep. */
+	private static final long NOON_TICKS = 6000L;
+	private static final long MIDNIGHT_TICKS = 18000L;
+
+	/** Tolerance for the reishi multiplier comparison; it is arithmetic on doubles, not a measurement. */
+	private static final double REISHI_EPSILON = 1.0e-9;
+
 	private static LiteralArgumentBuilder<CommandSourceStack> admin(String name) {
 		return Commands.literal(name).requires(source -> source.hasPermission(PERMISSION_LEVEL));
 	}
@@ -139,7 +156,13 @@ public final class BleachCommands {
 								.executes(ctx -> testClawback(ctx, DEFAULT_CLAWBACK_PCT))
 								.then(Commands.argument(VALUE_ARG, DoubleArgumentType.doubleArg(0.0, 1.0))
 										.executes(ctx -> testClawback(ctx,
-												DoubleArgumentType.getDouble(ctx, VALUE_ARG))))))
+												DoubleArgumentType.getDouble(ctx, VALUE_ARG)))))
+						.then(Commands.literal("race").executes(ctx -> testRace(ctx.getSource())))
+						.then(Commands.literal("bow").executes(ctx -> testBow(ctx.getSource())))
+						.then(Commands.literal("attribution")
+								.executes(ctx -> testAttribution(ctx.getSource())))
+						.then(Commands.literal("blut").executes(ctx -> testBlut(ctx.getSource())))
+						.then(Commands.literal("reishi").executes(ctx -> testReishi(ctx.getSource()))))
 				.then(admin("fs")
 						.executes(BleachCommands::reportFlashStep))
 				.then(admin("flex")
@@ -351,6 +374,182 @@ public final class BleachCommands {
 		SpiritualTicker.sync(player, true);
 		ctx.getSource().sendSuccess(() -> Component.literal(verdict), false);
 		return pass ? 1 : 0;
+	}
+
+	// --- Quincy acceptance commands ----------------------------------------------------
+	//
+	// These exist because the Quincy foundation was built with no Minecraft client available: every
+	// task substituted a compile gate for the plan's in-world assertion. They are the compensating
+	// control — each one asserts something no unit test can reach, prints PASS/FAIL and returns
+	// 1/0 so a function file can chain them.
+
+	/** Emit the verdict for a set of accumulated failures and return the 1/0 exit code. */
+	private static int verdict(CommandSourceStack source, String passMessage, StringBuilder failures) {
+		if (failures.isEmpty()) {
+			source.sendSuccess(() -> Component.literal("PASS · " + passMessage), false);
+			return 1;
+		}
+		String detail = failures.toString();
+		source.sendFailure(Component.literal("FAIL · " + detail));
+		return 0;
+	}
+
+	/**
+	 * The race seam · design §3.1. Asserts the invariants a unit test cannot see because they only
+	 * exist once the registries have actually been populated at startup.
+	 */
+	private static int testRace(CommandSourceStack source) {
+		StringBuilder failures = new StringBuilder();
+
+		// 1. Shinigami must be inert: the race seam must not have moved the existing eight kits.
+		if (Races.SHINIGAMI.reishiSensitivity() != 0.0 || Races.SHINIGAMI.hasBlut()) {
+			failures.append("Shinigami is not inert; ");
+		}
+
+		for (Kit kit : AbilityRegistry.kits()) {
+			// 2. A kit states its race twice — on the Kit itself and in BleachKits.RACE_OF. Those two
+			// statements disagreeing is silent: the kit would appear on one picker screen and be minted
+			// the other race's weapon.
+			if (kit.race().id() != BleachKits.raceOf(kit.id()).id()) {
+				failures.append(kit.id()).append(" race mismatch; ");
+			}
+
+			// 3. Every kit must have a registered weapon, or drawing hands the player nothing.
+			if (BleachItems.weaponFor(kit.id()) == null) {
+				failures.append(kit.id()).append(" has no weapon; ");
+			}
+		}
+
+		return verdict(source, "race seam consistent", failures);
+	}
+
+	/**
+	 * The bow inherits every zanpakutō guarantee · design §4.2. Task 9 widened {@code isZanpakuto}
+	 * into {@code isSpiritWeapon}; if that widening were ever narrowed back, nothing would fail to
+	 * compile — the bow would simply become droppable. This is the check that would notice.
+	 */
+	private static int testBow(CommandSourceStack source) {
+		StringBuilder failures = new StringBuilder();
+
+		List<Kit> quincy = AbilityRegistry.kitsFor(Races.QUINCY);
+		for (Kit kit : quincy) {
+			Item item = BleachItems.weaponFor(kit.id());
+			if (item == null) {
+				failures.append(kit.id()).append(" has no weapon; ");
+				continue;
+			}
+
+			ItemStack stack = new ItemStack(item);
+			if (!SpiritWeapon.isSpiritWeapon(stack)) {
+				failures.append(kit.id()).append(" not a spirit weapon; ");
+			}
+			if (!SpiritWeapon.isUndroppable(stack)) {
+				failures.append(kit.id()).append(" is droppable; ");
+			}
+			if (item.canFitInsideContainerItems()) {
+				failures.append(kit.id()).append(" fits in a bundle; ");
+			}
+		}
+
+		String passMessage = quincy.isEmpty()
+				? "no Quincy kit is registered yet — nothing to check"
+				: "bows carry the weapon guarantees (" + quincy.size() + " kit(s))";
+		return verdict(source, passMessage, failures);
+	}
+
+	/**
+	 * The Task 13 trap · §4.3. The attribution fix widened the credited blow to the mod's own damage
+	 * sources; a correct-looking version of that fix also starts paying SPX for <b>vanilla</b> bow
+	 * kills, which contradicts "a bow is a bow at every level" (BALANCE §E). Nothing in the build
+	 * catches that — this does.
+	 */
+	private static int testAttribution(CommandSourceStack source) throws CommandSyntaxException {
+		ServerPlayer player = source.getPlayerOrException();
+		ServerLevel level = player.serverLevel();
+		StringBuilder failures = new StringBuilder();
+
+		Arrow vanilla = new Arrow(level, player, new ItemStack(Items.ARROW), null);
+		boolean vanillaCredited = BleachDamage.is(level.damageSources().arrow(vanilla, player));
+		vanilla.discard();
+
+		boolean oursCredited = BleachDamage.is(
+				BleachDamage.source(level, BleachDamage.SPIRIT_PRESSURE, player));
+
+		if (vanillaCredited) {
+			failures.append("a vanilla arrow is a credited blow; ");
+		}
+		if (!oursCredited) {
+			failures.append("a reishi arrow is not a credited blow; ");
+		}
+
+		return verdict(source, "vanilla arrows pay nothing, reishi arrows pay", failures);
+	}
+
+	/** Blut's stance invariants · design §5.4, plus the "no stance without the race" rule. */
+	private static int testBlut(CommandSourceStack source) throws CommandSyntaxException {
+		ServerPlayer player = source.getPlayerOrException();
+		SpiritualData data = BleachAttachments.get(player);
+		StringBuilder failures = new StringBuilder();
+
+		if (Blut.cycle(Blut.ARTERIE) != Blut.OFF) {
+			failures.append("cycle does not return to off; ");
+		}
+		if (Blut.damageTakenMultiplier(Blut.VENE) >= 1.0) {
+			failures.append("Vene does not reduce damage taken; ");
+		}
+		if (Blut.damageDealtMultiplier(Blut.ARTERIE) <= 1.0) {
+			failures.append("Arterie does not raise damage dealt; ");
+		}
+		if (!Races.byId(data.race).hasBlut() && data.blut != Blut.OFF) {
+			failures.append("a race without Blut is holding a stance; ");
+		}
+
+		return verdict(source, "Blut consistent", failures);
+	}
+
+	/**
+	 * Ambient reishi is read from <b>raw</b> sky light, not time-darkened light · §7.2 item 5.
+	 *
+	 * <p>This is the one check no unit test and no compile gate can make: a wrong light API compiles,
+	 * passes every unit test, and is still wrong in play. So the command moves the world clock itself
+	 * — sample at noon, sample at midnight, restore — and asserts the two multipliers are identical.
+	 * A Quincy standing under open sky must regenerate the same at both.
+	 *
+	 * <p>It samples {@link SpiritualTicker#environmentMultiplier}, the real regen path, rather than
+	 * recomputing the formula here; a local copy would agree with itself while the game was wrong.
+	 */
+	private static int testReishi(CommandSourceStack source) throws CommandSyntaxException {
+		ServerPlayer player = source.getPlayerOrException();
+		SpiritualData data = BleachAttachments.get(player);
+		ServerLevel level = player.serverLevel();
+		StringBuilder failures = new StringBuilder();
+
+		if (Races.byId(data.race).reishiSensitivity() <= 0.0) {
+			failures.append("run this as a Quincy — this race ignores ambient reishi; ");
+			return verdict(source, "", failures);
+		}
+
+		long originalTime = level.getDayTime();
+		double noon;
+		double midnight;
+		try {
+			level.setDayTime(NOON_TICKS);
+			noon = SpiritualTicker.environmentMultiplier(player, data);
+			level.setDayTime(MIDNIGHT_TICKS);
+			midnight = SpiritualTicker.environmentMultiplier(player, data);
+		} finally {
+			// Restored in a finally: leaving a player's world stuck at midnight because an assertion
+			// threw would be a far worse bug than the one being tested for.
+			level.setDayTime(originalTime);
+		}
+
+		if (Math.abs(noon - midnight) > REISHI_EPSILON) {
+			failures.append(String.format(
+					"sky light is time-darkened: noon %.4f vs midnight %.4f; ", noon, midnight));
+		}
+
+		return verdict(source, String.format(
+				"ambient reishi is time-invariant (multiplier %.4f at this position)", noon), failures);
 	}
 
 	/**

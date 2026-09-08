@@ -183,7 +183,12 @@ public final class SpiritualTicker {
 	 * a Shinigami, whose race declares zero sensitivity, so this costs the existing path nothing
 	 * beyond one field read and a branch that is never taken.
 	 */
-	private static double environmentMultiplier(ServerPlayer player, SpiritualData data) {
+	/**
+	 * Public so {@code /bleach test reishi} can sample the <em>real</em> regen path rather than a
+	 * copy of it — a duplicated formula in the command would pass while this one was wrong, which is
+	 * exactly the failure that acceptance command exists to catch.
+	 */
+	public static double environmentMultiplier(ServerPlayer player, SpiritualData data) {
 		Race race = Races.byId(data.race);
 		if (race.reishiSensitivity() <= 0.0) {
 			return 1.0;
