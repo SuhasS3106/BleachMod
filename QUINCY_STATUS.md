@@ -10,12 +10,14 @@ real bugs nothing else would have**: a server crash on autosave with an arrow in
 latent since Task 11), and wings that rendered as a vertical sprinkle. `/bleach test attribution`
 still has no recorded result. §10.3 and §11 list what remains unchecked.
 
-**Nothing is pushed yet, but the endpoint has changed** (2026-09-08): the branch is to be merged up
-to `origin/main` **as a pull request for Suhas to review**, rather than kept local indefinitely.
-See §8 for the plan and the blockers. **Not started — do not execute any of §8 without the user.**
-**Last session:** 2026-09-08.
+**SHIPPED.** `origin/main` is `1ea2de0` — the Quincy faction is live in Suhas's repo, pushed
+directly by the user's decision rather than through review. PR #1 shows as merged. Rollback refs and
+the two compile-breaking changes other people will hit are in **§8**.
 
-**Branch:** `quincy`, branched from `main` @ `750cfb2`. 22 commits, all local.
+**Next up: Adil's seven-item todo list — analysed, none of it built. See §12.**
+
+**Last session:** 2026-09-08. **Branch:** `main` and `quincy` are identical at `1ea2de0`; the
+working tree is clean apart from untracked `docs/`.
 
 | Task | Landed | Commit |
 |---|---|---|
@@ -67,8 +69,8 @@ Both Schrifts were built on the **compressed path by the user's explicit choice*
 chat, recorded here, no separate spec or plan document, no per-task subagent review. That is a
 deliberate trade and it is the third body of code on this branch in that condition; see §6.
 
-All three files, plus this one, are still **untracked** — deliberately. The 16 implementation commits
-are tracked and local-only.
+`docs/superpowers/` is still **untracked** and did not ship with the merge — say if it should. This
+file, `BALANCE.md` and `GUIDE.md` are tracked and are now on `origin/main`.
 
 The working ledger for the run — every ruling, deferred minor, and plan defect found — is at
 `.superpowers/sdd/2026-09-07-quincy-foundation/progress.md`, alongside the per-task briefs and
@@ -419,19 +421,35 @@ empty-not-null contract.
 - **Two deviations from the spec**, both deliberate, both to keep the seam unit-testable: `Race`
   carries a `double reishiSensitivity` rather than a `ToDoubleFunction<ServerPlayer>`, and the weapon
   factory moved to a separate `RaceWeapons`. Recorded in the plan's File Structure section.
-- Nothing is pushed. `origin` is Suhas's repo; the working agreement is local only.
+- ~~Nothing is pushed. `origin` is Suhas's repo; the working agreement is local only.~~ **Obsolete —
+  shipped to `origin/main` on 2026-09-08. See §8.**
 
 ---
 
-## 8. Landing the branch — merge up as a PR
+## 8. Landing the branch — **DONE, shipped 2026-09-08**
 
-**Decided 2026-09-08 by the user.** The working agreement is no longer "local forever": this branch
-is to go up to `origin/main` **as a pull request**, so Suhas reviews it rather than receiving a push.
-Adil is the other active contributor and the last person to touch the shared seam.
+**`origin/main` is now `1ea2de0`.** The Quincy faction is live in Suhas's repo.
 
-**Status as of 2026-09-08: merged locally, awaiting push.** `origin/main` (`d2d1722` — Shunsui and
-Karomatsu) has been merged **into** `quincy` at `b7440cf`. Build and 42 JUnit tests are green on the
-merged tree. Nothing is pushed yet.
+What happened, in order: `origin/main` (`d2d1722` — Shunsui and Karomatsu) was merged **into**
+`quincy` at `b7440cf`; the merged tree built green with 42 JUnit tests; `quincy` was pushed and
+PR #1 opened; then, **by the user's decision, `main` was fast-forwarded to `quincy` and pushed
+directly** rather than waiting for review. GitHub detected the merge and marked PR #1 merged.
+
+The user was told that this lands two compile-breaking changes in Adil's and Suhas's trees on their
+next pull, and chose to push without warning them first. **They still need telling:**
+
+- **`Kit` gained a mandatory 8th argument** (`race`). Shunsui's registration passes
+  `Races.SHINIGAMI`; that is the only change to his kit.
+- **`Zanpakuto` was renamed `SpiritWeapon`.** Registry ids are unchanged, so existing saves keep
+  their blades, but any in-flight branch naming `Zanpakuto` will not compile.
+
+**Rollback refs, all on origin:** tag `main-before-quincy` (`d2d1722`) restores Suhas's main; branch
+`quincy-backup` and tag `quincy-snapshot-2026-09-08` preserve this work at `1ea2de0`.
+
+**Process note for next time:** the branch reached 37 local commits before its first push and the
+user pushed back — *"next time just make it one, since we working on local directory."* One commit
+per session on a local branch; keep the reasoning in the commit body, which is the part that was
+actually useful.
 
 **What the merge actually cost, versus what §8.2 predicted:**
 
@@ -616,3 +634,86 @@ Also added: **a bell on entering Vollständig**, broadcast rather than sent to t
 and an **aura** — a loose column of the kit's colour that is always on while released. **The wings
 only unfurl when standing still**; moving, they furl and the aura carries it alone. That is how the
 release reads on screen, and it also drops a running Quincy from 84 particles a tick to 10.
+
+---
+
+## 12. Adil's todo list — analysed 2026-09-08, **NOT YET IMPLEMENTED**
+
+Adil handed the user seven items. Items 1–5 are about **his own Shunsui kit** (Katen Kyōkotsu /
+Karamatsu Shinjū); 6 and 7 are **global progression** and affect every kit in the mod.
+
+**Nothing below has been written.** This section is analysis only — the working tree is clean at
+`1ea2de0`. Read it before touching any of it; several items are not what they look like.
+
+### 12.1 The list, verbatim
+
+1. Stage 2 is very annoying — reduce screenshake, reduce noise from damage.
+2. Make indications that the Bankai is active, and when it changes acts.
+3. Shikai doesn't work; show the caster the rule for each player they look at.
+4. Players affected by the Bankai cannot see their SP.
+5. You are able to leave the boundary.
+6. Make max level higher than 20, maybe 100 — more SP and max HP, because without Prot 4 netherite
+   you die too quickly.
+7. Shikai shouldn't drain SP at higher levels: the drain reduces up to SL 60/70 then becomes 0, and
+   only drains when a move is used. Past that threshold the passive Bankai drain should also reduce,
+   but never reach 0.
+
+### 12.2 What was actually found
+
+| # | Status | Finding |
+|---|---|---|
+| **1** | **Root cause found** | `KaromatsuManager.tickAct2` runs `target.invulnerableTime = 0; target.hurt(...)` **every tick**, so a participant takes 20 hurt sounds, 20 red flashes and 20 camera kicks per second. That is the "annoying" and the "noise", not the shake. **Fix:** apply the bleed once per 20 ticks with a full second's damage — identical DPS, one hit a second — and stop zeroing `invulnerableTime`, since vanilla's 20-tick immunity then lines up exactly. Also drop the 3-particles-per-tick-per-participant to the same interval. The separate camera shake is `REIATSU_SHAKE_AMPLITUDE_PX` (4.0), which is the low-SP overlay rather than anything Shunsui owns. |
+| **2** | Ready | `ClientKaromatsuState` already syncs the act, so this needs a readable tell, not new plumbing. Cheapest honest version is a message to every participant on `advanceTo`. |
+| **3** | **Blocked on a repro** | "Doesn't work" is not actionable — need what he pressed and what happened. **And the second half reverses a deliberate decision:** `KatenShikaiManager`'s javadoc states *"The rule assigned to each enemy is never revealed — only the consequence."* Revealing rules on look is a design change, not a bug fix. Fine to make; Adil should know he is overturning it. |
+| **4** | **Not the obvious cause** | `KaromatsuOverlay` fills the whole viewport, but `SpiritualHud.register()` runs *after* it in `BleachModClient`, so the bar draws on top. Whatever hides the SP is something else — do not "fix" the draw order without reproducing first. |
+| **5** | **Solved elsewhere already** | `KaromatsuManager:536-542` contains a participant by zeroing outward velocity through `setDeltaMovement`. **That does nothing authoritative to a player** — the client keeps sending its own position and the server accepts it. This is the identical bug fixed in `PoisonDome` on the same day; the fix is `player.connection.teleport(...)` for `ServerPlayer` and `teleportTo` for everything else. Lift `PoisonDome.place(...)` across. |
+| **6** | **Design decided, not built** | See §12.3 — as literally specified it makes players invulnerable. |
+| **7** | **Conflicts with a user ruling** | See §12.4. |
+
+### 12.3 Item 6 — the cap raise makes players invulnerable
+
+`DamageScaling` reduces damage taken linearly and floors at zero:
+`multiplier = max(0, 1 − rate × (level − 1))`.
+
+| Rate | Default | Reaches zero at |
+|---|---|---|
+| `SL_BLEACH_DMG_TAKEN_PER_LEVEL` | 0.015 | **SL 68** |
+| `SL_GENERAL_DMG_TAKEN_PER_LEVEL` | 0.010 | **SL 101** |
+
+So raising `SL_MAX` to 100 means **a player at SL 68 takes zero damage from every ability in the
+mod**, and at SL 101 zero damage from anything. `BleachTuning` claims the floor "is not reachable at
+any shipped tuning" — true at cap 20, false the moment the cap moves. `SL_BLEACH_DMG_DEALT_PER_LEVEL`
+has the mirror problem: linear at 0.020 gives **+198% damage dealt** at SL 100.
+
+**Decided by the user 2026-09-08:** replace the linear curve with an **asymptotic** one, with a
+**hard floor of 50%** — damage taken never drops below half, at any level, at any tuning.
+
+Worked design, not yet written:
+
+- `progress(sl) = 1 − exp(−k × (sl − 1))`, with `k ≈ 0.035` so SL 100 sits at ~97% of the asymptote.
+- Two caps whose **product is the floor**: general `0.25` and bleach `0.3333`, giving
+  `0.75 × 0.6667 = 0.50` exactly for bleach damage, which takes both.
+- Damage *dealt* wants the same treatment, capped near `+0.60`, or it runs away at the new cap.
+- At SL 20 this lands around −26% taken versus today's −42%: progression is stretched over five
+  times the levels, so the same level is deliberately worth less.
+
+**SP and HP need no work.** `SP_MAX_PER_LEVEL` (10) and `SL_HP_PER_TWO_LEVELS` (1.0) are already
+linear, so the cap raise alone takes a capped player from 290 SP to 1090 and from +10 HP to +50 —
+which is exactly Adil's stated goal of not dying instantly.
+
+### 12.4 Item 7 conflicts with the user's own instruction
+
+Adil wants the Shikai drain to **taper to zero** by SL 60–70. The user's instruction on the same day
+was *"at higher SL levels, we get a lot more reiatsu, but the rei drain remains the same."*
+
+Those are two different mechanisms for the same feel. The user's version is already delivered for
+free by §12.3: a flat `DRAIN_BANKAI` of 5/s against 1090 SP is 218 seconds of Bankai, against 58
+today. **Treat the user's ruling as the decision and Adil's item 7 as superseded** — but the user
+should tell him, because he asked for something specific and will notice it is not there.
+
+### 12.5 Suggested order
+
+Items **1, 2, 5** are self-contained and can land together — 5 is a straight lift from `PoisonDome`.
+Item **6** is the one with real blast radius: it changes the curve every kit is balanced against, so
+it wants its own pass and a fresh look at `BALANCE.md` §E. Items **3 and 4** should not be attempted
+until Adil supplies a repro; both currently point at causes that turn out to be wrong.
