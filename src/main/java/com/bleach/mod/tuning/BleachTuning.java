@@ -814,6 +814,23 @@ public final class BleachTuning {
 	/** Minimum draw fraction below which the shot is refused outright. */
 	public static double BOW_MIN_DRAW = 0.15;
 
+	// --- P.4 Quincy · Blut ------------------------------------------------------------
+
+	/** Damage taken multiplier reduction while Blut Vene is up. */
+	public static double BLUT_VENE_REDUCTION = 0.25;
+	/** Movement speed penalty while Blut Vene is up, ADD_MULTIPLIED_TOTAL. */
+	public static double BLUT_VENE_SPEED_PENALTY = -0.15;
+	/** Bleach damage dealt bonus while Blut Arterie is up. */
+	public static double BLUT_ARTERIE_BONUS = 0.30;
+	/** Blut drain at SL 1, SP/s. Additive with the release drain. */
+	public static double BLUT_DRAIN_BASE = 2.0;
+	/** Drain reduction per Soul Level. */
+	public static double BLUT_DRAIN_PER_LEVEL = 0.06;
+	/** SP bar border colour while Vene is up. */
+	public static int BLUT_COLOR_VENE = 0x60A5FA;
+	/** SP bar border colour while Arterie is up. */
+	public static int BLUT_COLOR_ARTERIE = 0xDC2626;
+
 	// --- P.3 Quincy · Vollstandig ----------------------------------------------------
 
 	/** Vollstandig movement speed bonus, ADD_MULTIPLIED_TOTAL. */

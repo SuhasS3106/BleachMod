@@ -30,7 +30,9 @@ public enum AbilityAction {
 	/** Rising edge of the hold-to-channel Hover key. */
 	HOVER_START,
 	/** Falling edge of the Hover key — also sent on screen open and disconnect. */
-	HOVER_STOP;
+	HOVER_STOP,
+	/** Cycle the Blut stance: off → Vene → Arterie → off. Quincy only. */
+	BLUT_CYCLE;
 
 	private static final AbilityAction[] BY_INDEX = values();
 

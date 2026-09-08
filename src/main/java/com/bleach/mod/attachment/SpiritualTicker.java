@@ -8,6 +8,7 @@ import com.bleach.mod.ModToggle;
 import com.bleach.mod.ability.AbilityDispatcher;
 import com.bleach.mod.ability.TransformAbility;
 import com.bleach.mod.ability.common.AuraSense;
+import com.bleach.mod.ability.common.Blut;
 import com.bleach.mod.ability.common.Hover;
 import com.bleach.mod.ability.common.SpiritualFlex;
 import com.bleach.mod.ability.kits.IchigoTransform;
@@ -127,6 +128,10 @@ public final class SpiritualTicker {
 
 		// And the third channel, on the same rule.
 		Hover.tickAll(server);
+
+		// Blut is not a channel but bills the same way — through data.spend(), stacking on top of any
+		// release drain — so it belongs in the same slot, before the pool pass syncs the bar.
+		Blut.tickAll(server);
 
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 			SpiritualData data = BleachAttachments.get(player);

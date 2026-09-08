@@ -183,8 +183,14 @@ public final class SpiritualHud {
 		// buried under it, and before the pulse border, which owns the bar's outline.
 		drawGates(graphics, state, left, top, innerWidth);
 
-		if (state.regenMult() < 1.0f) {
-			drawBorder(graphics, left, top, left + BAR_WIDTH, top + BAR_HEIGHT, pulseColor(state));
+		// Two tells share one outline. Exertion owns the *pulse*, Blut owns the *hue*, so a Quincy
+		// under both still sees the stance colour breathing at the exertion cadence rather than one
+		// tell silently replacing the other.
+		boolean exerted = state.regenMult() < 1.0f;
+		boolean blut = state.blut() != 0;
+		if (exerted || blut) {
+			drawBorder(graphics, left, top, left + BAR_WIDTH, top + BAR_HEIGHT,
+					borderColor(state, exerted, blut));
 		}
 
 		drawNumbers(graphics, client.font, state, left, top);
@@ -376,6 +382,19 @@ public final class SpiritualHud {
 		float wave = 0.5f + 0.5f * Mth.sin(phase * Mth.TWO_PI);
 		int alpha = (int) Mth.lerp(wave, PULSE_ALPHA_MIN, PULSE_ALPHA_MAX);
 		return (alpha << 24) | stateColor(state.state());
+	}
+
+	/**
+	 * The bar's outline colour. A Blut stance recolours it; exertion supplies the alpha sweep, and a
+	 * stance held without exertion draws solid so it does not read as a warning.
+	 */
+	private static int borderColor(SpiritualSyncPayload state, boolean exerted, boolean blut) {
+		if (!blut) {
+			return pulseColor(state);
+		}
+
+		int rgb = state.blut() == 1 ? BleachTuning.BLUT_COLOR_VENE : BleachTuning.BLUT_COLOR_ARTERIE;
+		return exerted ? (pulseColor(state) & 0xFF000000) | rgb : OPAQUE | rgb;
 	}
 
 	private static void drawBorder(GuiGraphics graphics, int left, int top, int right, int bottom, int color) {

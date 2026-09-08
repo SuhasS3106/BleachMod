@@ -954,6 +954,28 @@ Schrift that is already fast stays proportionally fast in Vollständig. It reach
 through `TransformAbility.flashStepRangeMult()`, a defaulted-to-identity hook, which is why no
 Shinigami kit moves.
 
+### P.4 Blut · *design §5.4*
+
+A toggled stance on its own key, orthogonal to the release tiers: it stacks on top of one rather
+than replacing it, and its drain **adds** to the release drain the way Flex's does. Vene and
+Arterie are mutually exclusive by construction — no stance moves both multipliers.
+
+| Symbol | Default | Unit | Meaning |
+|---|---|---|---|
+| `BLUT_VENE_REDUCTION` | 0.25 | frac | Damage taken reduction while Vene is up |
+| `BLUT_VENE_SPEED_PENALTY` | −0.15 | frac | Movement speed penalty while Vene is up, `ADD_MULTIPLIED_TOTAL` |
+| `BLUT_ARTERIE_BONUS` | 0.30 | frac | Bleach damage dealt bonus while Arterie is up |
+| `BLUT_DRAIN_BASE` | 2.0 | SP/s | Drain at SL 1, additive with the release drain |
+| `BLUT_DRAIN_PER_LEVEL` | 0.06 | SP/s | Drain reduction per Soul Level; floored at zero |
+| `BLUT_COLOR_VENE` | `0x60A5FA` | RGB | SP bar border colour while Vene is up |
+| `BLUT_COLOR_ARTERIE` | `0xDC2626` | RGB | SP bar border colour while Arterie is up |
+
+`BLUT_VENE_REDUCTION` is applied as `max(0, 1 − r)` and `BLUT_ARTERIE_BONUS` as `max(0, 1 + b)`, so
+no config value can turn incoming damage into healing or damage dealt into a heal. Vene is
+deliberately **not** gated on the damage being bleach — hardened blood stops a skeleton's arrow as
+well as a zanpakutō — while Arterie only moves bleach damage, which keeps "a bow is a bow at every
+level" (§E) intact.
+
 ---
 
 ## L. Where each constant is consumed
@@ -981,6 +1003,7 @@ Kept current so a balance change never requires a codebase search.
 | P.1 | `entity/ReishiArrow` (particle scale), `entity/BleachEntities` (hitbox, tracking range, update interval — registration-time) |
 | P.2 | `item/HeiligBogenItem` |
 | P.3 | `ability/kits/QuincyTransform`, `ability/common/FlashStep` (range multiplier) |
+| P.4 | `ability/common/Blut`, `progression/DamageScaling` (both multipliers), `client/SpiritualHud` (border colours) |
 
 ---
 

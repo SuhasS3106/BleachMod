@@ -3,12 +3,14 @@ package com.bleach.mod.ability;
 import com.bleach.mod.BleachMod;
 import com.bleach.mod.ModToggle;
 import com.bleach.mod.ability.common.AuraSense;
+import com.bleach.mod.ability.common.Blut;
 import com.bleach.mod.ability.common.Hover;
 import com.bleach.mod.ability.common.SpiritualFlex;
 import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.attachment.SpiritualData;
 import com.bleach.mod.attachment.SpiritualTicker;
 import com.bleach.mod.item.SpiritWeapon;
+import com.bleach.mod.race.Races;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.network.chat.Component;
@@ -76,6 +78,7 @@ public final class AbilityDispatcher {
 			case SENSE_STOP -> setSensing(player, data, false);
 			case HOVER_START -> setHovering(player, data, true);
 			case HOVER_STOP -> setHovering(player, data, false);
+			case BLUT_CYCLE -> cycleBlut(player, data);
 		}
 	}
 
@@ -297,6 +300,24 @@ public final class AbilityDispatcher {
 	private static void unimplemented(ServerPlayer player, AbilityAction action) {
 		BleachMod.LOGGER.info("{} requested {} (index {}) — not implemented yet",
 				player.getGameProfile().getName(), action, action.ordinal());
+	}
+
+	/**
+	 * Cycle the Blut stance. Silent for a race without Blut — the key must read as unbound to a
+	 * Shinigami, not as a broken Quincy key, so there is deliberately no message on that path.
+	 */
+	private static void cycleBlut(ServerPlayer player, SpiritualData data) {
+		if (!Races.byId(data.race).hasBlut()) {
+			return;
+		}
+
+		byte next = Blut.cycle(data.blut);
+		if (next != Blut.OFF && data.sp < Blut.tickCost(data.soulLevel)) {
+			actionBar(player, "Not enough spiritual pressure.");
+			return;
+		}
+		data.blut = next;
+		SpiritualTicker.sync(player, true);
 	}
 
 	private static void actionBar(ServerPlayer player, String message) {

@@ -35,6 +35,7 @@ public final class BleachKeybinds {
 	public static final KeyMapping DRAW_SHEATHE = register("draw_sheathe", GLFW.GLFW_KEY_X);
 	public static final KeyMapping STATS = register("stats", GLFW.GLFW_KEY_K);
 	public static final KeyMapping TOGGLE_MOD = register("toggle_mod", GLFW.GLFW_KEY_B);
+	public static final KeyMapping BLUT = register("blut", GLFW.GLFW_KEY_Z);
 
 	/**
 	 * Last reported state of the hold key. The client owns this because only the client can see the
@@ -89,6 +90,11 @@ public final class BleachKeybinds {
 		}
 		while (DRAW_SHEATHE.consumeClick()) {
 			send(AbilityAction.DRAW_SHEATHE);
+		}
+		// Sent unconditionally; the server drops it silently for a race without Blut, so the client
+		// never needs to know what race it is to decide whether a key is live.
+		while (BLUT.consumeClick()) {
+			send(AbilityAction.BLUT_CYCLE);
 		}
 
 		while (TOGGLE_MOD.consumeClick()) {

@@ -2,6 +2,7 @@ package com.bleach.mod.progression;
 
 import com.bleach.mod.ability.AbilityDispatcher;
 import com.bleach.mod.ability.TransformAbility;
+import com.bleach.mod.ability.common.Blut;
 import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.attachment.SpiritualData;
 import com.bleach.mod.damage.BleachDamage;
@@ -53,6 +54,11 @@ public final class DamageScaling {
 			if (bleach) {
 				damage *= reduction(BleachTuning.SL_BLEACH_DMG_TAKEN_PER_LEVEL, level);
 			}
+
+			// 2b. Blut Vene · design §5.4. 1.21.1 has no damage-taken attribute, so it lands here with
+			// the Soul Level reductions rather than being scattered. It is deliberately not gated on
+			// `bleach`: hardened blood stops a skeleton's arrow as well as a zanpakutō.
+			damage *= Blut.damageTakenMultiplier(BleachAttachments.get(victimPlayer).blut);
 		}
 
 		// 3. Bleach damage dealt. Never applies to vanilla weapons — a bow is a bow at every level,
@@ -72,6 +78,10 @@ public final class DamageScaling {
 						damage *= 1.0 + active.meleeDamageBonus();
 					}
 				}
+
+				// Blut Arterie · design §5.4. Unlike the melee bonus above this covers projectiles too,
+				// which is the whole point for a ranged race.
+				damage *= Blut.damageDealtMultiplier(attackerData.blut);
 			}
 		}
 
