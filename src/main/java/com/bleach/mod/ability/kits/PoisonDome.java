@@ -166,10 +166,20 @@ public final class PoisonDome {
 	private static boolean inside(Dome dome, LivingEntity candidate, double radius) {
 		double dx = candidate.getX() - dome.centre().x;
 		double dz = candidate.getZ() - dome.centre().z;
-		double dy = candidate.getY() - dome.centre().y;
-		if (dy < 0.0 || dy > radius) {
+
+		// Height above the anchor, floored at zero. Anything BELOW the anchor plane is still under
+		// the dome — standing one block downhill, in a dip, or in a cave beneath it — and must count
+		// as inside.
+		//
+		// Treating below-anchor as outside was a real bug and a nasty one: a contained player who
+		// stepped down a single block became "outside" while still a member, so the cage pushed them
+		// "back in" to radius minus the margin — 35 blocks away — and then did it again every tick.
+		// The symptom was being frozen in place a few steps from where you released.
+		double dy = Math.max(0.0, candidate.getY() - dome.centre().y);
+		if (dy > radius) {
 			return false;
 		}
+
 		// Ellipsoid test rather than a cylinder, so the volume narrows toward the crown the way the
 		// drawn shell does.
 		double horizontal = dx * dx + dz * dz;
@@ -205,36 +215,69 @@ public final class PoisonDome {
 				continue;
 			}
 
+			// Safety net. If a member has somehow ended up well beyond the shell — a teleport, a
+			// dimension change, a bug in the containment test itself — release them rather than
+			// dragging them back across the world every tick. Being wrongly freed is a cosmetic
+			// failure; being wrongly pinned is one that ends the play session, which is exactly what
+			// the below-anchor bug did.
+			if (member && distanceFrom(dome, entity) > radius * BleachTuning.DOME_RELEASE_FACTOR) {
+				dome.members.remove(entity.getUUID());
+				continue;
+			}
+
 			// The entity has crossed. Put it back on its own side.
 			push(entity, dome, radius, member ? -margin : margin);
 		}
 	}
 
+	/** Straight-line distance from the anchor, with below-anchor treated as level with it. */
+	private static double distanceFrom(Dome dome, LivingEntity entity) {
+		double dx = entity.getX() - dome.centre().x;
+		double dz = entity.getZ() - dome.centre().z;
+		double dy = Math.max(0.0, entity.getY() - dome.centre().y);
+		return Math.sqrt(dx * dx + dy * dy + dz * dz);
+	}
+
 	/**
-	 * Moves an entity radially to {@code radius + offset} from the anchor and kills the component of
-	 * its velocity that carried it across.
+	 * Moves an entity back to its own side of the shell and kills the component of its velocity that
+	 * carried it across.
 	 */
 	private static void push(LivingEntity entity, Dome dome, double radius, double offset) {
 		double dx = entity.getX() - dome.centre().x;
 		double dz = entity.getZ() - dome.centre().z;
 		double dy = Math.max(0.0, entity.getY() - dome.centre().y);
 
-		double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-		if (distance < 1.0e-4) {
+		// Above the crown: the only case that is genuinely a vertical correction. Handled first so
+		// the horizontal path below never has to reason about it.
+		if (dy > radius) {
+			entity.teleportTo(entity.getX(), dome.centre().y + radius + offset, entity.getZ());
+			damp(entity, new Vec3(0.0, 1.0, 0.0));
 			return;
 		}
 
-		double target = radius + offset;
-		double scale = target / distance;
+		// Everything else is corrected in the horizontal plane only, and the entity keeps its own Y.
+		// The previous version rescaled all three axes at once, which teleported anyone standing
+		// below the anchor up to the anchor's height as a side effect of a sideways correction.
+		double horizontal = Math.sqrt(dx * dx + dz * dz);
+		if (horizontal < 1.0e-4) {
+			return;
+		}
 
-		entity.teleportTo(dome.centre().x + dx * scale,
-				dome.centre().y + dy * scale,
-				dome.centre().z + dz * scale);
+		double limit = Math.sqrt(Math.max(0.0, radius * radius - dy * dy)) + offset;
+		double scale = limit / horizontal;
 
+		entity.teleportTo(dome.centre().x + dx * scale, entity.getY(), dome.centre().z + dz * scale);
+		damp(entity, new Vec3(dx / horizontal, 0.0, dz / horizontal));
+	}
+
+	/**
+	 * Cancels the component of an entity's velocity along {@code outward}. Without this a contained
+	 * player's own held input re-applies the crossing every tick and the wall reads as a judder
+	 * rather than as a surface.
+	 */
+	private static void damp(LivingEntity entity, Vec3 outward) {
 		Vec3 velocity = entity.getDeltaMovement();
-		Vec3 outward = new Vec3(dx, dy, dz).scale(1.0 / distance);
-		double along = velocity.dot(outward);
-		entity.setDeltaMovement(velocity.subtract(outward.scale(along)));
+		entity.setDeltaMovement(velocity.subtract(outward.scale(velocity.dot(outward))));
 		entity.hurtMarked = true;
 	}
 

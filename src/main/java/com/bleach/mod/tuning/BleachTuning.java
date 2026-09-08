@@ -931,6 +931,11 @@ public final class BleachTuning {
 	public static double DOME_WALL_MARGIN = 0.6;
 	/** Fraction of the shell drawn per pass, as a stride. 3 draws a third each time. */
 	public static int DOME_DRAW_STRIDE = 3;
+	/**
+	 * Multiple of the radius beyond which a contained entity is released rather than dragged back.
+	 * The escape hatch for any state that would otherwise pin a player in place indefinitely.
+	 */
+	public static double DOME_RELEASE_FACTOR = 1.5;
 
 	/** Radius of Gift Bad Sonnenschein, blocks. It is a hemisphere, so this is also its height. */
 	public static double DOME_RADIUS = 36.0;
