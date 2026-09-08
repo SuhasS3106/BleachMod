@@ -102,7 +102,29 @@ public final class PoisonDome {
 		}
 	}
 
-	/** Damage, dose and mark everything inside the dome except its owner. */
+	/**
+	 * Damage, dose and mark everything inside the dome except its owner.
+	 *
+	 * <p>The volume is a <b>hemisphere</b>, matching what {@link #draw} puts on screen: horizontal
+	 * distance within the radius, and height between the ground and the crown. It used to be a full
+	 * sphere, which meant the lower half of the effect sat underground where nothing was drawn — a
+	 * mob standing in a cave below the caster took damage from a dome it could not see, and the
+	 * shell the player *could* see was not the shape that actually hurt.
+	 */
+	private static boolean inside(Dome dome, LivingEntity candidate, double radius) {
+		double dx = candidate.getX() - dome.centre().x;
+		double dz = candidate.getZ() - dome.centre().z;
+		double dy = candidate.getY() - dome.centre().y;
+		if (dy < 0.0 || dy > radius) {
+			return false;
+		}
+		// Ellipsoid test rather than a cylinder, so the volume narrows toward the crown the way the
+		// drawn shell does.
+		double horizontal = dx * dx + dz * dz;
+		double allowed = radius * radius - dy * dy;
+		return horizontal <= allowed;
+	}
+
 	private static void soak(ServerLevel level, Dome dome, ServerPlayer owner, int nowTick) {
 		double radius = BleachTuning.DOME_RADIUS;
 		AABB box = new AABB(dome.centre(), dome.centre()).inflate(radius);
@@ -110,7 +132,7 @@ public final class PoisonDome {
 		List<LivingEntity> inside = level.getEntitiesOfClass(LivingEntity.class, box,
 				candidate -> candidate.isAlive()
 						&& !candidate.getUUID().equals(dome.owner())
-						&& candidate.position().distanceTo(dome.centre()) <= radius);
+						&& inside(dome, candidate, radius));
 
 		for (LivingEntity victim : inside) {
 			Doses.add(victim, BleachTuning.DOME_DOSES_PER_TICK, nowTick);
@@ -125,29 +147,65 @@ public final class PoisonDome {
 	}
 
 	/**
-	 * The shell. Points are scattered over the sphere's surface rather than traced in rings, because
-	 * a ring pattern reads as a wireframe prop and a scatter reads as a volume of gas.
+	 * The shell — a <b>hemisphere</b> traced as latitude rings, plus a heavier ring on the ground.
 	 *
-	 * <p>Uses the level's own RNG rather than a player's — the dome exists independently of anyone
-	 * standing near it.
+	 * <h2>Two things this used to get wrong</h2>
+	 *
+	 * <p><b>It drew a full sphere centred on the player's feet, so half of it was underground.</b>
+	 * A dome sits <em>on</em> the ground; only the upper half was ever going to be visible, and
+	 * spending half the particle budget below the floor is what made it look like a thin scatter
+	 * rather than a shell.
+	 *
+	 * <p><b>And it scattered points at random.</b> The class note used to claim a scatter reads as a
+	 * volume of gas while rings read as a wireframe prop — which is true at high density and false at
+	 * the density this can afford. Forty random points over the ~615 m² surface of a 7-block sphere
+	 * is not a gas, it is noise. Rings give the eye a continuous edge to follow, so the same budget
+	 * reads as a surface. Points are spaced by arc length rather than split evenly per ring, so the
+	 * shell stays even instead of bunching at the top.
 	 */
 	private static void draw(ServerLevel level, Dome dome) {
 		DustParticleOptions dust = new DustParticleOptions(
 				colour(), (float) BleachTuning.DOME_PARTICLE_SCALE);
 
-		int count = Math.max(0, BleachTuning.DOME_PARTICLES);
 		double radius = BleachTuning.DOME_RADIUS;
+		int rings = Math.max(1, BleachTuning.DOME_RINGS);
+		double spacing = Math.max(0.1, BleachTuning.DOME_POINT_SPACING);
 
-		for (int i = 0; i < count; i++) {
-			// Uniform on a sphere: z uniform in [-1,1], angle uniform in [0,2pi).
-			double z = level.random.nextDouble() * 2.0 - 1.0;
-			double angle = level.random.nextDouble() * Math.PI * 2.0;
-			double ring = Math.sqrt(Math.max(0.0, 1.0 - z * z));
+		for (int r = 0; r < rings; r++) {
+			// Latitude from the ground (0) to the crown (90 degrees).
+			double lat = (r / (double) rings) * (Math.PI / 2.0);
+			double ringRadius = Math.cos(lat) * radius;
+			double height = Math.sin(lat) * radius;
 
+			// Arc-length spacing, so a wide ring gets proportionally more points than a narrow one.
+			int points = (int) Math.max(4, Math.ceil(2.0 * Math.PI * ringRadius / spacing));
+
+			for (int i = 0; i < points; i++) {
+				double angle = (i / (double) points) * Math.PI * 2.0;
+				level.sendParticles(dust,
+						dome.centre().x + Math.cos(angle) * ringRadius,
+						dome.centre().y + height,
+						dome.centre().z + Math.sin(angle) * ringRadius,
+						1, 0.0, 0.0, 0.0, 0.0);
+			}
+		}
+
+		drawFootprint(level, dome, dust, radius, spacing);
+	}
+
+	/**
+	 * The ground ring, at double density. It is the only part of the shell a player standing inside
+	 * can always see, so it is what actually tells them where the edge is.
+	 */
+	private static void drawFootprint(ServerLevel level, Dome dome, DustParticleOptions dust,
+			double radius, double spacing) {
+		int points = (int) Math.max(8, Math.ceil(2.0 * Math.PI * radius / (spacing * 0.5)));
+		for (int i = 0; i < points; i++) {
+			double angle = (i / (double) points) * Math.PI * 2.0;
 			level.sendParticles(dust,
-					dome.centre().x + Math.cos(angle) * ring * radius,
-					dome.centre().y + z * radius,
-					dome.centre().z + Math.sin(angle) * ring * radius,
+					dome.centre().x + Math.cos(angle) * radius,
+					dome.centre().y + 0.1,
+					dome.centre().z + Math.sin(angle) * radius,
 					1, 0.0, 0.0, 0.0, 0.0);
 		}
 	}

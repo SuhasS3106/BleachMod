@@ -5,8 +5,12 @@ import com.bleach.mod.ability.TransformAbility;
 import com.bleach.mod.attachment.SpiritualData;
 import com.bleach.mod.tuning.BleachTuning;
 
+import org.joml.Vector3f;
+
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 
@@ -52,6 +56,50 @@ public final class DeathdealingTransform {
 		return new Vollstandig();
 	}
 
+	/**
+	 * Applies doses and <b>shows them</b>.
+	 *
+	 * <p>The showing is not decoration. Without it the Schrift tier is invisible: the player presses
+	 * the key, shoots, and nothing on screen changes — the whole power is a number on an entity
+	 * nobody can see. A stacking mechanic the player cannot read is a mechanic they cannot use, so
+	 * the ring on the target and the count on the action bar are part of the feature rather than
+	 * polish on top of it.
+	 */
+	private static void dose(ServerPlayer player, LivingEntity target, int amount) {
+		Doses.add(target, amount, player.server.getTickCount());
+		int stack = Doses.count(target);
+
+		if (player.level() instanceof ServerLevel level) {
+			ring(level, target, stack);
+		}
+
+		player.displayClientMessage(Component.literal(String.format(
+				"Dose %d/%d · ×%.2f", stack, BleachTuning.DOSE_MAX,
+				Doses.damageTakenMultiplier(stack))), true);
+	}
+
+	/** A ring of Askin's purple around the target, one point per dose, so the stack is countable. */
+	private static void ring(ServerLevel level, LivingEntity target, int stack) {
+		int rgb = BleachTuning.KIT_DEATHDEALING_PARTICLE_COLOR;
+		DustParticleOptions dust = new DustParticleOptions(
+				new Vector3f(((rgb >> 16) & 0xFF) / 255.0f,
+						((rgb >> 8) & 0xFF) / 255.0f,
+						(rgb & 0xFF) / 255.0f),
+				(float) BleachTuning.DOSE_PARTICLE_SCALE);
+
+		double radius = target.getBbWidth() * 0.5 + BleachTuning.DOSE_RING_MARGIN;
+		double height = target.getBbHeight() * 0.6;
+
+		for (int i = 0; i < stack; i++) {
+			double angle = (i / (double) Math.max(1, stack)) * Math.PI * 2.0;
+			level.sendParticles(dust,
+					target.getX() + Math.cos(angle) * radius,
+					target.getY() + height,
+					target.getZ() + Math.sin(angle) * radius,
+					1, 0.0, 0.0, 0.0, 0.0);
+		}
+	}
+
 	/** Release 1 — the Schrift. Arrows dose; nothing else changes. */
 	private static final class Schrift extends QuincyTransform.Tier1 {
 		private Schrift() {
@@ -60,6 +108,8 @@ public final class DeathdealingTransform {
 
 		@Override
 		protected void onTierEnter(ServerPlayer player, SpiritualData data) {
+			player.displayClientMessage(
+					Component.literal("The Deathdealing — your arrows leave a dose."), true);
 		}
 
 		@Override
@@ -72,7 +122,7 @@ public final class DeathdealingTransform {
 
 		@Override
 		public void onProjectileHit(ServerPlayer player, LivingEntity target, float damage) {
-			Doses.add(target, BleachTuning.DOSE_PER_ARROW, player.server.getTickCount());
+			dose(player, target, BleachTuning.DOSE_PER_ARROW);
 		}
 
 		@Override
@@ -110,7 +160,7 @@ public final class DeathdealingTransform {
 
 		@Override
 		public void onProjectileHit(ServerPlayer player, LivingEntity target, float damage) {
-			Doses.add(target, BleachTuning.DOSE_PER_ARROW_VOLL, player.server.getTickCount());
+			dose(player, target, BleachTuning.DOSE_PER_ARROW_VOLL);
 		}
 
 		@Override

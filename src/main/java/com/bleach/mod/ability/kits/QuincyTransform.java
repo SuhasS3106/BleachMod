@@ -270,13 +270,13 @@ public abstract class QuincyTransform implements TransformAbility {
 	}
 
 	/** Innermost feather's angle above horizontal, degrees. Kept well off flat. */
-	private static final double WING_MIN_ANGLE = 12.0;
+	private static final double WING_MIN_ANGLE = 4.0;
 	/** Outermost feather's angle above horizontal, degrees. */
 	private static final double WING_MAX_ANGLE = 82.0;
 	/** Length of the root and tip feathers as a fraction of the longest, mid-fan one. */
 	private static final double WING_MIN_LENGTH = 0.5;
 	/** Horizontal compression. Below 1 makes the wing taller than it is wide. */
-	private static final double WING_SPREAD = 0.7;
+	private static final double WING_SPREAD = 1.05;
 	/** How far back a feather is swept per block it reaches outward. */
 	private static final double WING_SWEEP = 0.55;
 	/** Height of the shoulder line above the player's feet, blocks. */

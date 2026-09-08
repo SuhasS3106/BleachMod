@@ -902,9 +902,13 @@ public final class BleachTuning {
 	public static int DOSE_PER_ARROW = 1;
 	/** Doses left by one landed arrow in Vollstandig. */
 	public static int DOSE_PER_ARROW_VOLL = 2;
+	/** Size of a single dose-ring particle on a marked target. */
+	public static double DOSE_PARTICLE_SCALE = 1.2;
+	/** Gap between the target's hitbox and its dose ring, blocks. */
+	public static double DOSE_RING_MARGIN = 0.35;
 
-	/** Radius of Gift Bad Sonnenschein, blocks. */
-	public static double DOME_RADIUS = 7.0;
+	/** Radius of Gift Bad Sonnenschein, blocks. It is a hemisphere, so this is also its height. */
+	public static double DOME_RADIUS = 12.0;
 	/** Bleach damage dealt to everything inside the dome, per damage tick. */
 	public static double DOME_DAMAGE = 1.5;
 	/** Ticks between the dome's damage-and-dose passes. */
@@ -913,12 +917,23 @@ public final class BleachTuning {
 	public static int DOME_DOSES_PER_TICK = 1;
 	/** Duration of the cosmetic Poison effect refreshed on things inside, ticks. */
 	public static int DOME_POISON_TICKS = 40;
-	/** Shell particles drawn per draw pass. */
+	/**
+	 * Unused since the dome was redrawn as latitude rings — density now comes from
+	 * {@link #DOME_RINGS} and {@link #DOME_POINT_SPACING}. Kept so an existing {@code tuning.json}
+	 * still loads.
+	 *
+	 * @deprecated read nothing; remove once no shipped config mentions it.
+	 */
+	@Deprecated
 	public static int DOME_PARTICLES = 40;
+	/** Latitude rings from the ground to the crown. More rings read as a denser shell. */
+	public static int DOME_RINGS = 10;
+	/** Arc length between points along a ring, blocks. Smaller is denser. */
+	public static double DOME_POINT_SPACING = 0.8;
 	/** Ticks between draw passes. */
-	public static int DOME_PARTICLE_INTERVAL = 4;
+	public static int DOME_PARTICLE_INTERVAL = 3;
 	/** Size of a single dome particle. */
-	public static double DOME_PARTICLE_SCALE = 1.0;
+	public static double DOME_PARTICLE_SCALE = 1.8;
 	/** Askin's purple. */
 	public static int DOME_COLOR = 0xA855F7;
 
