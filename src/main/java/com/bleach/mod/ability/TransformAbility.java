@@ -64,6 +64,23 @@ public interface TransformAbility extends Ability {
 	}
 
 	/**
+	 * Offered a bow release before the arrow is built, so a transformation can spend the shot on
+	 * something else entirely. Return {@code true} to say the shot is handled — the bow then fires no
+	 * arrow and charges no SP of its own, leaving the cost to the implementation.
+	 *
+	 * <p>This is how a Schrift gets a second move without a second keybind: {@code BleachKeybinds}
+	 * has no free slot, and the alternative — the bow checking which kit is holding it — would put
+	 * kit-specific behaviour inside a race-generic item, which is exactly what {@code ReishiArrow}'s
+	 * kit id was introduced to avoid.
+	 *
+	 * @param draw the release's draw fraction, 0..1, already past the minimum-draw check
+	 * @return true if the transformation consumed the shot
+	 */
+	default boolean onBowRelease(ServerPlayer player, float draw) {
+		return false;
+	}
+
+	/**
 	 * Flash Step range multiplier while this transformation is active, folded in on top of the kit's
 	 * own {@code Kit.flashStepRangeMult()}. Defaulted to identity, so no existing kit moves.
 	 *

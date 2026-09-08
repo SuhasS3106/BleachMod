@@ -1,5 +1,7 @@
 package com.bleach.mod.item;
 
+import com.bleach.mod.ability.AbilityDispatcher;
+import com.bleach.mod.ability.TransformAbility;
 import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.attachment.SpiritualData;
 import com.bleach.mod.attachment.SpiritualTicker;
@@ -91,6 +93,18 @@ public class HeiligBogenItem extends Item {
 		}
 
 		SpiritualData data = BleachAttachments.get(player);
+
+		// Offer the shot to the active transformation first. A Schrift may spend it on something
+		// other than an arrow — Gift Ring does — in which case it owns the cost too, and this method
+		// must not also charge for an arrow it never fired.
+		if (data.isTransformed()) {
+			TransformAbility active = AbilityDispatcher.activeTransform(data);
+			if (active != null && active.onBowRelease(player, draw)) {
+				SpiritualTicker.sync(player, true);
+				return;
+			}
+		}
+
 		if (data.sp < BleachTuning.BOW_SHOT_SP_COST) {
 			player.displayClientMessage(Component.literal("Not enough spiritual pressure."), true);
 			return;

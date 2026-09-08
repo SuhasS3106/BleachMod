@@ -907,8 +907,33 @@ public final class BleachTuning {
 	/** Gap between the target's hitbox and its dose ring, blocks. */
 	public static double DOSE_RING_MARGIN = 0.35;
 
+	/** Damage when a full dose stack discharges, before Soul Level scaling. */
+	public static double DOSE_DISCHARGE_DAMAGE = 14.0;
+	/** Length of the stun a discharge applies, ticks. */
+	public static int DOSE_DISCHARGE_STUN_TICKS = 60;
+	/** Slowness amplifier during that stun. 4 is a near-halt without being a full freeze. */
+	public static int DOSE_DISCHARGE_STUN_LEVEL = 4;
+	/** Particles thrown off a discharging target. */
+	public static int DOSE_DISCHARGE_PARTICLES = 60;
+
+	/** Blocks a Gift Ring can be placed from the caster. */
+	public static double GIFT_RING_REACH = 24.0;
+	/** Radius of the ring's effect, blocks. */
+	public static double GIFT_RING_RADIUS = 5.0;
+	/** Doses applied to everything caught in the ring. */
+	public static int GIFT_RING_DOSES = 3;
+	/** SP charged for a Gift Ring, in place of the shot's own cost. */
+	public static double GIFT_RING_SP_COST = 18.0;
+	/** Size of a single ring-marker particle. */
+	public static double GIFT_RING_PARTICLE_SCALE = 1.4;
+
+	/** How far past the shell a contained entity is placed when the cage pushes it back, blocks. */
+	public static double DOME_WALL_MARGIN = 0.6;
+	/** Fraction of the shell drawn per pass, as a stride. 3 draws a third each time. */
+	public static int DOME_DRAW_STRIDE = 3;
+
 	/** Radius of Gift Bad Sonnenschein, blocks. It is a hemisphere, so this is also its height. */
-	public static double DOME_RADIUS = 12.0;
+	public static double DOME_RADIUS = 36.0;
 	/** Bleach damage dealt to everything inside the dome, per damage tick. */
 	public static double DOME_DAMAGE = 1.5;
 	/** Ticks between the dome's damage-and-dose passes. */
