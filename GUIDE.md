@@ -13,10 +13,11 @@ every player (no operator permission needed) via **`/bleach guide`**, and per to
 | **V** | Flash Step — blink toward where you are looking |
 | **R** | Shikai — toggle your first released state |
 | **G** | Bankai — toggle your second released state |
-| **X** | Draw / sheathe your zanpakutō |
+| **X** | Draw / sheathe your spirit weapon — zanpakutō, or Heilig Bogen for a Quincy |
 | **Left Alt** (hold) | Spiritual Flex — project pressure |
 | **C** (hold) | Aura Sense — close your eyes and feel what is around you |
 | **Q** (hold, in the air) | Hover — stop falling and fly on your look vector |
+| **Z** | Blut — cycle Vene / Arterie / off (**Quincy only**; does nothing otherwise) |
 | **K** | Soul stats screen |
 | **B** | Master on/off switch — **operators only** |
 
@@ -26,9 +27,12 @@ All rebindable in *Options → Controls → Bleach*.
 
 ## Getting started
 
-You spawn with an **Asauchi**, a blank blade. Right-click it to open the picker and choose one of
-five characters. **The choice is permanent** — only an operator handing you a Reforged Asauchi can
-undo it.
+You spawn with an **Asauchi**, a blank blade. Right-click it to open the picker: first your **race**,
+then a character within it. **The choice is permanent** — only an operator handing you a Reforged
+Asauchi can undo it.
+
+`/bleach guide` lists every character that is actually registered, so it can never fall behind the
+roster; the count is not written down here for the same reason.
 
 Your zanpakutō then:
 
@@ -315,6 +319,45 @@ The ice thaws on its own. The snow does not — bring a shovel.
 | **Bankai — Sakashima Yokoshima Happō Fusagari** | Everything living within ~16 blocks (growing to ~32 at SL 20) is inverted — hostile, passive and tamed alike, no exceptions. **Players** get reversed movement *and* a flipped camera. **Mobs** stagger backwards *and* turn on each other instead of on you. |
 
 Leaving the field wears off in about 3 seconds.
+
+---
+
+## Quincy
+
+A Quincy is a different **race**, not a different character — the bow, Blut, Hirenkyaku and
+Vollständig are shared by every Quincy, and your **Schrift** (your letter) is what makes you you.
+
+**The Heilig Bogen** is your spirit weapon, and it is the structural twin of a zanpakutō: drawn and
+sheathed with `X`, undroppable, kept on death, minted again if it goes missing. Hold right-click to
+charge and release to fire an arrow of condensed reishi. It has travel time and drop, so it can be
+dodged — and so can you. A draw released too early is refused outright rather than firing a weak
+shot, and every shot costs spiritual pressure whatever the draw.
+
+Whacking something with the bow works, badly. It is a club, and deliberately a worse one than a
+sword.
+
+**Your two releases** sit on the same keys as everyone else's. `R` is your Schrift's own power. `G`
+is **Vollständig** — faster, harder-hitting, wider Hirenkyaku, and an arc of wings behind your
+shoulders that everyone can see. It is release 2, so it carries the same loan and claw-back a
+Bankai does: entering refills your pool, and leaving takes the surplus back.
+
+**Blut** — `Z` — is a stance, not a release. It stacks on top of whichever release you are in and
+drains on top of that drain.
+
+- **Vene** hardens your blood against *everything*, a skeleton's arrow as much as a zanpakutō, and
+  slows you down while it is up.
+- **Arterie** sharpens what you deal, arrows included.
+- Never both. `Z` cycles Vene → Arterie → off.
+
+The SP bar's outline turns blue for Vene and red for Arterie. If you run dry the stance drops
+itself rather than pinning you at zero.
+
+**Ambient reishi.** Your pressure regenerates faster where there is more reishi to draw on: open
+sky and daylight are the best of it, underground and underwater are worse, and the Nether is worse
+still. **Time of day does not matter** — what matters is whether the sky can reach you, so a
+Quincy at midnight under open sky regenerates exactly as fast as at noon.
+
+Shinigami are unaffected by all of this: their regeneration is the same everywhere.
 
 ---
 

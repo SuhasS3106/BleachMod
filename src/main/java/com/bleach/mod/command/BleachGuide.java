@@ -1,14 +1,21 @@
 package com.bleach.mod.command;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
+import com.bleach.mod.ability.AbilityRegistry;
+import com.bleach.mod.ability.Kit;
 import com.bleach.mod.ability.common.FlashStep;
 import com.bleach.mod.ability.common.Hover;
 import com.bleach.mod.ability.common.SpiritualFlex;
 import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.attachment.SpiritualData;
+import com.bleach.mod.race.Race;
+import com.bleach.mod.race.Races;
 import com.bleach.mod.tuning.BleachTuning;
+import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -41,10 +48,30 @@ public final class BleachGuide {
 	private static final ChatFormatting BODY = ChatFormatting.GRAY;
 	private static final ChatFormatting NOTE = ChatFormatting.DARK_GRAY;
 
-	/** Every topic id, in index order. Read by the command's tab completion. */
+	/** The topics that are not a character. Hand-written, and the only hardcoded list left here. */
+	private static final List<String> GENERAL_TOPICS =
+			List.of("basics", "keys", "pressure", "level", "flashstep", "hover", "flex", "quincy");
+
+	/**
+	 * Every topic id, in index order. Read by the command's tab completion.
+	 *
+	 * <p>The character half is <b>derived from {@link AbilityRegistry#kits()}</b> rather than typed
+	 * out. The hand-maintained version had already fallen behind by three kits — Aizen, Tōsen and Gin
+	 * were unreachable from tab completion and from the index — and four Schrifts would have made
+	 * that worse. A kit that has no hand-written topic now gets a generated one (see
+	 * {@link #generated}) instead of no topic at all.
+	 */
 	public static List<String> topics() {
-		return List.of("basics", "keys", "pressure", "level", "flashstep", "hover", "flex",
-				"ichigo", "yamamoto", "suifeng", "rukia", "shinji");
+		List<String> all = new ArrayList<>(GENERAL_TOPICS);
+		for (Kit kit : AbilityRegistry.kits()) {
+			all.add(topicIdOf(kit));
+		}
+		return List.copyOf(all);
+	}
+
+	/** A kit's topic id: its registry path, which is what players actually type. */
+	private static String topicIdOf(Kit kit) {
+		return kit.id().getPath();
 	}
 
 	// --- Entry points -------------------------------------------------------------------
@@ -72,7 +99,8 @@ public final class BleachGuide {
 			case "suifeng" -> suifeng();
 			case "rukia" -> rukia();
 			case "shinji" -> shinji();
-			default -> null;
+			case "quincy" -> quincy();
+			default -> generated(key);
 		};
 
 		if (lines == null) {
@@ -100,7 +128,7 @@ public final class BleachGuide {
 	// --- Topics -------------------------------------------------------------------------
 
 	private static List<Component> index() {
-		return List.of(
+		List<Component> lines = new ArrayList<>(List.of(
 				head("The Bleach mod"),
 				body("You are a soul reaper. You have a blade, a pool of spiritual pressure, and a"),
 				body("level that grows by killing things. Pick a topic:"),
@@ -112,24 +140,99 @@ public final class BleachGuide {
 				topicLink("flashstep", "Flash Step"),
 				topicLink("hover", "Hover"),
 				topicLink("flex", "Spiritual Flex"),
+				topicLink("quincy", "Quincy — the bow, Vollständig, Blut, ambient reishi")));
+
+		for (Race race : Races.all()) {
+			List<Kit> kits = AbilityRegistry.kitsFor(race);
+			if (kits.isEmpty()) {
+				continue;
+			}
+
+			lines.add(Component.empty());
+			lines.add(body(race.displayName() + ":"));
+			for (Kit kit : kits) {
+				lines.add(topicLink(topicIdOf(kit), BLURBS.getOrDefault(topicIdOf(kit), kit.displayName())));
+			}
+		}
+
+		return List.copyOf(lines);
+	}
+
+	/**
+	 * One line per character for the index. A kit missing from here still appears — it falls back to
+	 * its {@link Kit#displayName()} — so this map can never make a character invisible again.
+	 */
+	private static final Map<String, String> BLURBS = Map.of(
+			"ichigo", "Ichigo Kurosaki — reach, cleave, raw speed",
+			"yamamoto", "Genryūsai Yamamoto — fire",
+			"suifeng", "Suì-Fēng — assassination and one missile",
+			"rukia", "Rukia Kuchiki — ice",
+			"shinji", "Shinji Hirako — inversion");
+
+	/**
+	 * The fallback topic for a kit with no hand-written page: its name, its race, and its two release
+	 * names. Thin, but reachable — which is the whole point. Returns null for a topic that names no
+	 * registered kit, so an actual typo still gets the "no such topic" failure.
+	 */
+	@Nullable
+	private static List<Component> generated(String topicId) {
+		for (Kit kit : AbilityRegistry.kits()) {
+			if (!topicIdOf(kit).equals(topicId)) {
+				continue;
+			}
+
+			Race race = kit.race();
+			List<String> tiers = race.tierNames();
+			return List.of(
+					head(kit.displayName()),
+					body(race.displayName() + ". No detailed page has been written for this character"),
+					body("yet — the keys and the numbers below are the same as everyone else's."),
+					Component.empty(),
+					key("R", tiers.isEmpty() ? "release 1" : tiers.get(0)),
+					key("G", tiers.size() < 2 ? "release 2" : tiers.get(1)),
+					Component.empty(),
+					note("Try /bleach guide pressure for what a release costs."));
+		}
+		return null;
+	}
+
+	/**
+	 * The race page. Written once and shared by every Schrift, because the bow, Blut, Hirenkyaku and
+	 * ambient reishi are Quincy baseline — the letter is the character, not the kit.
+	 */
+	private static List<Component> quincy() {
+		return List.of(
+				head("Quincy"),
+				body("You fight at range. Your weapon is the Heilig Bogen, a bow of condensed reishi,"),
+				body("and it carries every protection a zanpakutō does — undroppable, kept on death,"),
+				body("minted again if it ever goes missing."),
 				Component.empty(),
-				body("Characters:"),
-				topicLink("ichigo", "Ichigo Kurosaki — reach, cleave, raw speed"),
-				topicLink("yamamoto", "Genryūsai Yamamoto — fire"),
-				topicLink("suifeng", "Suì-Fēng — assassination and one missile"),
-				topicLink("rukia", "Rukia Kuchiki — ice"),
-				topicLink("shinji", "Shinji Hirako — inversion"));
+				key("X", "Draw / sheathe the Heilig Bogen"),
+				key("Right-click (hold)", "Charge a shot; release to fire. A short draw is refused"),
+				key("R", "Your Schrift — your letter's own power"),
+				key("G", "Vollständig — release 2: faster, harder-hitting, wings"),
+				key("Z", "Blut — cycle Vene (defence) / Arterie (offence) / off"),
+				Component.empty(),
+				body("Blut costs spiritual pressure for as long as it is up, on top of whatever a"),
+				body("release is already draining. Vene hardens you against everything, not just"),
+				body("spirit damage, and slows you down. Arterie sharpens what you deal. Never both."),
+				Component.empty(),
+				body("Ambient reishi: your pressure regenerates faster under open sky and in daylight,"),
+				body("slower underground, underwater and in the Nether. Time of day does not matter —"),
+				body("what matters is whether the sky can reach you."),
+				Component.empty(),
+				note("Flash Step is Hirenkyaku for you. Same key, same numbers, different name."));
 	}
 
 	private static List<Component> basics() {
 		return List.of(
 				head("Getting started"),
 				body("You start with an "),
-				bullet("Asauchi", "a blank blade. Right-click it to open the picker and choose"),
-				plain("  one of the five characters. The choice is permanent — an operator can undo it"),
-				plain("  with a Reforged Asauchi, and nothing else can."),
+				bullet("Asauchi", "a blank blade. Right-click it to open the picker: first your"),
+				plain("  race, then a character within it. The choice is permanent — an operator can"),
+				plain("  undo it with a Reforged Asauchi, and nothing else can."),
 				Component.empty(),
-				bullet("Your zanpakutō", "cannot be dropped, cannot be put in a chest, and is not"),
+				bullet("Your spirit weapon", "cannot be dropped, cannot be put in a chest, and is not"),
 				plain("  lost on death. If it ever goes missing it is minted again on your next"),
 				plain("  respawn, login, or press of the draw key."),
 				Component.empty(),
