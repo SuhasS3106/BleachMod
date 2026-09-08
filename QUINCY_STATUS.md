@@ -429,8 +429,26 @@ empty-not-null contract.
 is to go up to `origin/main` **as a pull request**, so Suhas reviews it rather than receiving a push.
 Adil is the other active contributor and the last person to touch the shared seam.
 
-**Status: not started.** Nothing has been pushed, no remote branch exists, no PR exists. The user
-explicitly deferred execution. **Do not run any of the steps below without them.**
+**Status as of 2026-09-08: merged locally, awaiting push.** `origin/main` (`d2d1722` — Shunsui and
+Karomatsu) has been merged **into** `quincy` at `b7440cf`. Build and 42 JUnit tests are green on the
+merged tree. Nothing is pushed yet.
+
+**What the merge actually cost, versus what §8.2 predicted:**
+
+| File | Predicted | Actual |
+|---|---|---|
+| `SpiritualTicker.java` | real, two hunks | **auto-merged clean** |
+| `BleachKits.java` | real, will not compile | correct — plus a defect neither branch could show alone |
+| `BleachTuning.java` | additive | auto-merged clean |
+| `BleachModClient.java` | additive | **conflicted** — both appended to the same two blocks |
+| `lang/en_us.json` | additive | **conflicted** — both appended to the last line |
+| `BleachNetworking.java` | not listed | **conflicted** |
+
+Two things worth carrying forward. Shunsui is listed in `RACE_OF` **explicitly** rather than left to
+`raceOf`'s Shinigami default: the default exists so an unrecognised kit cannot crash a login, not as
+a way to declare a kit's race, and `/bleach test race` asserts the map and the constructor agree.
+And `RACE_OF` had to move from `Map.of` to `Map.ofEntries` — `Map.of` caps at ten pairs and the
+**eleventh kit crossed it**, which is a compile error neither branch could have produced on its own.
 
 ### 8.1 Merge first, PR second
 
