@@ -11,6 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -158,6 +159,11 @@ public abstract class QuincyTransform implements TransformAbility {
 		return isVollstandig() ? BleachTuning.VOLL_DMG : 0.0;
 	}
 
+	@Override
+	public double bowDrawSpeedMult() {
+		return isVollstandig() ? BleachTuning.VOLL_BOW_DRAW_MULT : 1.0;
+	}
+
 	private static void applySpeed(ServerPlayer player) {
 		AttributeInstance speed = player.getAttribute(Attributes.MOVEMENT_SPEED);
 		if (speed == null) {
@@ -210,6 +216,11 @@ public abstract class QuincyTransform implements TransformAbility {
 			return;
 		}
 
+		if (wingStyle() == WingStyle.MOLECULE) {
+			drawMolecule(player, level);
+			return;
+		}
+
 		double yaw = Math.toRadians(player.getYRot());
 		// Minecraft yaw 0 faces +Z, so forward is (-sin, cos); right and back follow from it.
 		double rightX = Math.cos(yaw);
@@ -246,7 +257,7 @@ public abstract class QuincyTransform implements TransformAbility {
 				// zigzags along.
 				double perpOut = -Math.sin(angle);
 				double perpUp = Math.cos(angle);
-				double zigzag = wingJagged() ? BleachTuning.VOLL_WING_ZIGZAG : 0.0;
+				double zigzag = wingStyle() == WingStyle.BOLT ? BleachTuning.VOLL_WING_ZIGZAG : 0.0;
 
 				for (int s = 1; s <= segments; s++) {
 					double t = s / (double) segments;
@@ -269,6 +280,127 @@ public abstract class QuincyTransform implements TransformAbility {
 		}
 	}
 
+	/**
+	 * <b>Hasshein</b> — a ball-and-stick molecule rather than a wing.
+	 *
+	 * <p>Askin's Vollständig grows a branching chemical structure off his shoulders: glowing nodes
+	 * joined by straight rods, forking into a spray of terminal nodes. It reads as a molecule because
+	 * a molecule diagram is exactly what it is, and it belongs to the one Schrift whose whole power
+	 * is dosage.
+	 *
+	 * <p>Two arms per side, each a trunk rod to a junction node, then {@code MOLECULE_FORKS} rods out
+	 * to terminal nodes. Rods are traced by spacing rather than by a fixed point count, so a long rod
+	 * does not read thinner than a short one, and every node is a small dense ball so a joint reads
+	 * as a joint rather than as the rod simply stopping.
+	 */
+	private void drawMolecule(ServerPlayer player, ServerLevel level) {
+		double yaw = Math.toRadians(player.getYRot());
+		double rightX = Math.cos(yaw);
+		double rightZ = Math.sin(yaw);
+		double backX = Math.sin(yaw);
+		double backZ = -Math.cos(yaw);
+
+		DustParticleOptions dust = wingDust();
+		double scale = BleachTuning.VOLL_WING_RADIUS;
+		double shoulder = BleachTuning.VOLL_WING_OFFSET;
+
+		// A slow sway, so the structure breathes rather than sitting rigid.
+		double drift = Math.sin(player.tickCount * WING_FLAP_SPEED) * MOLECULE_DRIFT;
+
+		for (int side = -1; side <= 1; side += 2) {
+			for (int arm = 0; arm < MOLECULE_ARM_ANGLES.length; arm++) {
+				double armAngle = Math.toRadians(MOLECULE_ARM_ANGLES[arm] + drift);
+
+				Vec3 root = point(player, rightX, rightZ, backX, backZ, side,
+						MOLECULE_ROOT_OUT * scale, WING_SHOULDER_HEIGHT, shoulder);
+
+				double trunk = MOLECULE_TRUNK * scale;
+				Vec3 junction = point(player, rightX, rightZ, backX, backZ, side,
+						MOLECULE_ROOT_OUT * scale + Math.cos(armAngle) * trunk,
+						WING_SHOULDER_HEIGHT + Math.sin(armAngle) * trunk,
+						shoulder);
+
+				rod(level, dust, root, junction);
+				node(level, dust, junction, MOLECULE_NODE_RADIUS * scale);
+
+				for (int fork = 0; fork < MOLECULE_FORKS; fork++) {
+					double spread = (fork - (MOLECULE_FORKS - 1) / 2.0) * MOLECULE_FORK_SPREAD;
+					double forkAngle = armAngle + Math.toRadians(spread);
+					double branch = MOLECULE_BRANCH * scale;
+
+					Vec3 tip = junction.add(
+							rightX * Math.cos(forkAngle) * branch * side,
+							Math.sin(forkAngle) * branch,
+							rightZ * Math.cos(forkAngle) * branch * side);
+
+					rod(level, dust, junction, tip);
+					node(level, dust, tip, MOLECULE_NODE_RADIUS * scale * MOLECULE_TIP_GROWTH);
+				}
+			}
+		}
+	}
+
+	/** A point in the player's own frame: {@code out} to the side, {@code up}, {@code back} behind. */
+	private static Vec3 point(ServerPlayer player, double rightX, double rightZ,
+			double backX, double backZ, int side, double out, double up, double back) {
+		return new Vec3(
+				player.getX() + rightX * out * side + backX * back,
+				player.getY() + up,
+				player.getZ() + rightZ * out * side + backZ * back);
+	}
+
+	/** A straight run of particles between two points, spaced by distance rather than by count. */
+	private static void rod(ServerLevel level, DustParticleOptions dust, Vec3 from, Vec3 to) {
+		double length = from.distanceTo(to);
+		int steps = (int) Math.max(2, Math.ceil(length / MOLECULE_ROD_SPACING));
+		for (int i = 0; i <= steps; i++) {
+			Vec3 at = from.lerp(to, i / (double) steps);
+			level.sendParticles(dust, at.x, at.y, at.z, 1, 0.0, 0.0, 0.0, 0.0);
+		}
+	}
+
+	/**
+	 * A small dense ball. Points are placed on a spiral with a golden-angle turn rather than on
+	 * rings, so a node with this few particles reads as a sphere instead of as visible bands.
+	 */
+	private static void node(ServerLevel level, DustParticleOptions dust, Vec3 at, double radius) {
+		for (int i = 0; i < MOLECULE_NODE_POINTS; i++) {
+			double z = (i / (double) (MOLECULE_NODE_POINTS - 1)) * 2.0 - 1.0;
+			double angle = i * MOLECULE_NODE_TURN;
+			double ring = Math.sqrt(Math.max(0.0, 1.0 - z * z));
+			level.sendParticles(dust,
+					at.x + Math.cos(angle) * ring * radius,
+					at.y + z * radius,
+					at.z + Math.sin(angle) * ring * radius,
+					1, 0.0, 0.0, 0.0, 0.0);
+		}
+	}
+
+	/** Where each arm sits above horizontal, degrees. One entry per arm per side. */
+	private static final double[] MOLECULE_ARM_ANGLES = {26.0, 64.0};
+	/** How far out from the spine an arm starts, as a fraction of the wing scale. */
+	private static final double MOLECULE_ROOT_OUT = 0.3;
+	/** Trunk length from the shoulder to the junction node. */
+	private static final double MOLECULE_TRUNK = 0.8;
+	/** Length of each forked branch beyond the junction. */
+	private static final double MOLECULE_BRANCH = 0.5;
+	/** Branches per junction. */
+	private static final int MOLECULE_FORKS = 3;
+	/** Degrees between adjacent branches at a junction. */
+	private static final double MOLECULE_FORK_SPREAD = 34.0;
+	/** Radius of a junction node, as a fraction of the wing scale. */
+	private static final double MOLECULE_NODE_RADIUS = 0.15;
+	/** How much larger a terminal node is than a junction one. */
+	private static final double MOLECULE_TIP_GROWTH = 1.2;
+	/** Particles per node. */
+	private static final int MOLECULE_NODE_POINTS = 14;
+	/** Golden-angle turn between successive node points. */
+	private static final double MOLECULE_NODE_TURN = 2.39996;
+	/** Blocks between particles along a rod. */
+	private static final double MOLECULE_ROD_SPACING = 0.16;
+	/** Degrees the whole structure sways by. */
+	private static final double MOLECULE_DRIFT = 5.0;
+
 	/** Innermost feather's angle above horizontal, degrees. Kept well off flat. */
 	private static final double WING_MIN_ANGLE = 4.0;
 	/** Outermost feather's angle above horizontal, degrees. */
@@ -289,12 +421,24 @@ public abstract class QuincyTransform implements TransformAbility {
 	private static final double WING_FLAP_ROOT = 0.35;
 
 	/**
-	 * Whether this Schrift's wings are jagged lightning rather than smooth feathers. Defaulted off,
-	 * so a Schrift gets the smooth shape unless it asks otherwise — the seam exists so the four
-	 * letters can differ in silhouette, not only in colour.
+	 * What a Schrift's Vollständig grows out of its back.
+	 *
+	 * <p>The letters are meant to be told apart at range without any of them needing a model, and
+	 * colour alone does not carry that far. This started as a boolean for "jagged or not" and stopped
+	 * being enough the moment a second letter wanted a shape that was not a fan at all.
 	 */
-	protected boolean wingJagged() {
-		return false;
+	protected enum WingStyle {
+		/** Smooth feathers. The default, and what a Schrift gets if it does not choose. */
+		FEATHER,
+		/** Jagged forked lightning · Candice Catnipp. */
+		BOLT,
+		/** A ball-and-stick molecule — nodes joined by rods · Askin Nakk Le Vaar's Hasshein. */
+		MOLECULE
+	}
+
+	/** Overridden by a Schrift that wants a silhouette of its own. */
+	protected WingStyle wingStyle() {
+		return WingStyle.FEATHER;
 	}
 
 	/** Packed RGB to the float vector the dust particle wants. */

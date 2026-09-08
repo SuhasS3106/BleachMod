@@ -81,6 +81,19 @@ public interface TransformAbility extends Ability {
 	}
 
 	/**
+	 * Multiplier on how fast the Heilig Bogen reaches a full draw while this transformation is
+	 * active. Above 1 charges faster, below 1 slower. Defaulted to identity, so no Shinigami kit and
+	 * no un-transformed Quincy is affected.
+	 *
+	 * <p>Note this moves the <em>mechanical</em> draw only. Vanilla's {@code pull} model predicate is
+	 * hardcoded to twenty ticks, so the first-person bow animation keeps its own pace regardless —
+	 * which is visible if the multiplier strays far from 1.
+	 */
+	default double bowDrawSpeedMult() {
+		return 1.0;
+	}
+
+	/**
 	 * Flash Step range multiplier while this transformation is active, folded in on top of the kit's
 	 * own {@code Kit.flashStepRangeMult()}. Defaulted to identity, so no existing kit moves.
 	 *

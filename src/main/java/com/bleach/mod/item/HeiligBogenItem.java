@@ -87,22 +87,26 @@ public class HeiligBogenItem extends Item {
 			return;
 		}
 
-		float draw = drawFraction(getUseDuration(stack, entity) - timeLeft);
+		SpiritualData data = BleachAttachments.get(player);
+		TransformAbility active = data.isTransformed()
+				? AbilityDispatcher.activeTransform(data)
+				: null;
+
+		// The draw is resolved before the minimum-draw gate, because a transformation that changes
+		// the draw rate has to change what counts as too short a pull as well — otherwise a faster
+		// bow would refuse shots it has in fact finished charging.
+		float draw = drawFraction(getUseDuration(stack, entity) - timeLeft,
+				active == null ? 1.0 : active.bowDrawSpeedMult());
 		if (draw < BleachTuning.BOW_MIN_DRAW) {
 			return;
 		}
 
-		SpiritualData data = BleachAttachments.get(player);
-
-		// Offer the shot to the active transformation first. A Schrift may spend it on something
-		// other than an arrow — Gift Ring does — in which case it owns the cost too, and this method
-		// must not also charge for an arrow it never fired.
-		if (data.isTransformed()) {
-			TransformAbility active = AbilityDispatcher.activeTransform(data);
-			if (active != null && active.onBowRelease(player, draw)) {
-				SpiritualTicker.sync(player, true);
-				return;
-			}
+		// Offer the shot to the active transformation. A Schrift may spend it on something other
+		// than an arrow — Gift Ring does — in which case it owns the cost too, and this method must
+		// not also charge for an arrow it never fired.
+		if (active != null && active.onBowRelease(player, draw)) {
+			SpiritualTicker.sync(player, true);
+			return;
 		}
 
 		if (data.sp < BleachTuning.BOW_SHOT_SP_COST) {
@@ -123,9 +127,14 @@ public class HeiligBogenItem extends Item {
 		SpiritualTicker.sync(player, true);
 	}
 
-	/** Draw progress, 0..1, reaching 1 at {@link BleachTuning#BOW_FULL_DRAW_TICKS}. */
-	private static float drawFraction(int ticksHeld) {
-		return Math.min(1.0f, ticksHeld / (float) Math.max(1, BleachTuning.BOW_FULL_DRAW_TICKS));
+	/**
+	 * Draw progress, 0..1, reaching 1 at {@link BleachTuning#BOW_FULL_DRAW_TICKS} divided by
+	 * {@code speed}. A speed above 1 charges faster; the multiplier is clamped positive so a config
+	 * of zero or below cannot make a full draw unreachable.
+	 */
+	private static float drawFraction(int ticksHeld, double speed) {
+		double ticks = Math.max(1, BleachTuning.BOW_FULL_DRAW_TICKS) / Math.max(0.01, speed);
+		return (float) Math.min(1.0, ticksHeld / ticks);
 	}
 
 	/** Blocks the bundle and shulker-box-as-item routes out of the player's hands. */

@@ -224,8 +224,8 @@ public final class ThunderboltTransform {
 		}
 
 		@Override
-		protected boolean wingJagged() {
-			return true;
+		protected WingStyle wingStyle() {
+			return WingStyle.BOLT;
 		}
 
 		@Override
@@ -261,8 +261,8 @@ public final class ThunderboltTransform {
 		}
 
 		@Override
-		protected boolean wingJagged() {
-			return true;
+		protected WingStyle wingStyle() {
+			return WingStyle.BOLT;
 		}
 
 		@Override

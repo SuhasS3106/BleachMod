@@ -290,6 +290,11 @@ public final class DeathdealingTransform {
 		}
 
 		@Override
+		protected WingStyle wingStyle() {
+			return WingStyle.MOLECULE;
+		}
+
+		@Override
 		protected int wingColour() {
 			return BleachTuning.KIT_DEATHDEALING_PARTICLE_COLOR;
 		}
@@ -330,6 +335,11 @@ public final class DeathdealingTransform {
 		@Override
 		public boolean onBowRelease(ServerPlayer player, float draw) {
 			return player.isShiftKeyDown() && giftRing(player, draw);
+		}
+
+		@Override
+		protected WingStyle wingStyle() {
+			return WingStyle.MOLECULE;
 		}
 
 		@Override
