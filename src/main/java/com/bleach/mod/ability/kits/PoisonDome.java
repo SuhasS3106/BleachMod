@@ -11,6 +11,7 @@ import com.bleach.mod.damage.BleachDamage;
 import com.bleach.mod.network.DomeTintPayload;
 import com.bleach.mod.tuning.BleachTuning;
 
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -21,6 +22,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
@@ -118,16 +120,20 @@ public final class PoisonDome {
 	 */
 	public static void remove(ServerPlayer player) {
 		Dome dome = ACTIVE.remove(player.getUUID());
-		if (dome == null) {
-			return;
+		if (dome != null) {
+			clearAllTints(player.server, dome);
 		}
+	}
 
+	/** Clears the purple wash for every player a dome was holding. Safe to call more than once. */
+	private static void clearAllTints(MinecraftServer server, Dome dome) {
 		for (UUID id : dome.members) {
-			ServerPlayer held = player.server.getPlayerList().getPlayer(id);
+			ServerPlayer held = server.getPlayerList().getPlayer(id);
 			if (held != null) {
 				tell(held, false);
 			}
 		}
+		dome.members.clear();
 	}
 
 	/** Tells a player whether their screen should be washed purple. Silent for non-players. */
@@ -165,6 +171,11 @@ public final class PoisonDome {
 			ServerPlayer owner = server.getPlayerList().getPlayer(dome.owner());
 			ServerLevel level = server.getLevel(dome.dimension());
 			if (owner == null || level == null) {
+				// Clear every held player's tint before dropping the dome. This path fires when the
+				// caster logs out, and it is the one teardown that does not go through remove() — so
+				// without this the people they had caged keep a purple screen with nothing left in
+				// the world causing it.
+				clearAllTints(server, dome);
 				entries.remove();
 				continue;
 			}
@@ -232,30 +243,70 @@ public final class PoisonDome {
 		double radius = BleachTuning.DOME_RADIUS;
 		double margin = BleachTuning.DOME_WALL_MARGIN;
 
+		holdMembers(level, dome, radius, margin);
+		keepOutsidersOut(level, dome, radius, margin);
+	}
+
+	/**
+	 * Pulls every member back inside.
+	 *
+	 * <p><b>Members are resolved by UUID, not found by searching a box around the dome.</b> The box
+	 * version had a hole big enough to walk a Schrift through: it reached
+	 * {@code radius + margin + 2}, about 38 blocks, while a Flash Step covers up to
+	 * {@code FS_RANGE_BASE + FS_RANGE_SP_TERM} times Vollständig's multiplier — comfortably past it.
+	 * A player who blinked that far was never examined at all, so they were neither pushed back nor
+	 * released, which is exactly one bug producing two symptoms: Flash Step escaped the cage, and
+	 * the purple tint never cleared because the falling edge that clears it is sent from here.
+	 *
+	 * <p>Iterating the membership set costs nothing by comparison — it holds only what was sealed in
+	 * — and it cannot miss anyone however far they have gone.
+	 */
+	private static void holdMembers(ServerLevel level, Dome dome, double radius, double margin) {
+		for (UUID id : dome.members) {
+			Entity found = level.getEntity(id);
+
+			// Gone, dead, or in another dimension. Release rather than hold a member nothing can
+			// reach, and clear their tint on the way out.
+			if (!(found instanceof LivingEntity entity) || !entity.isAlive()) {
+				release(dome, id, level.getServer().getPlayerList().getPlayer(id));
+				continue;
+			}
+
+			if (inside(dome, entity, radius)) {
+				continue;
+			}
+
+			// Safety net for genuine displacement — a command teleport, a portal, a bug in the
+			// containment test itself. Being wrongly freed is cosmetic; being wrongly pinned ends
+			// the play session, which is what the below-anchor bug did. The threshold sits well past
+			// any Flash Step so blinking at the wall is caught rather than rewarded.
+			if (distanceFrom(dome, entity) > radius * BleachTuning.DOME_RELEASE_FACTOR) {
+				release(dome, id, entity);
+				continue;
+			}
+
+			push(entity, dome, radius, -margin);
+		}
+	}
+
+	/** Stops anything that was not sealed in from getting in. */
+	private static void keepOutsidersOut(ServerLevel level, Dome dome, double radius, double margin) {
 		for (LivingEntity entity : level.getEntitiesOfClass(LivingEntity.class,
 				new AABB(dome.centre(), dome.centre()).inflate(radius + margin + 2.0),
 				LivingEntity::isAlive)) {
 
-			boolean member = dome.members.contains(entity.getUUID());
-			boolean within = inside(dome, entity, radius);
-
-			if (member == within) {
+			if (dome.members.contains(entity.getUUID()) || !inside(dome, entity, radius)) {
 				continue;
 			}
+			push(entity, dome, radius, margin);
+		}
+	}
 
-			// Safety net. If a member has somehow ended up well beyond the shell — a teleport, a
-			// dimension change, a bug in the containment test itself — release them rather than
-			// dragging them back across the world every tick. Being wrongly freed is a cosmetic
-			// failure; being wrongly pinned is one that ends the play session, which is exactly what
-			// the below-anchor bug did.
-			if (member && distanceFrom(dome, entity) > radius * BleachTuning.DOME_RELEASE_FACTOR) {
-				dome.members.remove(entity.getUUID());
-				tell(entity, false);
-				continue;
-			}
-
-			// The entity has crossed. Put it back on its own side.
-			push(entity, dome, radius, member ? -margin : margin);
+	/** Drops one member and clears its tint. {@code entity} may be null if it could not be resolved. */
+	private static void release(Dome dome, UUID id, @Nullable Entity entity) {
+		dome.members.remove(id);
+		if (entity instanceof LivingEntity living) {
+			tell(living, false);
 		}
 	}
 

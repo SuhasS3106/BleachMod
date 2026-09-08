@@ -935,7 +935,7 @@ public final class BleachTuning {
 	 * Multiple of the radius beyond which a contained entity is released rather than dragged back.
 	 * The escape hatch for any state that would otherwise pin a player in place indefinitely.
 	 */
-	public static double DOME_RELEASE_FACTOR = 1.5;
+	public static double DOME_RELEASE_FACTOR = 5.0;
 	/**
 	 * How far below the rim the shell's skirt is drawn when terrain falls away, blocks. Capped so a
 	 * dome on a clifftop draws a curtain rather than a column to bedrock.
