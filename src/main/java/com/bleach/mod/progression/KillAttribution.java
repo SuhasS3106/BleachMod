@@ -3,6 +3,7 @@ package com.bleach.mod.progression;
 import org.jetbrains.annotations.Nullable;
 
 import com.bleach.mod.attachment.BleachAttachments;
+import com.bleach.mod.damage.BleachDamage;
 import com.bleach.mod.item.SpiritWeapon;
 
 import net.minecraft.server.level.ServerPlayer;
@@ -78,9 +79,18 @@ public final class KillAttribution {
 	 * Whether this entity's death pays out, and to whom. Null for every rejected case, which is the
 	 * overwhelming majority.
 	 *
-	 * <p>The killing blow must be the blade itself: {@code getDirectEntity() == killer} excludes
-	 * every projectile, so a clean bow kill on an otherwise untouched mob awards nothing. That is
-	 * intentional (PRD §3.2) — the sword is the progression, not the fight.
+	 * <p>The killing blow must come from the player's own drawn spirit weapon — either directly, or
+	 * through one of the mod's own damage sources. <b>A vanilla bow still pays nothing</b>: the
+	 * indirect branch is gated on {@link BleachDamage#is}, and an ordinary arrow is neither in the
+	 * {@code bleach} damage-type tag nor a {@code Player} direct entity, so it is rejected for the
+	 * same reason it always was (PRD §3.2 — the weapon is the progression, not the fight).
+	 *
+	 * <p>Before this, {@code getDirectEntity() == killer} rejected <em>every</em> indirect source,
+	 * which silently paid zero for Gin's beam, Suì-Fēng's missile and Yamamoto's cone as well.
+	 *
+	 * <p>The drawn-weapon gate is a <em>separate</em> rule and is kept deliberately (PRD §3.2). It is
+	 * already race-aware: {@link SpiritWeapon#isDrawn} accepts any spirit weapon, so a Quincy holding
+	 * a Heilig Bogen satisfies it exactly as a Shinigami holding a zanpakutō does.
 	 */
 	@Nullable
 	public static ServerPlayer payee(LivingEntity victim, DamageSource source) {
@@ -93,9 +103,20 @@ public final class KillAttribution {
 		if (killer == null || !credit.soleDamager.equals(killer.getUUID())) {
 			return null;
 		}
-		if (source.getDirectEntity() != killer || !SpiritWeapon.isDrawn(killer)) {
+		if (!SpiritWeapon.isDrawn(killer)) {
 			return null;
 		}
-		return killer;
+		return isCreditedBlow(source, killer) ? killer : null;
+	}
+
+	/**
+	 * The killing blow itself: the player's own hand, or one of the mod's own damage sources.
+	 * Anything else — a vanilla arrow, a trident, a mob's hit — is not a credited blow.
+	 */
+	private static boolean isCreditedBlow(DamageSource source, ServerPlayer killer) {
+		if (source.getDirectEntity() == killer) {
+			return true;
+		}
+		return BleachDamage.is(source);
 	}
 }
