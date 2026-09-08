@@ -1,7 +1,10 @@
 package com.bleach.mod.entity;
 
+import com.bleach.mod.ability.AbilityDispatcher;
 import com.bleach.mod.ability.AbilityRegistry;
 import com.bleach.mod.ability.Kit;
+import com.bleach.mod.ability.TransformAbility;
+import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.damage.BleachDamage;
 import com.bleach.mod.particle.PressureParticleOptions;
 import com.bleach.mod.tuning.BleachTuning;
@@ -9,6 +12,7 @@ import com.bleach.mod.tuning.BleachTuning;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.AbstractArrow;
@@ -84,7 +88,16 @@ public class ReishiArrow extends AbstractArrow {
 		}
 
 		float damage = (float) getBaseDamage();
-		target.hurt(BleachDamage.source(level(), BleachDamage.SPIRIT_PRESSURE, getOwner()), damage);
+		boolean landed = target.hurt(BleachDamage.source(level(), BleachDamage.SPIRIT_PRESSURE, getOwner()), damage);
+		if (landed && getOwner() instanceof ServerPlayer shooter) {
+			// Gated on the hurt actually applying, so a shot swallowed by invulnerability frames or a
+			// damage immunity cannot feed a Schrift's on-hit effect, matching MeleeHooks, which likewise
+			// only fires the hook once damage has actually been taken.
+			TransformAbility active = AbilityDispatcher.activeTransform(BleachAttachments.get(shooter));
+			if (active != null) {
+				active.onProjectileHit(shooter, target, damage);
+			}
+		}
 		discard();
 	}
 

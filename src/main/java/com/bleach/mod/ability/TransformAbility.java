@@ -53,6 +53,16 @@ public interface TransformAbility extends Ability {
 	default void onMeleeHit(ServerPlayer player, LivingEntity target, float damage) {
 	}
 
+	/**
+	 * Projectile hook, live only while this transformation is — the exact mirror of
+	 * {@link #onMeleeHit}. Defaulted empty, so every Shinigami kit ignores it.
+	 *
+	 * <p>This is what lets a Schrift react to its own arrows landing without any kit-id conditional
+	 * in the projectile.
+	 */
+	default void onProjectileHit(ServerPlayer player, LivingEntity target, float damage) {
+	}
+
 	/** Melee damage bonus fraction while active (e.g. +0.25 for Ichigo Shikai, +0.40 for Ichigo Bankai). */
 	default double meleeDamageBonus() {
 		return 0.0;
