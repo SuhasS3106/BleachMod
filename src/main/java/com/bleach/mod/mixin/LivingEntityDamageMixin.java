@@ -105,6 +105,16 @@ public abstract class LivingEntityDamageMixin {
 			}
 		}
 
+		// Shunsui's Katen Kyōkotsu: Shikai Irooni rule DONT_ATTACK break detection
+		if (self instanceof ServerPlayer shunsuiVictim && source.getEntity() instanceof LivingEntity attacker) {
+			com.bleach.mod.ability.kits.KatenShikaiManager.onMeleeHitCheck(shunsuiVictim, attacker);
+		}
+
+		// Shunsui's Karamatsu Shinjū: Act 1 shared-damage link
+		if (com.bleach.mod.ability.kits.KaromatsuManager.isLinked(self)) {
+			com.bleach.mod.ability.kits.KaromatsuManager.onSharedDamage(self, amount);
+		}
+
 		KillAttribution.record(self, source);
 
 		// PRD §1.2: the regen pause is "on any spend or damage". Every spend path already calls it;

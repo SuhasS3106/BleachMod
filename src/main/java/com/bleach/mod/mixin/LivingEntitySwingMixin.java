@@ -57,6 +57,12 @@ public abstract class LivingEntitySwingMixin {
 					// before swinging at all, and a free version for anything within arm's reach is
 					// exactly the escape hatch that would undo that.
 					GinTransform.onShikaiSwing(player);
+				} else if (BleachKits.SHUNSUI.equals(blade.kitId()) && data.state == SpiritualData.STATE_SHIKAI) {
+					BlockQueue.submitDelayed(1, () -> {
+						if (player.isAlive() && !MeleeHooks.didHitDirectlyRecently(player)) {
+							com.bleach.mod.ability.kits.KatenShikaiManager.castRules(player);
+						}
+					});
 				}
 			}
 		}

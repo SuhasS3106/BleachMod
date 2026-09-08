@@ -1005,6 +1005,128 @@ public final class BleachTuning {
 	public static double THUNDER_CHAIN_FALLOFF = 0.5;
 
 	// ================================================================================
+	// J.9 Shunsui · Katen Kyōkotsu (Irooni / Karamatsu Shinjū) · BALANCE.md §J.9
+	// ================================================================================
+
+	// --- Kit identity ---
+	public static double KIT_SHUNSUI_FS_RANGE_MULT    = 1.0;
+	public static double KIT_SHUNSUI_FS_COOLDOWN_MULT = 1.0;
+	/** Warm pink/lilac — Irooni rule-break burst and Bankai zone boundary ring. */
+	public static int KIT_SHUNSUI_PARTICLE_COLOR = 0xE879A8;
+
+	// --- J.9.1 Shikai: Katen Kyōkotsu (Irooni) --------------------------------------
+
+	/** SP cost of a Rule-Set Cast (swing-miss). */
+	public static double SHUNSUI_IROONI_CAST_SP_COST = 15.0;
+	/** Radius within which living enemies are assigned a hidden rule on cast, blocks. */
+	public static double SHUNSUI_IROONI_CAST_RADIUS = 20.0;
+	/** Cooldown between Rule-Set Casts, ticks. */
+	public static int SHUNSUI_IROONI_CAST_COOLDOWN_TICKS = 60;
+	/** Duration of the Weakness + Slowness punishment on rule-break, ticks. */
+	public static int SHUNSUI_IROONI_PUNISH_DURATION_TICKS = 80;
+	/**
+	 * Weakness amplifier at Soul Level parity.
+	 *
+	 * <p>The actual amplifier applied scales up by {@code max(0, shunsui.soulLevel - target.soulLevel)}
+	 * on top of this base, so a higher-level caster punishes harder.
+	 */
+	public static int SHUNSUI_IROONI_PUNISH_WEAKNESS_AMP = 0;
+	/** Slowness amplifier at SL parity — same scaling formula as weakness. */
+	public static int SHUNSUI_IROONI_PUNISH_SLOWNESS_AMP = 0;
+	/** Half-arc of the dual-blade cleave, degrees. Narrower than Ichigo's 90°. */
+	public static double SHUNSUI_SHIKAI_CLEAVE_ARC = 55.0;
+	/** Fraction of primary damage dealt to secondary arc targets. */
+	public static double SHUNSUI_SHIKAI_CLEAVE_PCT = 0.40;
+	/** Probability the second blade also strikes the primary target on each swing. */
+	public static double SHUNSUI_SHIKAI_DUAL_HIT_CHANCE = 0.45;
+	/** PressureParticle colour of the rule-break burst (packed RGB). */
+	public static int SHUNSUI_IROONI_BREAK_PARTICLE_COLOR = 0xF9A8D4;
+
+	// --- J.9.2 Passive: laid-back regen ---------------------------------------------
+
+	/**
+	 * Flat SP/s bonus applied in the base state only, on top of normal regen.
+	 *
+	 * <p>Applied only when {@code regenPauseTicks == 0} — it represents genuine
+	 * disengagement, not a regen boost during combat.
+	 */
+	public static double SHUNSUI_IDLE_REGEN_BONUS = 0.8;
+
+	// --- J.9.3 Bankai: Karamatsu Shinjū --------------------------------------------
+
+	/** Zone radius at SL 1, blocks. */
+	public static double SHUNSUI_BANKAI_ZONE_RADIUS_BASE = 18.0;
+	/** Zone radius added per Soul Level above 1, blocks. */
+	public static double SHUNSUI_BANKAI_ZONE_RADIUS_PER_SL = 0.5;
+	/**
+	 * How far inside the zone boundary the containment push activates, blocks.
+	 *
+	 * <p>When a participant's distance from zone center exceeds
+	 * {@code radius - SHUNSUI_BANKAI_CONTAIN_MARGIN}, their outward velocity component is zeroed.
+	 * 0.5 keeps them clearly inside the sphere while feeling like a wall rather than a teleport.
+	 */
+	public static double SHUNSUI_BANKAI_CONTAIN_MARGIN = 0.5;
+	/**
+	 * Gloom overlay tint for players inside the zone (packed ARGB).
+	 *
+	 * <p>Used as the base tint; act-specific overlays darken or recolour from this value
+	 * in {@code KaromatsuOverlay}. ~25% alpha purple-brown.
+	 */
+	public static int SHUNSUI_BANKAI_ZONE_TINT = 0x40301828;
+	/** Shared-damage exchange count required to advance from Act 1 to Act 2. */
+	public static int SHUNSUI_ACT1_EXCHANGE_THRESHOLD = 12;
+	/**
+	 * HP floor enforced by Act 1's shared-damage link.
+	 *
+	 * <p>Reflected damage is truncated so neither participant's health drops below this
+	 * value from the mirror alone. Does not prevent death from the original hit — only
+	 * from the mirrored copy.
+	 */
+	public static float SHUNSUI_ACT1_DEATH_FLOOR_HP = 1.0f;
+	/** Ticks Act 2 must be active before Act 3 unlocks. */
+	public static int SHUNSUI_ACT2_DURATION_TICKS = 300;
+	/** Act 2 bleed damage per second applied to each target participant. */
+	public static double SHUNSUI_ACT2_BLEED_DPS = 1.5;
+	/** Bleed DPS growth multiplier applied once every 5 seconds while Act 2 is active. */
+	public static double SHUNSUI_ACT2_BLEED_GROWTH = 1.25;
+	/**
+	 * Act 3 SP drain per second, applied to all participants including Shunsui.
+	 *
+	 * <p>This <em>replaces</em> {@link #DRAIN_BANKAI} for Shunsui during Act 3 rather than
+	 * adding to it — see {@code SpiritualTicker} for the guard. For target players it replaces
+	 * their regen tick.
+	 */
+	public static double SHUNSUI_ACT3_SP_DRAIN_PER_SEC = 3.5;
+	/** Slowness amplifier applied to target participants during Act 3. Shunsui is exempt. */
+	public static int SHUNSUI_ACT3_SLOWNESS_AMP = 0;
+	/**
+	 * SP fraction at or below which a participant is declared the Act 3 loser.
+	 *
+	 * <p>Checked once per second. If the loser is a target (not Shunsui), the Final Act begins.
+	 * If Shunsui is the loser, the Final Act does not fire and the sequence concludes.
+	 */
+	public static double SHUNSUI_ACT3_LOSS_SP_THRESHOLD = 0.10;
+	/** Charge window before the Final Act execute resolves, ticks. */
+	public static int SHUNSUI_FINAL_ACT_CHARGE_TICKS = 40;
+	/**
+	 * Final Act execute damage.
+	 *
+	 * <p>Tagged {@code SPIRIT_MECHANIC} — bypasses Soul Level defence reduction, same as
+	 * Suì-Fēng's Nigeki Kessatsu kill. Deliberately not tagged {@code BLEACH}, so a capped
+	 * defender cannot shrug it off with bleach damage reduction.
+	 */
+	public static double SHUNSUI_FINAL_ACT_DMG = 200.0;
+	/**
+	 * Bonus melee damage fraction granted to Shunsui once Act 2 or later is reached.
+	 *
+	 * <p>Represents the second blade becoming "serious". Visualised as a translucent shadow
+	 * blade silhouette particle trail emitted from the strike position.
+	 */
+	public static double SHUNSUI_SECOND_BLADE_DMG_BONUS = 0.20;
+	/** PressureParticle count per tick spawned along the zone boundary sphere. Visible to all. */
+	public static int SHUNSUI_BANKAI_ZONE_RING_PARTICLES = 48;
+
+	// ================================================================================
 	// K. Networking and presentation · BALANCE.md §K
 	// ================================================================================
 

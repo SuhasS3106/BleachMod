@@ -44,6 +44,10 @@ public class BleachModClient implements ClientModInitializer {
 				(payload, context) -> context.client().execute(
 						() -> com.bleach.mod.client.SpxGainPopups.add(payload.amount())));
 
+		ClientPlayNetworking.registerGlobalReceiver(com.bleach.mod.network.KaromatsuSyncPayload.TYPE,
+				(payload, context) -> context.client().execute(
+						() -> com.bleach.mod.client.ClientKaromatsuState.update(payload)));
+
 		ClientPlayNetworking.registerGlobalReceiver(com.bleach.mod.network.DomeTintPayload.TYPE,
 				(payload, context) -> context.client().execute(
 						() -> com.bleach.mod.client.ClientDomeState.setInside(payload.inside())));
@@ -55,6 +59,7 @@ public class BleachModClient implements ClientModInitializer {
 			com.bleach.mod.client.ClientAuraSenseState.clear();
 			com.bleach.mod.client.ClientEnmaKorogiState.clear();
 			com.bleach.mod.client.ClientGinBeamState.clear();
+			com.bleach.mod.client.ClientKaromatsuState.clear();
 			com.bleach.mod.client.ClientDomeState.clear();
 		});
 
@@ -71,6 +76,7 @@ public class BleachModClient implements ClientModInitializer {
 		ScreenShake.register();
 		FreezeOverlay.register();
 		com.bleach.mod.client.EnmaKorogiOverlay.register();
+		com.bleach.mod.client.KaromatsuOverlay.register();
 		com.bleach.mod.client.GinBeamClient.register();
 
 		// After the other overlays and before the bar: the eyelid has to cover the blackout's own

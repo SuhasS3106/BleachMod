@@ -36,6 +36,7 @@ public final class BleachKits {
 	public static final ResourceLocation AIZEN = BleachMod.id("aizen");
 	public static final ResourceLocation TOSEN = BleachMod.id("tosen");
 	public static final ResourceLocation GIN = BleachMod.id("gin");
+	public static final ResourceLocation SHUNSUI = BleachMod.id("shunsui");
 
 	/** Schrift T · the first Quincy. Carries a Heilig Bogen, not a blade. */
 	public static final ResourceLocation THUNDERBOLT = BleachMod.id("thunderbolt");
@@ -51,7 +52,8 @@ public final class BleachKits {
 	 * of the picker is filtered by race, so this list's order is what each race's own screen shows.
 	 */
 	public static final List<ResourceLocation> IDS = List.of(
-			ICHIGO, YAMAMOTO, SUIFENG, RUKIA, SHINJI, AIZEN, TOSEN, GIN, THUNDERBOLT, DEATHDEALING);
+			ICHIGO, YAMAMOTO, SUIFENG, RUKIA, SHINJI, AIZEN, TOSEN, GIN, SHUNSUI,
+			THUNDERBOLT, DEATHDEALING);
 
 	/**
 	 * Which race each kit belongs to. Read by {@code BleachItems} before any Kit object exists.
@@ -60,12 +62,24 @@ public final class BleachKits {
 	 * {@code new Kit(...)} below are two statements of the same fact and can drift. {@code /bleach
 	 * test race} (Task 16) asserts they agree for every kit; this map is not unified with
 	 * {@link Kit#race()} here.
+	 *
+	 * <p>Shunsui is listed explicitly even though {@link #raceOf} would default him to Shinigami
+	 * anyway. The default exists so an unrecognised kit cannot crash a login, not as a substitute
+	 * for declaring a kit's race — and an implicit default is exactly the drift {@code /bleach test
+	 * race} exists to catch.
 	 */
-	private static final Map<ResourceLocation, Race> RACE_OF = Map.of(
-			ICHIGO, Races.SHINIGAMI, YAMAMOTO, Races.SHINIGAMI, SUIFENG, Races.SHINIGAMI,
-			RUKIA, Races.SHINIGAMI, SHINJI, Races.SHINIGAMI, AIZEN, Races.SHINIGAMI,
-			TOSEN, Races.SHINIGAMI, GIN, Races.SHINIGAMI,
-			THUNDERBOLT, Races.QUINCY, DEATHDEALING, Races.QUINCY);
+	private static final Map<ResourceLocation, Race> RACE_OF = Map.ofEntries(
+			Map.entry(ICHIGO, Races.SHINIGAMI),
+			Map.entry(YAMAMOTO, Races.SHINIGAMI),
+			Map.entry(SUIFENG, Races.SHINIGAMI),
+			Map.entry(RUKIA, Races.SHINIGAMI),
+			Map.entry(SHINJI, Races.SHINIGAMI),
+			Map.entry(AIZEN, Races.SHINIGAMI),
+			Map.entry(TOSEN, Races.SHINIGAMI),
+			Map.entry(GIN, Races.SHINIGAMI),
+			Map.entry(SHUNSUI, Races.SHINIGAMI),
+			Map.entry(THUNDERBOLT, Races.QUINCY),
+			Map.entry(DEATHDEALING, Races.QUINCY));
 
 	/** Never null — an unlisted kit is treated as Shinigami, which is the pre-race behaviour. */
 	public static Race raceOf(ResourceLocation kitId) {
@@ -116,6 +130,13 @@ public final class BleachKits {
 				GinTransform.shikai(), GinTransform.bankai(),
 				BleachTuning.KIT_GIN_FS_RANGE_MULT, BleachTuning.KIT_GIN_FS_COOLDOWN_MULT,
 				BleachTuning.KIT_GIN_PARTICLE_COLOR, Races.SHINIGAMI));
+
+		// Shunsui arrives from main. Kit gained a mandatory race argument on this branch, so his
+		// registration takes Races.SHINIGAMI — the eighth argument is the only change to him.
+		AbilityRegistry.registerKit(new Kit(SHUNSUI, "Shunsui Kyōraku",
+				ShunsuiTransform.shikai(), ShunsuiTransform.bankai(),
+				BleachTuning.KIT_SHUNSUI_FS_RANGE_MULT, BleachTuning.KIT_SHUNSUI_FS_COOLDOWN_MULT,
+				BleachTuning.KIT_SHUNSUI_PARTICLE_COLOR, Races.SHINIGAMI));
 
 		AbilityRegistry.registerKit(new Kit(THUNDERBOLT, "Candice Catnipp",
 				ThunderboltTransform.schrift(), ThunderboltTransform.vollstandig(),
