@@ -856,7 +856,7 @@ public final class BleachTuning {
 	@Deprecated
 	public static int VOLL_WING_PARTICLES = 6;
 	/** Feathers per wing. Each is drawn as a line of {@link #VOLL_WING_SEGMENTS} points. */
-	public static int VOLL_WING_FEATHERS = 5;
+	public static int VOLL_WING_FEATHERS = 6;
 	/** Points drawn along each feather. Total per tick is feathers × segments × 2 wings. */
 	public static int VOLL_WING_SEGMENTS = 4;
 	/** Ticks between wing redraws. 2 halves the particle load with no visible flicker. */
@@ -866,7 +866,7 @@ public final class BleachTuning {
 	/** Radius of the wing arc, blocks. */
 	public static double VOLL_WING_RADIUS = 1.1;
 	/** Quad size of a single wing particle. */
-	public static double VOLL_WING_PARTICLE_SCALE = 0.7;
+	public static double VOLL_WING_PARTICLE_SCALE = 0.45;
 
 	// --- P.5 Quincy · Schrift T, The Thunderbolt --------------------------------------
 

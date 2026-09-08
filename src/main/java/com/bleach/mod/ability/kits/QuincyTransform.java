@@ -161,16 +161,28 @@ public abstract class QuincyTransform implements TransformAbility {
 		double radius = BleachTuning.VOLL_WING_RADIUS;
 		double shoulder = BleachTuning.VOLL_WING_OFFSET;
 
+		// The beat. Tips travel further than roots, which is what a real wing does and what stops
+		// the motion reading as the whole shape sliding up and down.
+		double beat = Math.sin(player.tickCount * WING_FLAP_SPEED) * WING_FLAP_DEGREES;
+
 		for (int side = -1; side <= 1; side += 2) {
 			for (int f = 0; f < feathers; f++) {
-				// 0 is the lowest feather, 1 the highest; the fan sweeps up and slightly inward.
+				// 0 is the innermost feather, 1 the outermost; the fan sweeps up and back.
 				double u = feathers == 1 ? 0.5 : f / (double) (feathers - 1);
-				double angle = Math.toRadians(WING_MIN_ANGLE + u * (WING_MAX_ANGLE - WING_MIN_ANGLE));
-				double length = radius * (WING_MIN_LENGTH + (1.0 - u) * (1.0 - WING_MIN_LENGTH));
+
+				double degrees = WING_MIN_ANGLE + u * (WING_MAX_ANGLE - WING_MIN_ANGLE)
+						+ beat * (WING_FLAP_ROOT + (1.0 - WING_FLAP_ROOT) * u);
+				double angle = Math.toRadians(degrees);
+
+				// Longest through the middle of the fan, shorter at root and tip — a wing profile
+				// rather than a quarter-disc. The old form peaked at u=0, which is the flattest
+				// feather, and that is precisely what made the wings splay out sideways.
+				double length = radius * (WING_MIN_LENGTH
+						+ (1.0 - WING_MIN_LENGTH) * Math.sin(Math.PI * u));
 
 				for (int s = 1; s <= segments; s++) {
 					double t = s / (double) segments;
-					double out = Math.cos(angle) * length * t;
+					double out = Math.cos(angle) * length * t * WING_SPREAD;
 					double up = Math.sin(angle) * length * t;
 					double back = shoulder + out * WING_SWEEP;
 
@@ -184,16 +196,24 @@ public abstract class QuincyTransform implements TransformAbility {
 		}
 	}
 
-	/** Lowest feather's angle above horizontal, degrees. */
-	private static final double WING_MIN_ANGLE = -5.0;
-	/** Highest feather's angle above horizontal, degrees. */
-	private static final double WING_MAX_ANGLE = 75.0;
-	/** Length of the shortest (highest) feather as a fraction of the longest. */
-	private static final double WING_MIN_LENGTH = 0.55;
-	/** How far back a feather is swept per block it reaches outward. Keeps the fan from reading flat. */
-	private static final double WING_SWEEP = 0.35;
+	/** Innermost feather's angle above horizontal, degrees. Kept well off flat. */
+	private static final double WING_MIN_ANGLE = 12.0;
+	/** Outermost feather's angle above horizontal, degrees. */
+	private static final double WING_MAX_ANGLE = 82.0;
+	/** Length of the root and tip feathers as a fraction of the longest, mid-fan one. */
+	private static final double WING_MIN_LENGTH = 0.5;
+	/** Horizontal compression. Below 1 makes the wing taller than it is wide. */
+	private static final double WING_SPREAD = 0.7;
+	/** How far back a feather is swept per block it reaches outward. */
+	private static final double WING_SWEEP = 0.55;
 	/** Height of the shoulder line above the player's feet, blocks. */
 	private static final double WING_SHOULDER_HEIGHT = 1.15;
+	/** Radians of beat phase per tick. About a 1.6-second cycle. */
+	private static final double WING_FLAP_SPEED = 0.16;
+	/** Peak swing of the beat, degrees, applied at the tip. */
+	private static final double WING_FLAP_DEGREES = 14.0;
+	/** Share of the beat the root feather gets; the tip gets all of it. */
+	private static final double WING_FLAP_ROOT = 0.35;
 
 	/** The kit-tinted dust the wings are drawn in. */
 	private DustParticleOptions wingDust() {
