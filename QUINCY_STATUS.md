@@ -1,9 +1,13 @@
 # Quincy Faction — Status
 
-**State:** **the 18-task foundation is complete** — all 17 numbered tasks plus 2b have landed on a
-local `quincy` branch. `./gradlew build` and `./gradlew test` are both green (25 JUnit tests).
-**Nothing is in-world verified** — see §7, which is still the single largest caveat on the whole
-branch, now with `/bleach test` as the designed compensating control.
+**State:** the 18-task foundation is complete, and **there is now a playable Quincy** — Schrift T,
+The Thunderbolt, landed 2026-09-08 (§9). `./gradlew build` and `./gradlew test` are green
+(**34 JUnit tests**). `BleachKits.IDS` has a Quincy entry, so the race picker leads somewhere, the
+Heilig Bogen mints, and §7.2 items 7–8 are testable for the first time.
+
+**In-world verification has begun but is not finished** — see §7.1. The first client session ran
+2026-09-08: `/bleach test race`, `blut` and `bow` all PASS, the two-step picker works, and the
+empty-race path degrades gracefully. Everything else in §7.2 is still unrun.
 
 **Nothing is pushed yet, but the endpoint has changed** (2026-09-08): the branch is to be merged up
 to `origin/main` **as a pull request for Suhas to review**, rather than kept local indefinitely.
@@ -39,20 +43,22 @@ The real dependency edges run arrow → bow → registry. The plan offered a stu
 reordering was taken instead, so no knowingly-wrong line ever landed and no window existed in which
 a Quincy minted a sword. Commits therefore appear out of numeric order in `git log`.
 
-### What the foundation does *not* include
+### What the foundation did *not* include — and what closed it
 
-The foundation is the **chassis**. There is still **no playable Quincy**: `BleachKits.IDS` has no
-Quincy entry, so `AbilityRegistry.kitsFor(QUINCY)` is empty, the race screen shows Quincy with no
-kits behind it, and nothing mints a Heilig Bogen. Everything below the kit is in place and waiting.
+The foundation was the **chassis**, and until 2026-09-08 there was no playable Quincy at all:
+`BleachKits.IDS` had no Quincy entry, so `AbilityRegistry.kitsFor(QUINCY)` was empty, the race
+screen showed Quincy with no kits behind it, and nothing minted a Heilig Bogen.
 
-**The next piece of work is the Schrift plan (T/D/M/Z)** — see §2.4. The first Schrift is what
-turns all of this on, and it is also what makes most of §7.2's manual pass runnable at all.
+**Schrift T closed that** — see §9. One kit entry turned the whole chassis on. The remaining three
+letters (D, M, Z) are still undesigned; §9 is the template they should follow, and Z still ships
+last for the reason in §4.3.
 
 | Document | Path |
 |---|---|
 | Design spec | `docs/superpowers/specs/2026-09-07-quincy-faction-design.md` |
 | Foundation plan (17 tasks) | `docs/superpowers/plans/2026-09-07-quincy-foundation.md` |
-| Schrift plan (T/D/M/Z) | not written yet — comes after the foundation lands |
+| Schrift T design | §9 of this file — built on the compressed path, by the user's choice, so it has no separate spec or plan document |
+| Schrift plan (D/M/Z) | not written yet |
 
 All three files, plus this one, are still **untracked** — deliberately. The 16 implementation commits
 are tracked and local-only.
@@ -459,3 +465,65 @@ Computed 2026-09-08 by intersecting `git diff --name-only 750cfb2 d2d1722` with 
   buried in a Quincy PR.
 - **The lava ruling** (§7.3): "submerged" was taken to include lava. Still worth confirming.
 
+
+---
+
+## 9. Schrift T — The Thunderbolt · landed 2026-09-08
+
+The first playable Quincy, and the first kit of any race whose power fires off a **projectile**
+rather than a swing. Registered as **Candice Catnipp** (`bleach_mod:thunderbolt`), following the
+existing convention that a kit is a character, not a mechanic.
+
+Numbers live in `BALANCE.md` §P.5. This section is the *why*.
+
+### 9.1 What it does
+
+| | Tier 1 — Schrift (`R`) | Tier 2 — Vollständig (`G`) |
+|---|---|---|
+| Trigger | landed reishi arrow | landed reishi arrow |
+| Bolt | one, on the target | one, **chaining to 3** within 5 blocks |
+| Chain damage | — | ×0.5 falloff per link (3.0 / 1.5 / 0.75) |
+| Cooldown | 60 ticks | 20 ticks |
+| From the base | — | speed, `VOLL_DMG`, `VOLL_FS_RANGE_MULT`, cyan wings |
+
+Drain and gates are `DRAIN_SHIKAI` / `DRAIN_BANKAI` untouched, so decision #2's tier parity holds by
+construction rather than by tuning.
+
+### 9.2 Decisions taken
+
+| Decision | Why | Cost if wrong |
+|---|---|---|
+| **Power rides `onProjectileHit`, not an activated key** | `BleachKeybinds` has no free slot, and the established pattern (`IchigoTransform`) is that a tier is a stance expressed as passives and on-hit hooks. This is also the first thing ever to exercise Task 12's hook. | The Schrift cannot be aimed independently of the bow |
+| **Bolts are `setVisualOnly(true)` plus hand-applied damage** | Buys vanilla flash, thunderclap and dynamic lighting free while suppressing fire, and keeps damage as `SPIRIT_PRESSURE` inside the `BLEACH` tag so Soul Level scaling applies. | **No mob conversions** — no charged creepers, witches or zombified piglins. Reversible by passing `false` and dropping the manual damage, at the cost of a hardcoded vanilla 5 and forest fires |
+| **Reused `SPIRIT_PRESSURE` rather than minting a `thunderbolt` damage type** | A dedicated type is a datapack JSON plus a lang key, for a custom death message only. | Death messages say spirit pressure, not lightning. One JSON to add |
+| **Primary target's `invulnerableTime` is cleared before the bolt** | The hook runs immediately after the arrow's own `hurt`, inside vanilla's 20-tick immunity window. `hurt` only applies the excess over `lastHurt`, and the bolt (6.0) is smaller than the arrow (7.0) — so **without this the tier-1 power is silently inert while compiling and passing every unit test.** | The struck target can be re-hit by anything else a tick earlier than vanilla intends |
+| **Chain links sorted by distance** | Outward falloff is the only ordering a player can read in play. | Cosmetic |
+| **Quincy sits last in `BleachKits.IDS`** | The eight Shinigami keep their existing menu positions; screen two is race-filtered anyway. | Menu order |
+| **Bow model parents vanilla `item/bow`** | Carries the three `pulling`/`pull` overrides, so the draw-back animation works with no custom art — consistent with the agreed abilities-before-animations build order. | A Heilig Bogen looks exactly like a vanilla bow until someone draws art |
+
+### 9.3 The bow-bash bug is fixed
+
+§7.5's first gap is closed. `MeleeHooks.onAfterDamage` gated on `SpiritWeapon.isDrawn`, which went
+race-agnostic in the Task 9 rename — so a Quincy clubbing a mob with the bow would have fired their
+Schrift's `onMeleeHit`. New `SpiritWeapon.isMeleeDrawn` narrows it to blades, and the check sits
+**after** `LAST_DIRECT_HIT_TICK` is recorded, so Yamamoto's air-swing detection is unchanged.
+
+### 9.4 A real bug the unit tests caught
+
+`isReady`'s no-bolt-yet sentinel is `Integer.MIN_VALUE`, and `0 - Integer.MIN_VALUE` overflows back
+to a negative in `int` arithmetic — which made a freshly transformed player permanently **not**
+ready. The subtraction is now widened to `long`. Worth recording because **nothing in play would
+have caught it**: the symptom is a power that simply never fires, which reads as "not implemented
+yet" rather than as a bug.
+
+### 9.5 Still unverified in-world
+
+Everything in this section is compile-and-unit-test verified only. Specifically untested:
+
+1. **Does the bolt actually damage the struck target?** The i-frame reset above is the single
+   riskiest line in the Schrift and no unit test can reach it. Shoot a high-health mob in tier 1 and
+   confirm it takes ~13, not ~7.
+2. **Does chaining pick sane targets?** Vollständig into a group; confirm 3 links, nearest first.
+3. **Bow-bash inertness** — enter tier 1, club a mob with the bow, confirm no bolt.
+4. **The cooldown reads as a rhythm**, not as a broken power. 3s in tier 1 may be too slow to feel.
+5. **§7.2 items 7 and 8** (bow and arrow) are finally reachable and have never been run.
