@@ -814,6 +814,23 @@ public final class BleachTuning {
 	/** Minimum draw fraction below which the shot is refused outright. */
 	public static double BOW_MIN_DRAW = 0.15;
 
+	// --- P.3 Quincy · Vollstandig ----------------------------------------------------
+
+	/** Vollstandig movement speed bonus, ADD_MULTIPLIED_TOTAL. */
+	public static double VOLL_SPEED = 0.35;
+	/** Vollstandig bleach melee and arrow damage bonus. */
+	public static double VOLL_DMG = 0.45;
+	/** Vollstandig Flash Step (Hirenkyaku) range multiplier while active. */
+	public static double VOLL_FS_RANGE_MULT = 1.35;
+	/** Wing particles emitted per tick behind the shoulders. */
+	public static int VOLL_WING_PARTICLES = 6;
+	/** How far behind the player the wing arc sits, blocks. */
+	public static double VOLL_WING_OFFSET = 0.45;
+	/** Radius of the wing arc, blocks. */
+	public static double VOLL_WING_RADIUS = 1.1;
+	/** Quad size of a single wing particle. */
+	public static double VOLL_WING_PARTICLE_SCALE = 0.7;
+
 	// ================================================================================
 	// K. Networking and presentation · BALANCE.md §K
 	// ================================================================================

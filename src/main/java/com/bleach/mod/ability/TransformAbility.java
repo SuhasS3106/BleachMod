@@ -63,6 +63,17 @@ public interface TransformAbility extends Ability {
 	default void onProjectileHit(ServerPlayer player, LivingEntity target, float damage) {
 	}
 
+	/**
+	 * Flash Step range multiplier while this transformation is active, folded in on top of the kit's
+	 * own {@code Kit.flashStepRangeMult()}. Defaulted to identity, so no existing kit moves.
+	 *
+	 * <p>The seam exists because Vollständig widens Hirenkyaku for <em>every</em> Schrift; expressing
+	 * that on the transformation keeps it out of {@code FlashStep}, which stays race-agnostic.
+	 */
+	default double flashStepRangeMult() {
+		return 1.0;
+	}
+
 	/** Melee damage bonus fraction while active (e.g. +0.25 for Ichigo Shikai, +0.40 for Ichigo Bankai). */
 	default double meleeDamageBonus() {
 		return 0.0;

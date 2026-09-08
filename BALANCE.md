@@ -932,6 +932,28 @@ registration** — the same restart caveat §I.1 records for the zanpakutō's at
 Changing either needs a restart; the other five are read fresh on every draw and shot and
 `/bleach reload` moves them immediately.
 
+### P.3 Vollständig · *design §5.1*
+
+Vollständig is release 2 for **every** Schrift, so its package lives on the shared
+`QuincyTransform` base rather than in any one letter. These numbers are therefore the Quincy
+equivalent of a Bankai's stat block, and they are read fresh every tick — `/bleach reload` moves
+all of them immediately.
+
+| Symbol | Default | Unit | Meaning |
+|---|---|---|---|
+| `VOLL_SPEED` | 0.35 | frac | Movement speed bonus, `ADD_MULTIPLIED_TOTAL` |
+| `VOLL_DMG` | 0.45 | frac | Melee and arrow damage bonus while in Vollständig |
+| `VOLL_FS_RANGE_MULT` | 1.35 | × | Hirenkyaku (Flash Step) range multiplier, stacked on the kit's own |
+| `VOLL_WING_PARTICLES` | 6 | count | Wing particles emitted per tick behind the shoulders |
+| `VOLL_WING_OFFSET` | 0.45 | blocks | How far behind the player the wing arc sits |
+| `VOLL_WING_RADIUS` | 1.1 | blocks | Radius of the wing arc |
+| `VOLL_WING_PARTICLE_SCALE` | 0.7 | × | Quad size of a single wing particle |
+
+`VOLL_FS_RANGE_MULT` multiplies the kit's `flashStepRangeMult()` rather than replacing it, so a
+Schrift that is already fast stays proportionally fast in Vollständig. It reaches `FlashStep`
+through `TransformAbility.flashStepRangeMult()`, a defaulted-to-identity hook, which is why no
+Shinigami kit moves.
+
 ---
 
 ## L. Where each constant is consumed
@@ -958,6 +980,7 @@ Kept current so a balance change never requires a codebase search.
 | P.0 | `race/ReishiDensity` |
 | P.1 | `entity/ReishiArrow` (particle scale), `entity/BleachEntities` (hitbox, tracking range, update interval — registration-time) |
 | P.2 | `item/HeiligBogenItem` |
+| P.3 | `ability/kits/QuincyTransform`, `ability/common/FlashStep` (range multiplier) |
 
 ---
 

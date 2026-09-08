@@ -2,8 +2,10 @@ package com.bleach.mod.ability.common;
 
 import com.bleach.mod.ability.Ability;
 import com.bleach.mod.ability.AbilityCooldowns;
+import com.bleach.mod.ability.AbilityDispatcher;
 import com.bleach.mod.ability.AbilityRegistry;
 import com.bleach.mod.ability.Kit;
+import com.bleach.mod.ability.TransformAbility;
 import com.bleach.mod.attachment.SpiritualData;
 import com.bleach.mod.particle.PressureParticleOptions;
 import com.bleach.mod.tuning.BleachTuning;
@@ -98,10 +100,15 @@ public final class FlashStep implements Ability {
 	 * Kit multipliers are identity until a zanpakutō has been chosen in Phase 4 — Flash Step is
 	 * usable from the first tick of a new world, so "no kit" has to mean unmodified rather than
 	 * unavailable.
+	 *
+	 * <p>The active transformation's own multiplier stacks on top, which is how Vollständig widens
+	 * Hirenkyaku without this class knowing what a Quincy is.
 	 */
 	private static double rangeMult(SpiritualData data) {
 		Kit kit = AbilityRegistry.kitFor(data);
-		return kit == null ? 1.0 : kit.flashStepRangeMult();
+		double mult = kit == null ? 1.0 : kit.flashStepRangeMult();
+		TransformAbility active = AbilityDispatcher.activeTransform(data);
+		return active == null ? mult : mult * active.flashStepRangeMult();
 	}
 
 	private static double cooldownMult(SpiritualData data) {
