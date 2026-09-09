@@ -18,7 +18,7 @@ From the project root:
 ./gradlew build
 ```
 
-The mod lands at **`build/libs/bleach_mod-1.0.0.jar`**. Ignore `bleach_mod-1.0.0-sources.jar` — that
+The mod lands at **`build/libs/bleach_mod-2.0.0.jar`**. Ignore `bleach_mod-1.0.0-sources.jar` — that
 is the source bundle and does nothing in a mods folder.
 
 Send that one jar to everyone who is playing. There is no separate client and server build; the same
@@ -34,7 +34,7 @@ Each player, including whoever hosts:
    Minecraft **1.21.1**, install.
 2. Download **Fabric API 0.116.17+1.21.1** from
    <https://modrinth.com/mod/fabric-api/versions?g=1.21.1>.
-3. Drop **both** `fabric-api-0.116.17+1.21.1.jar` and `bleach_mod-1.0.0.jar` into the mods folder:
+3. Drop **both** `fabric-api-0.116.17+1.21.1.jar` and `bleach_mod-2.0.0.jar` into the mods folder:
    - Windows: `%APPDATA%\.minecraft\mods`
    - macOS: `~/Library/Application Support/minecraft/mods`
    - Linux: `~/.minecraft/mods`
@@ -46,7 +46,7 @@ blue spiritual-pressure bar sits above the right side of the hotbar in-game.
 ### If you use a launcher instead
 
 MultiMC, Prism and the Modrinth App all handle steps 1–4 for you — make a 1.21.1 Fabric instance,
-add Fabric API from the built-in mod browser, then drag `bleach_mod-1.0.0.jar` into the instance's
+add Fabric API from the built-in mod browser, then drag `bleach_mod-2.0.0.jar` into the instance's
 mods folder. This is the less error-prone route and worth suggesting to anyone who has not
 hand-installed Fabric before.
 
@@ -76,7 +76,7 @@ fallback if Tailscale is blocked on someone's network or somebody flatly will no
 1. Download the **Fabric server launcher** for 1.21.1 from <https://fabricmc.net/use/server/>.
 2. Put it in an empty folder, run it once, accept the EULA (`eula=true` in `eula.txt`), run it again.
 3. Create a `mods` folder next to the server jar and drop in **Fabric API** and
-   **`bleach_mod-1.0.0.jar`** — the same two files the clients have.
+   **`bleach_mod-2.0.0.jar`** — the same two files the clients have.
 4. In `server.properties`:
 
    ```properties
@@ -123,7 +123,7 @@ Mojang's EULA is between them and each player rather than something I can settle
 What follows is what the setting actually does to your server.
 
 **They still need the same mods.** Offline mode changes authentication and nothing else. Every
-player still needs Fabric Loader 1.21.1, Fabric API and `bleach_mod-1.0.0.jar`, exactly as in §2.
+player still needs Fabric Loader 1.21.1, Fabric API and `bleach_mod-2.0.0.jar`, exactly as in §2.
 Some third-party launchers make installing Fabric awkward; whatever they use has to support
 **Fabric for 1.21.1** or they cannot join a modded server at all.
 
