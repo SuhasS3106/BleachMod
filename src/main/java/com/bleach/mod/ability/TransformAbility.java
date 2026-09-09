@@ -18,9 +18,6 @@ public interface TransformAbility extends Ability {
 	/** Which slot this occupies: {@link SpiritualData#STATE_SHIKAI} or {@code STATE_BANKAI}. */
 	byte state();
 
-	/** SP per second while active. Read by the ticker, not by the dispatcher. */
-	double drainPerSecond();
-
 	/** Entry threshold as a fraction of max SP at the given Soul Level. */
 	double entryGatePercent(int soulLevel);
 

@@ -2,6 +2,7 @@ package com.bleach.mod.attachment;
 
 import java.util.Optional;
 
+import com.bleach.mod.progression.SoulLevelCurve;
 import com.bleach.mod.tuning.BleachTuning;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -194,8 +195,17 @@ public class SpiritualData {
 				+ BleachTuning.SP_REGEN_PCT_PER_LEVEL * (soulLevel - 1));
 	}
 
+	/**
+	 * The exertion penalty coefficient, floored above zero · {@code BALANCE.md} §B.
+	 *
+	 * <p>The floor is not decoration. {@link #regenMultiplier()} divides by
+	 * {@code 1 + k × exertion}, so a negative {@code k} — which this reaches at SL 26 on shipped
+	 * tuning — has a pole in it. Without the clamp a capped player's regeneration goes to infinity
+	 * at one particular exertion value and negative past it.
+	 */
 	public double exertionK() {
-		return BleachTuning.EXERTION_K_BASE - BleachTuning.EXERTION_K_PER_LEVEL * (soulLevel - 1);
+		return Math.max(BleachTuning.EXERTION_K_FLOOR,
+				BleachTuning.EXERTION_K_BASE - BleachTuning.EXERTION_K_PER_LEVEL * (soulLevel - 1));
 	}
 
 	public double regenMultiplier() {
@@ -215,7 +225,13 @@ public class SpiritualData {
 			case STATE_SHIKAI -> BleachTuning.GATE_SHIKAI_BASE;
 			default -> 0.0;
 		};
-		return base <= 0.0 ? 0.0 : base - BleachTuning.GATE_REDUCTION_PER_LEVEL * (soulLevel - 1);
+		if (base <= 0.0) {
+			return 0.0;
+		}
+		// Floored, because the reduction is linear and SL_MAX is 100: Bankai's gate crosses zero at
+		// SL 64 and Shikai's at SL 44, and a gate at or below zero is one an empty pool clears.
+		return Math.max(BleachTuning.GATE_FLOOR_PCT,
+				base - BleachTuning.GATE_REDUCTION_PER_LEVEL * (soulLevel - 1));
 	}
 
 	public double bankaiGate() {
@@ -226,11 +242,17 @@ public class SpiritualData {
 		return maxSp() * gatePercent(STATE_SHIKAI, soulLevel);
 	}
 
-	/** Drain for the current state, SP per second. Zero in the base state. */
+	/**
+	 * Drain for the current state, SP per second. Zero in the base state.
+	 *
+	 * <p>Tapered by Soul Level rather than flat — a level buys cheaper upkeep as well as a bigger
+	 * pool, which is what makes a high-level Shikai something you can hold. Neither rate can reach
+	 * zero; see {@link SoulLevelCurve#shikaiDrain}.
+	 */
 	public double drainPerSecond() {
 		return switch (state) {
-			case STATE_BANKAI -> BleachTuning.DRAIN_BANKAI;
-			case STATE_SHIKAI -> BleachTuning.DRAIN_SHIKAI;
+			case STATE_BANKAI -> SoulLevelCurve.bankaiDrain(soulLevel);
+			case STATE_SHIKAI -> SoulLevelCurve.shikaiDrain(soulLevel);
 			default -> 0.0;
 		};
 	}

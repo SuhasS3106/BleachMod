@@ -163,10 +163,12 @@ At the base cap on a WSL-1 world that is roughly **56 in-game days** to cap; on 
 **Damage taken scales for everything.** Mobs get stronger as the world advances (§2.5), so general defense has to advance with it or high-WSL worlds become unplayable regardless of level.
 
 ```
-bleachDealt(SL)  = 1 + SL_BLEACH_DMG_DEALT_PER_LEVEL  × (SL − 1)     → +38% at SL 20
-generalTaken(SL) = 1 − SL_GENERAL_DMG_TAKEN_PER_LEVEL × (SL − 1)     → −19% at SL 20
-bleachTaken(SL)  = 1 − SL_BLEACH_DMG_TAKEN_PER_LEVEL  × (SL − 1)     → −28.5% at SL 20
-bonusHp(SL)      = floor(SL / 2) × SL_HP_PER_TWO_LEVELS              → +10 HP at SL 20
+progress(SL)     = 1 − exp(−SL_CURVE_K × (SL − 1))                    → 0.486 at SL 20, 0.969 at SL 100
+bleachDealt(SL)  = 1 + SL_BLEACH_DMG_DEALT_CAP  × progress(SL)       → +29% at SL 20, +58% at SL 100
+generalTaken(SL) = 1 − SL_GENERAL_DMG_TAKEN_CAP × progress(SL)       → −12% at SL 20, −24% at SL 100
+bleachTaken(SL)  = 1 − SL_BLEACH_DMG_TAKEN_CAP  × progress(SL)       → applied on top of generalTaken
+damageTaken(SL)  = max(SL_DMG_TAKEN_FLOOR, generalTaken × bleachTaken)
+bonusHp(SL)      = floor(SL / 2) × SL_HP_PER_TWO_LEVELS              → +10 HP at SL 20, +50 at SL 100
 ```
 
 Incoming **bleach** damage is multiplied by both reductions → **−42%** at SL 20. Incoming vanilla damage takes only `generalTaken`. Order of operations: vanilla armour and resistance first, these multipliers last.

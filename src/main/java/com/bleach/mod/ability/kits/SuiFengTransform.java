@@ -126,10 +126,6 @@ public final class SuiFengTransform {
 			return SpiritualData.STATE_SHIKAI;
 		}
 
-		@Override
-		public double drainPerSecond() {
-			return BleachTuning.DRAIN_SHIKAI;
-		}
 
 		@Override
 		public double entryGatePercent(int soulLevel) {
@@ -383,10 +379,6 @@ public final class SuiFengTransform {
 			return SpiritualData.STATE_BANKAI;
 		}
 
-		@Override
-		public double drainPerSecond() {
-			return BleachTuning.DRAIN_BANKAI;
-		}
 
 		@Override
 		public double entryGatePercent(int soulLevel) {

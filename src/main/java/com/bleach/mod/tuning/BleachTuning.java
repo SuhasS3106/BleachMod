@@ -81,6 +81,16 @@ public final class BleachTuning {
 	public static double EXERTION_K_BASE = 0.060;
 	/** Coefficient reduction per level. */
 	public static double EXERTION_K_PER_LEVEL = 0.0024;
+	/**
+	 * Floor under the exertion coefficient. Small, positive, and <b>never zero</b>.
+	 *
+	 * <p>The regen multiplier is {@code 1 / (1 + k × exertion)}. At {@code SL_MAX = 20} the
+	 * coefficient stayed positive; past <b>SL 26</b> it goes negative, and a negative {@code k} puts
+	 * a pole in that denominator — at exactly {@code exertion = 1 / |k|} the multiplier is infinite,
+	 * and past it, it is negative. Flooring {@code k} above zero means exertion can stop mattering
+	 * much at high level without ever inverting.
+	 */
+	public static double EXERTION_K_FLOOR = 0.005;
 	/** Hard floor on the regen multiplier. */
 	public static double EXERTION_MULT_FLOOR = 0.20;
 
@@ -94,10 +104,42 @@ public final class BleachTuning {
 	public static double GATE_SHIKAI_BASE = 0.65;
 	/** Threshold reduction per level, applied to both gates. */
 	public static double GATE_REDUCTION_PER_LEVEL = 0.015;
+	/**
+	 * Floor under both entry gates, as a fraction of max.
+	 *
+	 * <p>Load-bearing since {@code SL_MAX} moved to 100. {@code GATE_BANKAI_BASE} minus
+	 * {@code GATE_REDUCTION_PER_LEVEL × (SL − 1)} goes <b>negative at SL 64</b>, and Shikai's at
+	 * SL 44 — a negative gate is a threshold an empty pool clears, so release would become free for
+	 * the top third of the ladder. Releasing always costs something.
+	 */
+	public static double GATE_FLOOR_PCT = 0.10;
 	/** Bankai drain, SP per second. */
 	public static double DRAIN_BANKAI = 5.0;
 	/** Shikai drain, SP per second. */
 	public static double DRAIN_SHIKAI = 1.5;
+	/**
+	 * Fraction of {@link #DRAIN_SHIKAI} the Soul Level curve may taper away.
+	 *
+	 * <p>Adil's item 7 asked for a Shikai drain that reaches zero around SL 60-70. A drain that
+	 * reaches zero is a stance that is free forever, which is the same defect
+	 * {@link com.bleach.mod.progression.SoulLevelCurve} was written to keep out of the damage
+	 * numbers. So the taper is deep enough to read as free -- 0.17/s at SL 65, 71 minutes on that
+	 * level's pool -- and stops on {@link #SHIKAI_DRAIN_FLOOR} rather than on nothing.
+	 */
+	public static double SHIKAI_DRAIN_TAPER_CAP = 0.99;
+	/** Floor under the Shikai drain, as a fraction of {@link #DRAIN_SHIKAI}. Reached at SL 70. */
+	public static double SHIKAI_DRAIN_FLOOR = 0.10;
+	/**
+	 * Fraction of {@link #DRAIN_BANKAI} the curve may taper away. Deliberately shallower than
+	 * Shikai's: Shikai is the sustainable stance and Bankai is the committed burn, and a Bankai that
+	 * tapered as hard as Shikai would collapse that distinction at the top of the ladder.
+	 */
+	public static double BANKAI_DRAIN_TAPER_CAP = 0.54;
+	/**
+	 * Floor under the Bankai drain, as a fraction of {@link #DRAIN_BANKAI}. Reached at SL 76, and
+	 * set to the same half-measure as {@link #SL_DMG_TAKEN_FLOOR} for the same reason.
+	 */
+	public static double BANKAI_DRAIN_FLOOR = 0.50;
 
 	// ================================================================================
 	// D. Soul Points · PRD §2.1–2.3 · BALANCE.md §D
@@ -120,7 +162,7 @@ public final class BleachTuning {
 	/** Level curve exponent. */
 	public static double SPX_CURVE_EXPONENT = 1.6;
 	/** Level cap. */
-	public static int SL_MAX = 20;
+	public static int SL_MAX = 100;
 	/** SPX awarded for an entity type absent from {@link #MOB_SPX}. */
 	public static int SPX_DEFAULT_MOB = 1;
 
@@ -128,12 +170,30 @@ public final class BleachTuning {
 	// E. Soul Level scaling · PRD §2.4 · BALANCE.md §E
 	// ================================================================================
 
-	/** Bleach damage dealt bonus, fraction per level. */
-	public static double SL_BLEACH_DMG_DEALT_PER_LEVEL = 0.020;
-	/** Bleach damage taken reduction, fraction per level. */
-	public static double SL_BLEACH_DMG_TAKEN_PER_LEVEL = 0.015;
-	/** All-source damage taken reduction, fraction per level. */
-	public static double SL_GENERAL_DMG_TAKEN_PER_LEVEL = 0.010;
+	/**
+	 * How fast Soul Level scaling approaches its ceiling · {@code BALANCE.md} §E.
+	 *
+	 * <p>Every §E multiplier is driven by {@code progress(SL) = 1 − exp(−k × (SL − 1))}, so it starts
+	 * at zero on level 1 and never reaches 1. At {@code k = 0.035} a capped player sits at ~97% of
+	 * the ceiling, which is what makes the last twenty levels still worth having without a linear
+	 * curve's runaway.
+	 */
+	public static double SL_CURVE_K = 0.035;
+	/** Ceiling on the bleach damage <b>dealt</b> bonus, as a fraction. Approached, never reached. */
+	public static double SL_BLEACH_DMG_DEALT_CAP = 0.60;
+	/** Ceiling on the bleach damage <b>taken</b> reduction, as a fraction. */
+	public static double SL_BLEACH_DMG_TAKEN_CAP = 0.3333;
+	/** Ceiling on the <b>all-source</b> damage taken reduction, as a fraction. */
+	public static double SL_GENERAL_DMG_TAKEN_CAP = 0.25;
+	/**
+	 * The hard floor on incoming damage after both Soul Level reductions. Nothing below this, at any
+	 * level, at any tuning — a player who cannot be hurt is not playing the same game as anyone else.
+	 *
+	 * <p>The two caps above are chosen so their product lands exactly here
+	 * ({@code 0.75 × 0.6667 = 0.50}), so at shipped values the floor is a guarantee rather than a
+	 * clamp that bites. It exists for the config file, which can hold any number somebody types.
+	 */
+	public static double SL_DMG_TAKEN_FLOOR = 0.50;
 	/** Bonus max health per two levels. */
 	public static double SL_HP_PER_TWO_LEVELS = 1.0;
 	/** Level-up sound volume. */
@@ -1059,20 +1119,60 @@ public final class BleachTuning {
 	/** Zone radius added per Soul Level above 1, blocks. */
 	public static double SHUNSUI_BANKAI_ZONE_RADIUS_PER_SL = 0.5;
 	/**
-	 * How far inside the zone boundary the containment push activates, blocks.
+	 * How far back inside the shell a participant is put when they cross it, blocks.
 	 *
-	 * <p>When a participant's distance from zone center exceeds
-	 * {@code radius - SHUNSUI_BANKAI_CONTAIN_MARGIN}, their outward velocity component is zeroed.
-	 * 0.5 keeps them clearly inside the sphere while feeling like a wall rather than a teleport.
+	 * <p>Not a velocity nudge — the correction is a move, and for a {@code ServerPlayer} it goes
+	 * through the connection. The margin is what stops the corrected position from sitting exactly
+	 * on the boundary and re-triggering next tick.
 	 */
-	public static double SHUNSUI_BANKAI_CONTAIN_MARGIN = 0.5;
+	public static double SHUNSUI_BANKAI_CONTAIN_MARGIN = 0.6;
 	/**
-	 * Gloom overlay tint for players inside the zone (packed ARGB).
+	 * Multiple of the radius past which a participant is released rather than dragged back.
 	 *
-	 * <p>Used as the base tint; act-specific overlays darken or recolour from this value
-	 * in {@code KaromatsuOverlay}. ~25% alpha purple-brown.
+	 * <p>The safety net for genuine displacement — a command teleport, a portal, a bug in the
+	 * containment test itself. Being wrongly freed is cosmetic; being wrongly pinned ends the play
+	 * session. Set well past any Flash Step so blinking at the wall is caught rather than rewarded.
 	 */
-	public static int SHUNSUI_BANKAI_ZONE_TINT = 0x40301828;
+	public static double SHUNSUI_BANKAI_RELEASE_FACTOR = 5.0;
+	/** Latitude rings traced from the ground to the crown of the zone shell. */
+	public static int SHUNSUI_ZONE_RINGS = 10;
+	/** Arc-length spacing between points on a ring, blocks. */
+	public static double SHUNSUI_ZONE_POINT_SPACING = 0.8;
+	/**
+	 * Draw one point in every {@code stride} per pass, advancing the phase each pass.
+	 *
+	 * <p>This is what lets the shell be drawn at all. {@code SHUNSUI_BANKAI_ZONE_RADIUS_PER_SL}
+	 * puts a capped Shunsui's zone at 67.5 blocks; tracing every point of that in a single pass is
+	 * several thousand particles a tick. Dust outlives several passes, so the eye assembles the whole
+	 * shell anyway and a huge zone costs no more per tick than a small one.
+	 */
+	public static int SHUNSUI_ZONE_DRAW_STRIDE = 3;
+	/** Ticks between shell drawing passes. */
+	public static int SHUNSUI_ZONE_PARTICLE_INTERVAL = 3;
+	/** How far the shell's skirt hangs below the rim chasing the ground, blocks. */
+	public static double SHUNSUI_ZONE_SKIRT_DEPTH = 12.0;
+	/** Dust particle scale for the shell. */
+	public static double SHUNSUI_ZONE_PARTICLE_SCALE = 1.8;
+	/**
+	 * Peak alpha of the gloom wash, 0..255.
+	 *
+	 * <p>70 rather than the 0x60 (96) the overlay used to fill the whole viewport with. The old
+	 * value was also drawn <em>in front of</em> the HUD, which is what hid a participant's own SP
+	 * bar from them.
+	 */
+	public static int SHUNSUI_ZONE_TINT_MAX_ALPHA = 70;
+	/** How fast the gloom fades in and out, fraction per second. */
+	public static double SHUNSUI_ZONE_TINT_FADE_PER_SECOND = 2.5;
+	/** Gloom colour before the first act (packed RGB). */
+	public static int SHUNSUI_TINT_PRE_ACT = 0x301828;
+	/** Gloom colour during Act 1 — shared wounds (packed RGB). */
+	public static int SHUNSUI_TINT_ACT_1 = 0x4A1E30;
+	/** Gloom colour during Act 2 — the rot (packed RGB). */
+	public static int SHUNSUI_TINT_ACT_2 = 0x201020;
+	/** Gloom colour during Act 3 — the water (packed RGB). */
+	public static int SHUNSUI_TINT_ACT_3 = 0x3040A0;
+	/** Gloom colour during the Final Act — the thread (packed RGB). */
+	public static int SHUNSUI_TINT_FINAL_ACT = 0xFFFFFF;
 	/** Shared-damage exchange count required to advance from Act 1 to Act 2. */
 	public static int SHUNSUI_ACT1_EXCHANGE_THRESHOLD = 12;
 	/**
@@ -1087,6 +1187,15 @@ public final class BleachTuning {
 	public static int SHUNSUI_ACT2_DURATION_TICKS = 300;
 	/** Act 2 bleed damage per second applied to each target participant. */
 	public static double SHUNSUI_ACT2_BLEED_DPS = 1.5;
+	/**
+	 * Ticks between Act 2 bleed applications.
+	 *
+	 * <p>A full interval's damage lands in one hit. Act 2 used to hurt every tick with a twentieth
+	 * of the damage, which is the same DPS delivered as <b>twenty</b> hurt sounds, red flashes and
+	 * camera kicks a second — the thing playtest reported as "very annoying". At 20 it also lines up
+	 * with vanilla's own invulnerability window, so nothing has to zero {@code invulnerableTime}.
+	 */
+	public static int SHUNSUI_ACT2_DAMAGE_INTERVAL = 20;
 	/** Bleed DPS growth multiplier applied once every 5 seconds while Act 2 is active. */
 	public static double SHUNSUI_ACT2_BLEED_GROWTH = 1.25;
 	/**
@@ -1123,8 +1232,6 @@ public final class BleachTuning {
 	 * blade silhouette particle trail emitted from the strike position.
 	 */
 	public static double SHUNSUI_SECOND_BLADE_DMG_BONUS = 0.20;
-	/** PressureParticle count per tick spawned along the zone boundary sphere. Visible to all. */
-	public static int SHUNSUI_BANKAI_ZONE_RING_PARTICLES = 48;
 
 	// ================================================================================
 	// K. Networking and presentation · BALANCE.md §K

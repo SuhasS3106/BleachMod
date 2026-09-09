@@ -38,14 +38,20 @@ regen(SL)   = maxSp(SL) × (SP_REGEN_BASE_PCT + SP_REGEN_PCT_PER_LEVEL × (SL �
 | `EXERTION_RATE_SHIKAI` | 0.35 | exertion/s | Accrual while in Shikai |
 | `EXERTION_K_BASE` | 0.060 | — | Penalty coefficient at SL 1 |
 | `EXERTION_K_PER_LEVEL` | 0.0024 | /level | Coefficient reduction per level |
+| `EXERTION_K_FLOOR` | 0.005 | — | Floor under the coefficient. Small, positive, never zero |
 | `EXERTION_MULT_FLOOR` | 0.20 | — | Hard floor on the regen multiplier |
 
 ```
-k(SL)         = EXERTION_K_BASE − EXERTION_K_PER_LEVEL × (SL − 1)
+k(SL)         = max(EXERTION_K_FLOOR, EXERTION_K_BASE − EXERTION_K_PER_LEVEL × (SL − 1))
 regenMult(SL) = max(EXERTION_MULT_FLOOR, 1 / (1 + k(SL) × exertion))
 ```
 
 Exertion clears to zero **only** when SP reaches 100% of max. Nowhere else.
+
+`EXERTION_K_FLOOR` became load-bearing when `SL_MAX` moved to 100. The unfloored coefficient goes
+**negative at SL 26**, which puts a pole in `regenMult`'s denominator: at exactly
+`exertion = 1 / |k|` regeneration is infinite, and past it, negative. The floor keeps exertion
+mattering less and less at high level without ever inverting.
 
 ---
 
@@ -56,10 +62,52 @@ Exertion clears to zero **only** when SP reaches 100% of max. Nowhere else.
 | `GATE_BANKAI_BASE` | 0.95 | frac of max | Bankai entry threshold at SL 1 |
 | `GATE_SHIKAI_BASE` | 0.65 | frac of max | Shikai entry threshold at SL 1 |
 | `GATE_REDUCTION_PER_LEVEL` | 0.015 | frac/level | Threshold reduction per level (both) |
-| `DRAIN_BANKAI` | 5.0 | SP/s | Bankai drain |
-| `DRAIN_SHIKAI` | 1.5 | SP/s | Shikai drain |
+| `GATE_FLOOR_PCT` | 0.10 | frac of max | Floor under both gates |
+| `DRAIN_BANKAI` | 5.0 | SP/s | Bankai drain **at SL 1** |
+| `DRAIN_SHIKAI` | 1.5 | SP/s | Shikai drain **at SL 1** |
+| `SHIKAI_DRAIN_TAPER_CAP` | 0.99 | frac | Most of the Shikai drain the curve may remove |
+| `SHIKAI_DRAIN_FLOOR` | 0.10 | frac of base | Floor under the Shikai drain — 0.15 SP/s, reached at SL 70 |
+| `BANKAI_DRAIN_TAPER_CAP` | 0.54 | frac | Most of the Bankai drain the curve may remove |
+| `BANKAI_DRAIN_FLOOR` | 0.50 | frac of base | Floor under the Bankai drain — 2.5 SP/s, reached at SL 76 |
+
+```
+gate(SL)  = max(GATE_FLOOR_PCT, GATE_*_BASE − GATE_REDUCTION_PER_LEVEL × (SL − 1))
+drain(SL) = DRAIN_* × max(FLOOR, 1 − TAPER_CAP × progress(SL))
+```
+
+### C.1 Why the drains taper — Adil's item 7
+
+He asked for a Shikai drain that reaches **zero** by SL 60–70. Built literally that is the §E defect
+one layer down: a drain that reaches zero is a stance that is free forever, and free-forever is what
+the asymptotic damage curve exists to prevent. So the drain rides the same `progress(SL)` the damage
+multipliers do and stops on a floor instead of on nothing.
+
+| SL | Pool | Shikai/s | Shikai holds for | Bankai/s | Bankai holds for |
+|---|---|---|---|---|---|
+| 1 | 100 | 1.50 | 67s | 5.00 | 20s |
+| 20 | 290 | 0.78 | 6.2 min | 3.69 | 79s |
+| 65 | 740 | 0.17 | 71 min | 2.59 | 4.8 min |
+| 100 | 1090 | 0.15 | 121 min | 2.50 | 7.3 min |
+
+At SL 65 Shikai reads as free and is not. Bankai's taper is deliberately shallower and floors at
+half the posted rate, the same half-measure as `SL_DMG_TAKEN_FLOOR`: Shikai is the sustainable
+stance and Bankai the committed burn, and a Bankai that tapered as hard as Shikai would collapse
+that distinction exactly where the ladder is longest.
+
+Regen and the release drain are mutually exclusive in `SpiritualTicker`, so every figure above is a
+hard clock rather than an asymptote — a high-level Shikai still ends.
+
+`SHUNSUI_ACT3_SP_DRAIN_PER_SEC` **replaces** `DRAIN_BANKAI` rather than adding to it, so it carries
+the same taper via `SoulLevelCurve.bankaiDrainMultiplier`. Left flat it would have made the
+strongest part of the kit the one a levelled player could least afford. The Act 3 drain applied to
+*participants* is deliberately **not** tapered: that is a debuff Shunsui imposes, not upkeep they
+pay, and tapering it would have quietly weakened his Bankai against high-SL targets.
 
 Bankai's entry refill is a **loan, not a gift** — see §1.4. No constant; the claw-back is `sp = min(spOnEntry, sp)` on revert.
+
+`GATE_FLOOR_PCT` is the other constant `SL_MAX = 100` made load-bearing. Unfloored, Bankai's gate
+crosses zero at **SL 64** and Shikai's at **SL 44**, and a gate at or below zero is one an empty pool
+clears — release would be free for the top third of the ladder. Releasing always costs something.
 
 ---
 
@@ -75,7 +123,7 @@ Bankai's entry refill is a **loan, not a gift** — see §1.4. No constant; the 
 | `SPX_PLAYER_PER_LEVEL_GAP` | 5 | SPX/level | Bonus per level the victim is above you |
 | `SPX_CURVE_COEFF` | 12.0 | — | Level curve coefficient |
 | `SPX_CURVE_EXPONENT` | 1.6 | — | Level curve exponent |
-| `SL_MAX` | 20 | level | Level cap |
+| `SL_MAX` | 100 | level | Level cap |
 
 ```
 worldScalar   = 1 + WORLD_SCALAR_PER_LEVEL × (WSL − 1)
@@ -107,22 +155,91 @@ Lives in `BleachTuning.MOB_SPX` as a `Map<ResourceLocation, Integer>`, config-ov
 
 | Symbol | Default | Unit | Meaning |
 |---|---|---|---|
-| `SL_BLEACH_DMG_DEALT_PER_LEVEL` | 0.020 | frac/level | Bleach damage dealt bonus |
-| `SL_BLEACH_DMG_TAKEN_PER_LEVEL` | 0.015 | frac/level | Bleach damage taken reduction |
-| `SL_GENERAL_DMG_TAKEN_PER_LEVEL` | 0.010 | frac/level | **All-source** damage reduction |
+| `SL_CURVE_K` | 0.035 | — | How fast §E scaling approaches its ceiling |
+| `SL_BLEACH_DMG_DEALT_CAP` | 0.60 | frac | Ceiling on the bleach damage **dealt** bonus |
+| `SL_BLEACH_DMG_TAKEN_CAP` | 0.3333 | frac | Ceiling on the bleach damage **taken** reduction |
+| `SL_GENERAL_DMG_TAKEN_CAP` | 0.25 | frac | Ceiling on the **all-source** damage reduction |
+| `SL_DMG_TAKEN_FLOOR` | 0.50 | frac | Hard floor on incoming damage after both reductions |
 | `SL_HP_PER_TWO_LEVELS` | 1.0 | HP | Max health per 2 levels |
 | `SL_LEVELUP_SOUND_VOLUME` | 0.7 | — | Level-up sound volume |
 | `SL_LEVELUP_SOUND_PITCH` | 0.6 | — | Level-up sound pitch. Below 1.0 — deeper than the vanilla XP chime it borrows |
 
 ```
-bleachDealt(SL)  = 1 + SL_BLEACH_DMG_DEALT_PER_LEVEL  × (SL − 1)     → +38% at SL 20
-bleachTaken(SL)  = 1 − SL_BLEACH_DMG_TAKEN_PER_LEVEL  × (SL − 1)     → −28.5%
-generalTaken(SL) = 1 − SL_GENERAL_DMG_TAKEN_PER_LEVEL × (SL − 1)     → −19%
-bonusHp(SL)      = floor(SL / 2) × SL_HP_PER_TWO_LEVELS              → +10 HP at SL 20
+progress(SL)     = 1 − exp(−SL_CURVE_K × (SL − 1))          0 at SL 1, asymptotically 1
+bleachDealt(SL)  = 1 + SL_BLEACH_DMG_DEALT_CAP  × progress(SL)
+bleachTaken(SL)  = 1 − SL_BLEACH_DMG_TAKEN_CAP  × progress(SL)
+generalTaken(SL) = 1 − SL_GENERAL_DMG_TAKEN_CAP × progress(SL)
+damageTaken(SL)  = max(SL_DMG_TAKEN_FLOOR, generalTaken × (bleach ? bleachTaken : 1))
+bonusHp(SL)      = floor(SL / 2) × SL_HP_PER_TWO_LEVELS
 ```
 
-Incoming bleach damage is multiplied by **both** `generalTaken` and `bleachTaken` → −42% at SL 20.
-Damage **dealt** scales for bleach sources only. Vanilla weapons never scale.
+Incoming bleach damage is multiplied by **both** `generalTaken` and `bleachTaken`, and the product is
+then held at `SL_DMG_TAKEN_FLOOR`. Damage **dealt** scales for bleach sources only. Vanilla weapons
+never scale.
+
+| SL | general taken | bleach taken (both) | bleach dealt | SP | bonus HP |
+|---|---|---|---|---|---|
+| 1 | — | — | — | 100 | +0 |
+| 10 | −6.8% | −15.2% | +16.2% | 190 | +5 |
+| 20 | −12.1% | −26.4% | +29.1% | 290 | +10 |
+| 50 | −20.5% | −42.2% | +49.2% | 590 | +25 |
+| 100 | −24.2% | −48.7% | +58.1% | 1090 | +50 |
+
+### E.1 Why the curve is not a straight line
+
+Every row above used to be linear in the level and floored at zero, which is fine at a cap of 20 and
+indefensible at a cap of 100. `SL_BLEACH_DMG_TAKEN_PER_LEVEL = 0.015` crossed zero at **SL 68** —
+a player two-thirds up the new ladder took **no damage at all** from anything in the mod — and
+`SL_BLEACH_DMG_DEALT_PER_LEVEL = 0.020` reached **+198%** at SL 100. Both are properties of a line
+that nobody had yet run far enough to see.
+
+Asymptotic scaling has no such cliff: each multiplier approaches a ceiling it cannot pass at any
+level, and `SL_DMG_TAKEN_FLOOR` guarantees the rest. The two taken-caps are chosen so their product
+lands on that floor — `0.75 × 0.6667 = 0.500` — so at shipped values the floor is a statement of
+intent rather than a clamp that bites; it exists for the config file, which can hold any number
+somebody types into it.
+
+**The same level is now worth less, deliberately.** SL 20 gives −26.4% where it used to give −42%,
+because the same progression is spread over five times as many levels. The compensation is that
+`SP_MAX_PER_LEVEL` and `SL_HP_PER_TWO_LEVELS` stay linear, so the cap raise alone takes a capped
+player from 290 SP to **1090** and from +10 HP to **+50** — which is the point of raising it.
+
+### E.2 Sanity check — what the cap raise does to every *other* per-level constant
+
+§E is now safe at any cap. Nothing else in this file is. Every row below is linear in the level and
+was written against a cap of 20; these are the values a capped player gets today. **None of them is
+a bug** — each is the constant doing exactly what it says — but several are large enough that the
+kit no longer plays the way its own section describes.
+
+| Constant | SL 20 | SL 100 | Note |
+|---|---|---|---|
+| `SP_REGEN_PCT_PER_LEVEL` | 11.9 SP/s | **140.5 SP/s** | Against `DRAIN_BANKAI` 5/s. Every drain in the mod is now free |
+| `AURA_RANGE_PER_LEVEL` | 350 blocks | **1486 blocks** | Past any render distance — Aura Sense becomes world-wide |
+| `YAMA_BANKAI_CONE_DMG_PER_SL` | 65 | **225** | A one-shot on anything |
+| `YAMA_BANKAI_CONE_RANGE_PER_SL` | 40 blocks | **139 blocks** | …delivered from off-screen |
+| `SHINJI_RADIUS_PER_LEVEL` | 32 blocks | **96 blocks** | Inverted controls over a 96-block sphere |
+| `SHUNSUI_BANKAI_ZONE_RADIUS_PER_SL` | 27.5 blocks | **67.5 blocks** | Why §J.9's shell is stride-drawn rather than drawn whole |
+| `FS_RANGE_PER_LEVEL` | 40 blocks | **84 blocks** | Flash Step at full SP |
+| `FLEX_RADIUS_PER_LEVEL` | 16 blocks | **48 blocks** | — |
+| `AIZEN_ILLUSION_MOB_PER_SL` | +9 mobs | **+49 mobs** | — |
+
+The first row is deliberate and is the user's own ruling — *"at higher SL levels we get a lot more
+reiatsu, but the drain remains the same"* — so it is recorded rather than corrected. **Superseded in
+part:** the release drain no longer remains the same, because Adil's item 7 was built too (§C.1).
+The two now stack in the same direction — a bigger pool *and* cheaper upkeep — which is why item 7's
+floors are the load-bearing part of it and not a detail. The rest want a
+retune pass of their own; the two worth doing first are Yamamoto's cone and Aura Sense's range,
+because both are already past the point where the other player can see what is happening to them.
+
+Drains that scale *down* per level (`BLUT_DRAIN_PER_LEVEL`, `HOVER_DRAIN_PER_LEVEL`,
+`FLEX_DRAIN_PER_LEVEL`) were checked and are all `Math.max`-floored already, so none of them reaches
+zero or inverts. The two that were **not** floored — the entry gates and the exertion coefficient —
+are fixed in §B and §C above.
+
+> **Open: the level curve was not retuned with the cap.** `SPX_CURVE_COEFF × L^SPX_CURVE_EXPONENT`
+> totals ~10,400 SPX to reach SL 20 and **~722,000** to reach SL 100 — 69× the grind, against a
+> 200/day base cap. The scaling curve above is correct at every level whether or not anyone reaches
+> them, but SL 100 is currently decorative. Retuning §D is its own pass; see §M.4.
 
 `bonusHp` is the one value on this list that is **pushed rather than derived on read**: it is an
 `AttributeModifier` the game holds, keyed `bleach_mod:soul_level_health`. Anything that changes a
@@ -535,6 +652,92 @@ Enma Kōrogi carries two costs and one deliberate leak, none of them numeric:
 | `GIN_BANKAI_BEAM_PARTICLE_STEP` | 0.6 | blocks | Beam particle spacing; smaller is a more continuous stream |
 
 Kamishini no Yari's beam is **not rendered for Gin himself**. It leaves the eye along the exact look vector, so drawn locally it becomes an opaque wall over the crosshair. Every other player within 160 blocks is sent it per-player.
+
+---
+
+### J.9 Shunsui · *Katen Kyōkotsu & Karamatsu Shinjū*
+
+Arrived with the `origin/main` merge and was never written down here. The constants existed and the
+section did not, which is how `SHUNSUI_BANKAI_ZONE_TINT` sat unused for a whole release.
+
+#### J.9.1 Shikai — Katen Kyōkotsu
+
+| Symbol | Default | Unit | Meaning |
+|---|---|---|---|
+| `SHUNSUI_SHIKAI_CLEAVE_ARC` | 55.0 | degrees | Arc the second blade sweeps for secondary targets |
+| `SHUNSUI_SHIKAI_CLEAVE_PCT` | 0.40 | frac | Fraction of primary damage dealt to arc targets |
+| `SHUNSUI_SHIKAI_DUAL_HIT_CHANCE` | 0.45 | frac | Chance the second blade also strikes the primary target |
+| `SHUNSUI_IROONI_CAST_SP_COST` | 15.0 | SP | Cost of declaring a colour rule |
+| `SHUNSUI_IROONI_CAST_RADIUS` | 20.0 | blocks | Who the rule is declared over |
+| `SHUNSUI_IROONI_CAST_COOLDOWN_TICKS` | 60 | ticks | Between declarations |
+| `SHUNSUI_IROONI_PUNISH_DURATION_TICKS` | 80 | ticks | How long breaking a rule costs |
+| `SHUNSUI_IROONI_PUNISH_WEAKNESS_AMP` | 0 | amp | Weakness applied on a break |
+| `SHUNSUI_IROONI_PUNISH_SLOWNESS_AMP` | 0 | amp | Slowness applied on a break |
+| `SHUNSUI_IROONI_BREAK_PARTICLE_COLOR` | `0xF9A8D4` | RGB | The break burst |
+| `SHUNSUI_IDLE_REGEN_BONUS` | 0.8 | SP/s | Flat regen bonus, base state only, and only with `regenPauseTicks == 0` |
+
+**The rule assigned to each enemy is never revealed — only the consequence.** That is a design
+decision in `KatenShikaiManager`'s own javadoc, not an oversight, and reversing it is a design change
+rather than a bug fix.
+
+#### J.9.2 Bankai — Karamatsu Shinjū
+
+| Symbol | Default | Unit | Meaning |
+|---|---|---|---|
+| `SHUNSUI_BANKAI_ZONE_RADIUS_BASE` | 18.0 | blocks | Zone radius at SL 1 |
+| `SHUNSUI_BANKAI_ZONE_RADIUS_PER_SL` | 0.5 | blocks/level | Added per level above 1 — **67.5 blocks at SL 100**, see §E.2 |
+| `SHUNSUI_BANKAI_CONTAIN_MARGIN` | 0.6 | blocks | How far back inside the shell a crosser is put |
+| `SHUNSUI_BANKAI_RELEASE_FACTOR` | 5.0 | × radius | Past this, a participant is released rather than dragged back |
+| `SHUNSUI_ACT1_EXCHANGE_THRESHOLD` | 12 | exchanges | Act 1 → Act 2 |
+| `SHUNSUI_ACT1_DEATH_FLOOR_HP` | 1.0 | HP | The mirror alone can never drop anyone below this |
+| `SHUNSUI_ACT2_DURATION_TICKS` | 300 | ticks | Act 2 → Act 3 |
+| `SHUNSUI_ACT2_BLEED_DPS` | 1.5 | HP/s | Starting bleed |
+| `SHUNSUI_ACT2_BLEED_GROWTH` | 1.25 | × | Applied to the bleed every 5 s |
+| `SHUNSUI_ACT2_DAMAGE_INTERVAL` | 20 | ticks | One hit per interval, carrying the whole interval's damage |
+| `SHUNSUI_ACT3_SP_DRAIN_PER_SEC` | 3.5 | SP/s | Drains both sides; **replaces** `DRAIN_BANKAI` for Shunsui |
+| `SHUNSUI_ACT3_SLOWNESS_AMP` | 0 | amp | Applied to targets only — Shunsui has home-turf immunity |
+| `SHUNSUI_ACT3_LOSS_SP_THRESHOLD` | 0.10 | frac | Fall to this and you have lost the act |
+| `SHUNSUI_FINAL_ACT_CHARGE_TICKS` | 40 | ticks | The thread's draw |
+| `SHUNSUI_FINAL_ACT_DMG` | 200.0 | HP | Tagged `SPIRIT_MECHANIC_KILL` — not reduced by §E |
+| `SHUNSUI_SECOND_BLADE_DMG_BONUS` | 0.20 | frac | Shunsui's melee bonus from Act 2 onward |
+
+#### J.9.3 The shell and the gloom
+
+| Symbol | Default | Unit | Meaning |
+|---|---|---|---|
+| `SHUNSUI_ZONE_RINGS` | 10 | rings | Latitude rings from ground to crown |
+| `SHUNSUI_ZONE_POINT_SPACING` | 0.8 | blocks | Arc-length spacing between points on a ring |
+| `SHUNSUI_ZONE_DRAW_STRIDE` | 3 | — | One point in every stride per pass, phase advancing |
+| `SHUNSUI_ZONE_PARTICLE_INTERVAL` | 3 | ticks | Between drawing passes |
+| `SHUNSUI_ZONE_SKIRT_DEPTH` | 12.0 | blocks | How far the skirt chases the ground below the rim |
+| `SHUNSUI_ZONE_PARTICLE_SCALE` | 1.8 | — | Dust scale |
+| `SHUNSUI_ZONE_TINT_MAX_ALPHA` | 70 | 0–255 | Peak alpha of the gloom |
+| `SHUNSUI_ZONE_TINT_FADE_PER_SECOND` | 2.5 | frac/s | Fade in and out |
+| `SHUNSUI_TINT_PRE_ACT` | `0x301828` | RGB | Bruise |
+| `SHUNSUI_TINT_ACT_1` | `0x4A1E30` | RGB | Blood — shared wounds |
+| `SHUNSUI_TINT_ACT_2` | `0x201020` | RGB | Rot |
+| `SHUNSUI_TINT_ACT_3` | `0x3040A0` | RGB | The water of Dangyo no Fuchi |
+| `SHUNSUI_TINT_FINAL_ACT` | `0xFFFFFF` | RGB | The thread |
+
+The zone is a **hemisphere standing on the anchor**, and the volume that contains is the same shape
+as the shell that is drawn — including below the anchor, which counts as inside. Three things this
+replaced, each of which had shipped:
+
+- **Containment did nothing to players.** It cancelled outward velocity with `setDeltaMovement`,
+  which a client simply overwrites with its own next position packet. Participants are now moved,
+  and a `ServerPlayer` is moved through `player.connection.teleport`.
+- **The shell was 48 randomly scattered `PressureParticle` points on a full sphere, every tick.**
+  That particle rises, so the shape smeared; half the sphere was underground; and a scatter that
+  sparse is noise rather than a surface. It is now stride-drawn dust rings with a double-density
+  ground ring and a terrain skirt, which is what makes a 67-block zone affordable at all.
+- **The gloom was drawn in front of the HUD.** `KaromatsuOverlay` filled the viewport at up to
+  `0x60` after a `pose().translate(0, 0, 500)`, past `HUD_Z_DEPTH = 0` — which is the whole of
+  "players affected by the Bankai cannot see their SP". The bar was drawn and then painted over.
+
+Membership is the **server's alone**. `KaromatsuSyncPayload` is now a per-participant edge carrying
+only the act, not a world broadcast carrying the zone's centre and radius; a client that knows the
+geometry can stand one block outside it, and a client that decides its own membership can disagree
+with the server about who is caged.
 
 ---
 
@@ -1099,14 +1302,15 @@ Kept current so a balance change never requires a codebase search.
 |---|---|
 | A, B, C | `attachment/SpiritualData`, `SpiritualTicker` |
 | D | `progression/SpxTable`, `SoulLevel`, `WorldSoulLevel` |
-| E | `progression/DamageScaling`, `SoulLevel` (health modifier, level-up sound) |
+| E | `progression/SoulLevelCurve` (the curve), `progression/DamageScaling` (applies it), `SoulLevel` (health modifier, level-up sound) |
 | F | `progression/DamageScaling`, `SoulLevel` (`mobScalar`, for the stats screen) |
 | G | `ability/common/FlashStep` |
 | H | `ability/common/SpiritualFlex`, `effect/ReiatsuEffect`, `mixin/LivingEntityTravelMixin` |
 | H.4 | `effect/ReiatsuEffect`, `mixin/ConjuredEntityMixin`, `mixin/CreeperSwellMixin`, `mixin/EnderManTeleportMixin`, `mixin/LivingEntityDamageMixin` |
 | H.5 | `effect/ReiatsuEffect` (the formula), `ability/common/SpiritualFlex` (the tick) |
 | I | `ability/KitRegistry` |
-| J.1–J.8 | `ability/kits/*` |
+| J.1–J.9 | `ability/kits/*` |
+| J.9.3 | `ability/kits/KaromatsuManager` (the shell), `client/KaromatsuOverlay`, `client/ClientKaromatsuState` |
 | K | `network/BleachNetworking`, `client/SpiritualHud`, `client/SoulStatsScreen`, `client/ScreenShake`, `progression/WorldSoulLevel` |
 | N | `ability/common/AuraSense` |
 | N.1, N.3 | `client/AuraSenseOverlay`, `client/ClientAuraSenseState` |
@@ -1129,7 +1333,7 @@ When playtesting says something is off, these are the constants most likely to b
 1. `SHINJI_MOB_INVERT_CHANCE`, `SHINJI_MOB_REROLL_TICKS`
 2. `REIATSU_DAMAGE_PER_GAP` / `REIATSU_DAMAGE_MAX`
 3. `FLEX_COUNTER_GAP_BASE` / `FLEX_COUNTER_GAP_DIVISOR`
-4. `SPX_DAILY_CAP_BASE` vs. `SPX_CURVE_COEFF`
+4. `SPX_DAILY_CAP_BASE` vs. `SPX_CURVE_COEFF` / `SPX_CURVE_EXPONENT` — **now the top of this list in practice**: `SL_MAX` moved to 100 without the curve moving with it, so the ladder costs ~722,000 SPX end to end. See §E.1
 5. `EXERTION_K_BASE` / `EXERTION_K_PER_LEVEL`
 6. `SUI_MARK_TOLERANCE`, `SUI_SHIKAI_KILL_EXERTION`
 7. `MOB_SCALE_PER_LEVEL`, `MOB_SCALE_LEVEL_HEADROOM`

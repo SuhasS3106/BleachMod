@@ -1,96 +1,75 @@
 package com.bleach.mod.client;
 
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.bleach.mod.network.KaromatsuSyncPayload;
+import com.bleach.mod.tuning.BleachTuning;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.util.Mth;
 
 /**
- * Client-side state tracking for Shunsui Kyōraku's Bankai (Karamatsu Shinjū) zones.
+ * Whether this client is on Shunsui's stage, which act it is in, and how far the gloom has faded in.
  *
- * <p>Populated and cleared by the {@link KaromatsuSyncPayload} handler registered in
- * {@code BleachModClient}. Queried by {@link KaromatsuOverlay} to determine what tint (if any)
- * to render, and from which act.
+ * <p>Membership is decided entirely by the server and arrives as an edge — see
+ * {@link KaromatsuSyncPayload}. The fade lives here, so the stage reads as closing around you rather
+ * than as a colour appearing, and so a missed frame cannot leave a hard-edged wash on screen.
+ *
+ * <p>Client thread only: the network handler hops through {@code client.execute} and
+ * {@link KaromatsuOverlay} runs in the render pass.
  */
 public final class ClientKaromatsuState {
 	private ClientKaromatsuState() {
 	}
 
-	public record ZoneData(UUID casterId, Vec3 center, float radius, byte actIndex) {}
-
-	/** Active zones, keyed by caster UUID. */
-	private static final Map<UUID, ZoneData> ZONES = new ConcurrentHashMap<>();
+	/** Act index of the last "you are on the stage" the server sent, or -1 when off it. */
+	private static byte act = -1;
+	private static boolean affected;
+	private static float tint;
+	private static long lastFrameMillis;
 
 	public static void update(KaromatsuSyncPayload payload) {
+		affected = payload.active();
+		// The act is kept through the falling edge so the wash fades out in the colour it was in,
+		// rather than snapping to the pre-act purple on its way to nothing.
 		if (payload.active()) {
-			ZONES.put(payload.casterId(), new ZoneData(
-					payload.casterId(),
-					new Vec3(payload.x(), payload.y(), payload.z()),
-					payload.radius(),
-					payload.actIndex()));
-		} else {
-			ZONES.remove(payload.casterId());
+			act = payload.actIndex();
 		}
 	}
 
+	/** Dropped on disconnect, so a tint cannot survive into the next world. */
 	public static void clear() {
-		ZONES.clear();
+		affected = false;
+		act = -1;
+		tint = 0.0f;
+		lastFrameMillis = 0L;
 	}
 
-	/**
-	 * Whether the local player is inside any active zone and is NOT the caster.
-	 *
-	 * <p>The gloom overlay renders only for affected players, never for the caster.
-	 */
+	/** Whether the local player is currently a participant in an active zone. */
 	public static boolean isAffected() {
-		Minecraft client = Minecraft.getInstance();
-		if (client.player == null || client.player.isSpectator()) {
-			return false;
-		}
+		return affected;
+	}
 
-		UUID selfId = client.player.getUUID();
-		Vec3 selfPos = client.player.position();
-
-		for (ZoneData zone : ZONES.values()) {
-			if (zone.casterId().equals(selfId)) {
-				continue; // caster is exempt from the overlay
-			}
-			double radiusSq = (double) zone.radius() * zone.radius();
-			if (selfPos.distanceToSqr(zone.center()) <= radiusSq) {
-				return true;
-			}
-		}
-		return false;
+	/** The act being played, or {@code -1} if the local player is not on the stage. */
+	public static byte currentAct() {
+		return affected ? act : -1;
 	}
 
 	/**
-	 * The act index of the innermost (any) zone the local player is inside, or {@code -1} if none.
+	 * Advances the fade and returns its current strength, 0..1. Called once per frame by the overlay.
 	 *
-	 * <p>In practice there is at most one active zone per server, but the structure supports
-	 * multiple without modification.
+	 * <p>Frame-rate independent, and the delta is clamped so an alt-tab or a world load does not
+	 * resolve the whole fade in the first frame back.
 	 */
-	public static byte currentAct() {
-		Minecraft client = Minecraft.getInstance();
-		if (client.player == null) {
-			return -1;
-		}
+	public static float advance() {
+		long now = System.currentTimeMillis();
+		double delta = lastFrameMillis == 0L ? 0.0 : (now - lastFrameMillis) / 1000.0;
+		lastFrameMillis = now;
+		delta = Mth.clamp(delta, 0.0, 0.25);
 
-		UUID selfId = client.player.getUUID();
-		Vec3 selfPos = client.player.position();
+		double perSecond = Math.max(0.001, BleachTuning.SHUNSUI_ZONE_TINT_FADE_PER_SECOND);
+		float step = (float) (delta * perSecond);
 
-		for (ZoneData zone : ZONES.values()) {
-			if (zone.casterId().equals(selfId)) {
-				continue;
-			}
-			double radiusSq = (double) zone.radius() * zone.radius();
-			if (selfPos.distanceToSqr(zone.center()) <= radiusSq) {
-				return zone.actIndex();
-			}
-		}
-		return -1;
+		tint = affected
+				? Math.min(1.0f, tint + step)
+				: Math.max(0.0f, tint - step);
+		return tint;
 	}
 }

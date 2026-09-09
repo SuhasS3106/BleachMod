@@ -32,14 +32,17 @@ import net.minecraft.world.phys.Vec3;
  * <ul>
  *   <li>{@code DONT_ATTACK} — break if the enemy attacks Shunsui while he is not looking at them.
  *       Detected in {@link #onMeleeHitCheck}, called from Shikai's {@code onMeleeHit}.</li>
- *   <li>{@code DONT_JUMP}   — break if the enemy jumps (upward velocity while not on ground).
- *       Detected per-tick in {@link #tickRuleCheck}.</li>
+ *   <li>{@code DONT_JUMP}   — break on the tick the enemy leaves the ground upward, via
+ *       {@link #isJumpEdge}. Detected per-tick in {@link #tickRuleCheck}.</li>
  *   <li>{@code DONT_SPRINT} — break if the enemy sprints.
  *       Detected per-tick in {@link #tickRuleCheck}.</li>
  * </ul>
  *
  * <p>The rule assigned to each enemy is never revealed — only the <em>consequence</em> of
- * breaking it is visible (pink particle burst, gotcha chime, Weakness + Slowness).
+ * breaking it is visible (pink particle burst, gotcha chime, Weakness + Slowness). Adil's item 3
+ * asked for the rules to be shown to the caster on look; that was declined 2026-09-09 as a reversal
+ * of this decision rather than a fix to it. What <em>was</em> wrong is that the caster could not
+ * tell a failed cast from a missing ability — see {@link #evaluateCast}.
  */
 public final class KatenShikaiManager {
 	private KatenShikaiManager() {
@@ -55,12 +58,67 @@ public final class KatenShikaiManager {
 
 	private static final IrooniRule[] RULE_VALUES = IrooniRule.values();
 
+	/** Why a cast did or did not happen. Every value is something Shunsui gets told. */
+	public enum CastOutcome {
+		CAST,
+		COOLDOWN,
+		NOT_ENOUGH_SP,
+		NO_TARGETS
+	}
+
+	/**
+	 * Whether a cast may proceed, and if not, which blocker to report.
+	 *
+	 * <p>Order is deliberate: the cooldown is checked before the pool so that a Shunsui who is both
+	 * on cooldown and broke is told about the one that clears on its own.
+	 *
+	 * @param ticksSinceCast ticks since the last successful cast; pass a large value if none
+	 */
+	public static CastOutcome evaluateCast(int ticksSinceCast, int cooldownTicks,
+			double sp, double cost, int targetCount) {
+		if (ticksSinceCast < cooldownTicks) {
+			return CastOutcome.COOLDOWN;
+		}
+		if (sp < cost) {
+			return CastOutcome.NOT_ENOUGH_SP;
+		}
+		if (targetCount <= 0) {
+			return CastOutcome.NO_TARGETS;
+		}
+		return CastOutcome.CAST;
+	}
+
+	/**
+	 * Whether this tick is the moment the entity left the ground upward.
+	 *
+	 * <p>The old check was {@code !onGround && deltaY > 0.4}, which is a window a real jump barely
+	 * occupies: a vanilla jump starts at 0.42 and is already near 0.33 one tick later, and a remote
+	 * player's server-side velocity is reconstructed from movement packets rather than simulated. So
+	 * {@code DONT_JUMP} was close to undetectable while the other two rules worked, which is most of
+	 * what "Shikai doesn't work" meant.
+	 *
+	 * <p>The edge is the honest predicate. Stepping off a ledge is excluded by the sign of
+	 * {@code deltaY} rather than by its size, so no threshold has to be guessed. Being launched off
+	 * the ground still counts — that is leaving the ground upward, whoever started it.
+	 */
+	public static boolean isJumpEdge(boolean wasOnGround, boolean onGround, double deltaY) {
+		return wasOnGround && !onGround && deltaY > 0.0;
+	}
+
 	// ---- State maps --------------------------------------------------------------
 
 	/** Shunsui UUID → (target entity UUID → assigned rule). */
 	private static final Map<UUID, Map<UUID, IrooniRule>> RULES_BY_CASTER = new ConcurrentHashMap<>();
 	/** Shunsui UUID → tick of last successful cast (for cooldown). */
 	private static final Map<UUID, Integer> LAST_CAST_TICK = new ConcurrentHashMap<>();
+	/**
+	 * Shunsui UUID → (target entity UUID → was that target on the ground last tick).
+	 *
+	 * <p>Parallel to {@link #RULES_BY_CASTER} and pruned by the same pass, because
+	 * {@link #isJumpEdge} needs a previous tick to compare against and a stateless check cannot
+	 * tell a jump from a fall.
+	 */
+	private static final Map<UUID, Map<UUID, Boolean>> GROUND_BY_CASTER = new ConcurrentHashMap<>();
 
 	// ---- Lifecycle ---------------------------------------------------------------
 
@@ -70,6 +128,7 @@ public final class KatenShikaiManager {
 	 */
 	public static void init(ServerPlayer shunsui) {
 		RULES_BY_CASTER.put(shunsui.getUUID(), new ConcurrentHashMap<>());
+		GROUND_BY_CASTER.put(shunsui.getUUID(), new ConcurrentHashMap<>());
 	}
 
 	/**
@@ -77,6 +136,7 @@ public final class KatenShikaiManager {
 	 */
 	public static void clearAll(ServerPlayer shunsui) {
 		RULES_BY_CASTER.remove(shunsui.getUUID());
+		GROUND_BY_CASTER.remove(shunsui.getUUID());
 		LAST_CAST_TICK.remove(shunsui.getUUID());
 	}
 
@@ -89,27 +149,39 @@ public final class KatenShikaiManager {
 	 * <p>Called from {@code LivingEntitySwingMixin} on a confirmed swing-miss.
 	 */
 	public static void castRules(ServerPlayer shunsui) {
-		// Cooldown gate
 		int now = shunsui.tickCount;
 		Integer lastCast = LAST_CAST_TICK.get(shunsui.getUUID());
-		if (lastCast != null && (now - lastCast) < BleachTuning.SHUNSUI_IROONI_CAST_COOLDOWN_TICKS) {
-			return;
-		}
+		int sinceCast = lastCast == null ? Integer.MAX_VALUE : now - lastCast;
+		int cooldown = BleachTuning.SHUNSUI_IROONI_CAST_COOLDOWN_TICKS;
 
 		SpiritualData data = BleachAttachments.get(shunsui);
-		if (data.sp < BleachTuning.SHUNSUI_IROONI_CAST_SP_COST) {
-			return;
-		}
 
 		ServerLevel level = shunsui.serverLevel();
 		double radius = BleachTuning.SHUNSUI_IROONI_CAST_RADIUS;
 		double radiusSq = radius * radius;
 
+		// Counted before the outcome is decided so NO_TARGETS can be told apart from the rest. The
+		// search is a box query against an already-loaded chunk section and is cheap enough to run
+		// on a swing that turns out to be on cooldown.
 		List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class,
 				shunsui.getBoundingBox().inflate(radius),
 				e -> e != shunsui && e.isAlive() && !e.isSpectator() && e.distanceToSqr(shunsui) <= radiusSq);
 
-		if (targets.isEmpty()) {
+		CastOutcome outcome = evaluateCast(sinceCast, cooldown, data.sp,
+				BleachTuning.SHUNSUI_IROONI_CAST_SP_COST, targets.size());
+
+		if (outcome != CastOutcome.CAST) {
+			// Every one of these used to be a bare return. A cast that fails in silence is
+			// indistinguishable from an ability that does not exist, which is what item 3 reported.
+			shunsui.displayClientMessage(switch (outcome) {
+				case COOLDOWN -> Component.literal("Katen is not ready — "
+						+ String.format("%.1f", (cooldown - sinceCast) / (double) BleachTuning.TICKS_PER_SECOND) + "s");
+				case NOT_ENOUGH_SP -> Component.literal("Not enough pressure — need "
+						+ (int) Math.ceil(BleachTuning.SHUNSUI_IROONI_CAST_SP_COST));
+				case NO_TARGETS -> Component.literal("No one within "
+						+ (int) radius + " blocks");
+				case CAST -> Component.empty();
+			}, true);
 			return;
 		}
 
@@ -129,6 +201,10 @@ public final class KatenShikaiManager {
 		// Soft, playful cast cue — audible to all nearby but not alarming.
 		level.playSound(null, shunsui.getX(), shunsui.getY(), shunsui.getZ(),
 				SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.PLAYERS, 1.0f, 1.2f);
+
+		// A count, never which rules. The rule stays hidden — this only confirms the cast landed,
+		// which is the whole of what was missing.
+		shunsui.displayClientMessage(Component.literal("Rules set on " + targets.size()), true);
 	}
 
 	// ---- Per-Tick Rule Detection -------------------------------------------------
@@ -145,20 +221,33 @@ public final class KatenShikaiManager {
 		}
 
 		ServerLevel level = shunsui.serverLevel();
+		Map<UUID, Boolean> ground = GROUND_BY_CASTER.computeIfAbsent(
+				shunsui.getUUID(), k -> new ConcurrentHashMap<>());
 
 		rules.entrySet().removeIf(entry -> {
-			LivingEntity target = (LivingEntity) level.getEntity(entry.getKey());
+			UUID targetId = entry.getKey();
+			LivingEntity target = (LivingEntity) level.getEntity(targetId);
 			if (target == null || !target.isAlive()) {
-				return true; // prune dead/unloaded
+				ground.remove(targetId); // prune dead/unloaded from both maps
+				return true;
 			}
 
+			// Recorded every tick whatever the rule is, so a re-cast onto DONT_JUMP has a previous
+			// tick to compare against instead of missing the first jump after it.
+			boolean onGround = target.onGround();
+			Boolean previous = ground.put(targetId, onGround);
+			boolean wasOnGround = previous == null ? onGround : previous;
+
 			IrooniRule rule = entry.getValue();
-			if (rule == IrooniRule.DONT_JUMP && isJumping(target)) {
+			if (rule == IrooniRule.DONT_JUMP
+					&& isJumpEdge(wasOnGround, onGround, target.getDeltaMovement().y)) {
 				applyRuleBreak(shunsui, target, level);
+				ground.remove(targetId);
 				return true; // rule consumed
 			}
 			if (rule == IrooniRule.DONT_SPRINT && target.isSprinting()) {
 				applyRuleBreak(shunsui, target, level);
+				ground.remove(targetId);
 				return true;
 			}
 			return false;
@@ -196,6 +285,10 @@ public final class KatenShikaiManager {
 		if (dot < 0.0) {
 			// Back was turned — rule broken.
 			rules.remove(attacker.getUUID());
+			Map<UUID, Boolean> ground = GROUND_BY_CASTER.get(shunsui.getUUID());
+			if (ground != null) {
+				ground.remove(attacker.getUUID());
+			}
 			applyRuleBreak(shunsui, attacker, shunsui.serverLevel());
 		}
 	}
@@ -238,8 +331,4 @@ public final class KatenShikaiManager {
 
 	// ---- Helpers -----------------------------------------------------------------
 
-	/** True if the entity has upward momentum and is not on the ground — i.e., it just jumped. */
-	private static boolean isJumping(LivingEntity entity) {
-		return !entity.onGround() && entity.getDeltaMovement().y > 0.4;
-	}
 }

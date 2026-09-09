@@ -637,13 +637,14 @@ release reads on screen, and it also drops a running Quincy from 84 particles a 
 
 ---
 
-## 12. Adil's todo list — analysed 2026-09-08, **NOT YET IMPLEMENTED**
+## 12. Adil's todo list — analysed 2026-09-08, **items 1, 2, 4, 5 and 6 landed 2026-09-08 · §13**
 
 Adil handed the user seven items. Items 1–5 are about **his own Shunsui kit** (Katen Kyōkotsu /
 Karamatsu Shinjū); 6 and 7 are **global progression** and affect every kit in the mod.
 
-**Nothing below has been written.** This section is analysis only — the working tree is clean at
-`1ea2de0`. Read it before touching any of it; several items are not what they look like.
+This section is the analysis, kept as written. **§13 is what was actually built**, and where the
+analysis turned out to be wrong it says so — item 4 in particular had the right warning attached to
+the wrong cause.
 
 ### 12.1 The list, verbatim
 
@@ -665,7 +666,7 @@ Karamatsu Shinjū); 6 and 7 are **global progression** and affect every kit in t
 | **1** | **Root cause found** | `KaromatsuManager.tickAct2` runs `target.invulnerableTime = 0; target.hurt(...)` **every tick**, so a participant takes 20 hurt sounds, 20 red flashes and 20 camera kicks per second. That is the "annoying" and the "noise", not the shake. **Fix:** apply the bleed once per 20 ticks with a full second's damage — identical DPS, one hit a second — and stop zeroing `invulnerableTime`, since vanilla's 20-tick immunity then lines up exactly. Also drop the 3-particles-per-tick-per-participant to the same interval. The separate camera shake is `REIATSU_SHAKE_AMPLITUDE_PX` (4.0), which is the low-SP overlay rather than anything Shunsui owns. |
 | **2** | Ready | `ClientKaromatsuState` already syncs the act, so this needs a readable tell, not new plumbing. Cheapest honest version is a message to every participant on `advanceTo`. |
 | **3** | **Blocked on a repro** | "Doesn't work" is not actionable — need what he pressed and what happened. **And the second half reverses a deliberate decision:** `KatenShikaiManager`'s javadoc states *"The rule assigned to each enemy is never revealed — only the consequence."* Revealing rules on look is a design change, not a bug fix. Fine to make; Adil should know he is overturning it. |
-| **4** | **Not the obvious cause** | `KaromatsuOverlay` fills the whole viewport, but `SpiritualHud.register()` runs *after* it in `BleachModClient`, so the bar draws on top. Whatever hides the SP is something else — do not "fix" the draw order without reproducing first. |
+| **4** | **Not the obvious cause** — *and the cause found later was a third thing, see §13.3* | `KaromatsuOverlay` fills the whole viewport, but `SpiritualHud.register()` runs *after* it in `BleachModClient`, so the bar draws on top. Whatever hides the SP is something else — do not "fix" the draw order without reproducing first. |
 | **5** | **Solved elsewhere already** | `KaromatsuManager:536-542` contains a participant by zeroing outward velocity through `setDeltaMovement`. **That does nothing authoritative to a player** — the client keeps sending its own position and the server accepts it. This is the identical bug fixed in `PoisonDome` on the same day; the fix is `player.connection.teleport(...)` for `ServerPlayer` and `teleportTo` for everything else. Lift `PoisonDome.place(...)` across. |
 | **6** | **Design decided, not built** | See §12.3 — as literally specified it makes players invulnerable. |
 | **7** | **Conflicts with a user ruling** | See §12.4. |
@@ -717,3 +718,255 @@ Items **1, 2, 5** are self-contained and can land together — 5 is a straight l
 Item **6** is the one with real blast radius: it changes the curve every kit is balanced against, so
 it wants its own pass and a fresh look at `BALANCE.md` §E. Items **3 and 4** should not be attempted
 until Adil supplies a repro; both currently point at causes that turn out to be wrong.
+
+---
+
+## 13. Adil's list — built 2026-09-08
+
+Items **1, 2, 4, 5 and 6**. Items **3 and 7** deliberately untouched: 3 still needs a repro from
+Adil and its second half reverses a documented decision (§12.2); 7 is superseded by the user's own
+ruling (§12.4) and Adil should be told rather than quietly ignored.
+
+One commit. 52 JUnit tests green — the ten new ones are the §E curve, which is the only part of this
+session's work a unit test can reach.
+
+### 13.1 Item 6 — the cap raise, and three things it broke that §12.3 did not catch
+
+`SL_MAX` is 100. The §E curve is now asymptotic exactly as designed in §12.3: `SL_CURVE_K = 0.035`,
+caps of `0.25` general and `0.3333` bleach, `SL_DMG_TAKEN_FLOOR = 0.50`, and a matching
+`SL_BLEACH_DMG_DEALT_CAP = 0.60`. It lives in a new `progression/SoulLevelCurve`, precomputed on the
+tuning reload hook next to `SpxTable` for the same reason that one is — `Math.exp` has no business
+running inside a damage event.
+
+Numbers landed where §12.3 predicted: **SL 20 is −26.4% taken and +29.1% dealt** where it used to be
+−42% and +38%, and **SL 100 is −48.7% and +58.1%**, hard against the floor without crossing it.
+SP and HP were left alone and give 1090 SP and +50 HP at the cap, as §12.3 said they would.
+
+**§12.3 checked `DamageScaling` and stopped there. Three other linear terms run off the same cliff:**
+
+| Found | What it does at the new cap | Done |
+|---|---|---|
+| `gatePercent` is `base − 0.015 × (SL − 1)`, unfloored | Bankai's entry gate goes **negative at SL 64**, Shikai's at SL 44. A negative gate is one an empty pool clears — release becomes free for the top third of the ladder | Floored at `GATE_FLOOR_PCT = 0.10`. Releasing always costs something |
+| `exertionK()` is `0.060 − 0.0024 × (SL − 1)`, unfloored | Goes **negative at SL 26**, and it is a denominator: `1 / (1 + k × exertion)` has a pole at `exertion = 1/\|k\|`. Regeneration is *infinite* at exactly that value and negative past it | Floored at `EXERTION_K_FLOOR = 0.005`. Exertion stops mattering much at high level without ever inverting |
+| Nine more per-level constants that are merely *large* rather than broken | `SP_REGEN_PCT_PER_LEVEL` reaches 140 SP/s against a 5/s Bankai drain; `AURA_RANGE_PER_LEVEL` reaches 1486 blocks; Yamamoto's Bankai cone reaches 225 damage at 139 blocks | **Recorded, not changed** — `BALANCE.md` §E.2 is the table. Retuning nine kits is its own pass |
+
+The first row of that last group is the user's own ruling from §12.4 — *"at higher SL levels we get a
+lot more reiatsu, but the drain remains the same"* — so it is intended and stays. The other two rows
+worth doing first are Yamamoto's cone and Aura Sense's range: both are already past the range at
+which the other player can see what is happening to them.
+
+**One thing the cap raise did not get and needs a decision.** The SPX curve was not touched, so the
+ladder now costs **~722,000 SPX end to end** against ~10,400 to reach SL 20 — 69× the grind, against
+a 200/MC-day base cap. Every number above is correct at every level whether or not anybody reaches
+it, but SL 100 is currently decorative. `BALANCE.md` §M.4 already flagged `SPX_DAILY_CAP_BASE` vs.
+`SPX_CURVE_COEFF` as a retune candidate; it is now the top of that list in practice.
+
+### 13.2 Items 5, 2 and 1 — the Bankai, rebuilt against `PoisonDome`
+
+**Item 5, the boundary.** `tickContainment` cancelled outward velocity with `setDeltaMovement`,
+which does nothing authoritative to a player — the client keeps sending its own position and the
+server accepts it. Participants are now *moved*, and a `ServerPlayer` is moved through
+`player.connection.teleport`. Membership was already resolved by UUID rather than by a box search, so
+that half was already right and stayed.
+
+Two further fixes came with it, both straight out of `PoisonDome`:
+
+- **The contained volume is now the same shape as the drawn shell** — a hemisphere on the anchor,
+  with height above the anchor floored at zero. It was a full sphere, so *below the anchor read as
+  outside*: a contained player who stepped one block downhill was shoved back toward the anchor and
+  then shoved again the next tick. Being pinned a few steps from where the zone was planted is the
+  same bug `PoisonDome` had, and it is worse than escaping.
+- **A release safety net** at `SHUNSUI_BANKAI_RELEASE_FACTOR = 5.0` × radius. Being wrongly freed is
+  cosmetic; being wrongly pinned ends the play session.
+
+**The shell.** 48 randomly scattered `PressureParticle` points on a full sphere, redrawn every tick.
+That particle rises by design (§11), so the shape smeared vertically; half the sphere was
+underground; and 48 points over a capped Shunsui's ~14,000 m² of surface is noise, not a surface. It
+is now stride-drawn dust: latitude rings, a double-density ground ring, and a terrain skirt so the
+rim does not float over ground that falls away. At `SHUNSUI_ZONE_DRAW_STRIDE = 3` on a 3-tick
+interval, a 67-block zone costs no more per tick than an 18-block one — which matters, because
+`SHUNSUI_BANKAI_ZONE_RADIUS_PER_SL` puts a capped Shunsui's zone at exactly that.
+
+**Item 2, act indication.** The acts were always synced; nothing ever said them out loud. Entry and
+every act change now announce in chat, and the running state reports on the action bar once a second
+with its own progress — exchanges landed, seconds of rot left, the thread's draw. The acts are named
+as Karamatsu Shinjū's own: *Ittan Momen*, *Zanki no Shitone*, *Dangyo no Fuchi*, *Itokiribasami
+Chizome no Shitone*. A player who has seen the third one once knows what the blue screen means the
+next time.
+
+**Item 1, Act 2's noise.** As diagnosed in §12.2 and no more: one hit per
+`SHUNSUI_ACT2_DAMAGE_INTERVAL = 20` carrying the whole second's damage, and nothing zeroes
+`invulnerableTime` any more because at 20 ticks the interval already lines up with vanilla's own
+immunity window. The blemish particles moved to the same clock. The screen shake was left alone: it
+is `REIATSU_SHAKE_AMPLITUDE_PX` on the low-SP overlay and Shunsui does not own it.
+
+Not *quite* identical DPS, and it is worth saying so: a bleed tick that lands inside the immunity
+left by someone else's hit is now swallowed rather than forced through, so the rot is slightly
+cheaper in a crowded fight. That is the right direction to be wrong in, and much cheaper than twenty
+flashes a second.
+
+### 13.3 Item 4 — the SP bar, and why §12.2 sent the next person the wrong way
+
+§12.2's warning was right — draw order was not the cause, and reordering `register()` calls would
+have fixed nothing. But the cause was not "something else" either, and it was three lines above the
+place §12.2 stopped reading:
+
+```java
+graphics.pose().translate(0.0f, 0.0f, OVERLAY_Z);   // OVERLAY_Z = 500.0f
+graphics.fill(0, 0, graphics.guiWidth(), graphics.guiHeight(), tint);
+```
+
+`SpiritualHud` draws at `HUD_Z_DEPTH = 0`. Registration order cannot save a layer that has been
+pushed 500 units in front of it — **depth wins**. The bar was drawn, and then painted over, which is
+exactly the report. The translate is gone.
+
+The rest of the fix is `PoisonDome`'s presentation, adopted whole: capped at
+`SHUNSUI_ZONE_TINT_MAX_ALPHA = 70` rather than 96, faded in and out client-side at 2.5/s rather than
+snapping, and act escalation carried by **colour** rather than by opacity — bruise, blood, rot,
+Dangyo no Fuchi's blue, the thread's white.
+
+`KaromatsuSyncPayload` changed shape while it was open. It used to broadcast the zone's centre,
+radius and caster to every player in the world and let each client decide whether it was inside;
+it is now a per-participant edge carrying only the act. Two reasons, both `PoisonDome`'s: a client
+that knows the geometry can stand one block outside it, and a client that decides its own membership
+can disagree with the server about who is caged — which it did, for anyone dropped from the
+participant set while still standing in the zone.
+
+### 13.4 Teardown
+
+Every path that ends a stage now clears membership *and* sends the falling edge: revert, abort,
+Shunsui losing Act 3, the Final Act resolving, and a participant dropped for dying, disconnecting or
+changing dimension. The tint is edge-driven, so a missed falling edge is a gloom nobody can clear
+short of relogging — `PoisonDome`'s `clearAllTints` exists for exactly this and this is the same
+lesson applied.
+
+One behaviour changed while fixing that: **a concluded stage now releases everyone.** `CONCLUDED`
+used to leave containment and the shell running until Shunsui reverted, so the cage outlived the
+performance. The `STAGES` entry survives, because `getCurrentMeleeDmgBonus` still has to answer.
+
+### 13.5 Still unverified in-world
+
+Compile-and-unit-test verified, plus a client launch. The list below is what no unit test reaches,
+and it is the whole of this feature:
+
+1. **Does the wall actually hold a player now?** Walk at it, sprint at it, Flash Step through it.
+   The old one stopped mobs and never stopped players.
+2. **Does stepping one block downhill still pin you?** It should not. This is the below-anchor fix
+   and it is the one most likely to be subtly wrong.
+3. **Can a participant see their own SP bar?** The whole of item 4.
+4. **Is Act 2 one hit a second?** One sound, one flash, one kick.
+5. **Do the act announcements and the action bar read at a glance**, and do they survive a
+   participant joining mid-sequence?
+6. **Does the shell read as a surface** at SL 1 and at a high Soul Level, and does the skirt close
+   the arch on a slope?
+7. **Does every teardown clear the gloom?** Revert, die, log out, change dimension, and let the
+   sequence run to its own conclusion.
+8. **`/bleach sl set 100`** — check the gates are still payable, that regen is not infinite, and
+   that a capped player still takes half damage rather than none.
+
+---
+
+## 14. Item 7 — the drain taper, built 2026-09-09
+
+§12.4 called item 7 superseded by the user's ruling and recommended telling Adil rather than
+building it. **The user chose to build it as well**, so both mechanisms are now live: a levelled
+player gets a bigger pool *and* cheaper upkeep.
+
+### 14.1 What was decided, and why not what Adil asked for
+
+He wrote *"the drain reduces up to SL 60/70 then becomes 0"*. Built literally that is the same
+defect §12.3 exists to prevent, one layer down — a drain that reaches zero is a stance that is free
+forever, and the crossing point moves the instant anybody edits the cap. The user chose the
+asymptotic shape with a non-zero floor, reusing `SoulLevelCurve.progress` so the cost of a release
+and the value of a level move together when `SL_CURVE_K` is retuned instead of drifting apart.
+
+Shikai floors at 0.15 SP/s (10% of base) from SL 70 — which happens to land exactly on Adil's stated
+threshold — and Bankai at 2.5 SP/s (50% of base) from SL 76. Numbers and uptimes are in
+`BALANCE.md` §C.1.
+
+The third reading of item 7 — *"only drains when a move is used"* — was **not** built. That is a new
+cost mechanism, not a taper: every Shikai move across eleven kits would need a price. It was offered
+and declined as out of scope for this pass.
+
+### 14.2 Twenty dead overrides deleted
+
+`TransformAbility.drainPerSecond()` had eleven kits implementing it twice each — twenty overrides in
+total, every one returning the flat constant — and **not one caller**. Its javadoc said *"Read by
+the ticker"*; the ticker reads `SpiritualData.drainPerSecond()` instead. The interface method and
+all twenty overrides are gone. They were a trap: the next person to tune a kit's drain would have
+edited one and watched nothing happen.
+
+`Hover.drainPerSecond` and `SpiritualFlex.drainPerSecond` are unrelated statics with real callers
+and were left alone.
+
+### 14.3 Still unverified in-world
+
+62 unit tests green, compiles clean. Not verified:
+
+1. **Does a high-SL Shikai actually hold?** `/bleach sl set 65`, enter Shikai, watch the bar. It
+   should fall visibly but slowly — 71 minutes to empty, so about 10 SP a minute.
+2. **Does `/bleach guide` print the tapered rate?** It now reads the player's level rather than the
+   constant, so it should say 0.17/s at SL 65 and 1.5/s at SL 1.
+3. **Is Shunsui's Act 3 still payable at low SL and not trivial at high SL?**
+4. **Does the floor hold at the cap?** `/bleach sl set 100` — Bankai must still end, in about 7
+   minutes and 20 seconds from a full pool.
+
+---
+
+## 15. Item 3 — the two halves that were real, built 2026-09-09
+
+§12.2 marked item 3 **blocked on a repro**. That was half right: "Shikai doesn't work" is still not
+actionable as written, but reading the code turned up two defects that are wrong on their own terms
+whatever Adil actually saw, and a third thing that is not a defect at all.
+
+### 15.1 What was wrong
+
+**A · Every failure path returned in silence.** `castRules` had three bare `return`s — cooldown,
+insufficient SP, no targets — and the only success cue was a note-block chime. From the caster's
+seat a failed cast and an ability that does not exist look identical. That alone is enough to
+produce the report. Each path now names itself on the action bar, and a success says
+`Rules set on N` — **a count, never which rules**, so §12.2's design decision survives intact.
+
+The cooldown is checked before the pool deliberately: a Shunsui who is both on cooldown and broke is
+told about the one that clears on its own.
+
+**C · `DONT_JUMP` was close to undetectable.** The old check was
+`!onGround() && deltaMovement.y > 0.4`. A vanilla jump starts at 0.42 and is near 0.33 one tick
+later, and a remote player's server-side velocity is reconstructed from movement packets rather than
+simulated — so the check needed to sample a one-tick window that may never be sampled at all. One
+of the three rules was effectively dead while the other two worked.
+
+Replaced with a ground→air edge: `wasOnGround && !onGround && deltaY > 0`. Stepping off a ledge is
+excluded by the *sign* of the velocity rather than its size, so no threshold has to be guessed. This
+needs a previous tick, so `GROUND_BY_CASTER` runs parallel to `RULES_BY_CASTER` and is pruned by the
+same pass and cleared by the same lifecycle.
+
+### 15.2 What was not wrong — tell Adil this
+
+**B · A cast requires a swing that *misses*.** `LivingEntitySwingMixin` gates `castRules` behind
+`!MeleeHooks.didHitDirectlyRecently`, the same one-tick deferral Yamamoto's raven uses. **If he
+tested by swinging at the person he was testing on, it fired zero times.** This is working as
+designed and is the most likely single cause of the whole report. It needs telling him, not fixing.
+
+Also worth telling him: `DONT_ATTACK` only breaks when Shunsui's **back is turned**. Face-to-face
+testing would never trigger it. Combined with C, two of the three rules would have looked broken to
+anyone testing at close range in front of their target.
+
+### 15.3 What was declined
+
+The second half of item 3 — reveal each player's rule to the caster on look — was **declined by the
+user on 2026-09-09**. It reverses `KatenShikaiManager`'s documented decision that the rule is never
+revealed, only its consequence. That is a design change and remains available, but it is not a bug
+fix and should not be smuggled in as one.
+
+### 15.4 Still unverified in-world
+
+12 new unit tests, 74 green in total. The pure halves are covered; none of the below is.
+
+1. **Does a failed cast now say why?** Swing-and-miss on cooldown, then broke, then alone in a field.
+2. **Does a successful cast say `Rules set on N`, with N matching who is actually nearby?**
+3. **Does `DONT_JUMP` fire now?** It should break on the first jump, once, not twenty times.
+4. **Does walking off a ledge still not count as a jump?**
+5. **Does a re-cast onto a target already being tracked break on their next jump** rather than
+   missing it because the ground map was stale?
+

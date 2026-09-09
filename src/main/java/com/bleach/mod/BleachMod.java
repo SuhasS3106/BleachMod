@@ -13,6 +13,7 @@ import com.bleach.mod.particle.BleachParticles;
 import com.bleach.mod.item.SpiritWeapon;
 import com.bleach.mod.network.BleachNetworking;
 import com.bleach.mod.progression.SoulLevel;
+import com.bleach.mod.progression.SoulLevelCurve;
 import com.bleach.mod.progression.SpxTable;
 import com.bleach.mod.tuning.BleachTuning;
 
@@ -32,6 +33,7 @@ public class BleachMod implements ModInitializer {
 		// Tuning first, always. Everything downstream reads it, and the reload hooks must be
 		// registered before the initial load so they fire for it too.
 		BleachTuning.onReload(SpxTable::rebuild);
+		BleachTuning.onReload(SoulLevelCurve::rebuild);
 		BleachTuning.load();
 
 		// After tuning (nothing here reads it yet, but every registration call in this method does)

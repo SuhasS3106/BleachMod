@@ -14,6 +14,7 @@ import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.attachment.SpiritualData;
 import com.bleach.mod.race.Race;
 import com.bleach.mod.race.Races;
+import com.bleach.mod.progression.SoulLevelCurve;
 import com.bleach.mod.tuning.BleachTuning;
 import org.jetbrains.annotations.Nullable;
 
@@ -271,9 +272,11 @@ public final class BleachGuide {
 				Component.empty(),
 				head("Shikai and Bankai"),
 				bullet("Shikai", "needs " + pct(SpiritualData.gatePercent(SpiritualData.STATE_SHIKAI, data.soulLevel))
-						+ " of your pool to enter, then drains " + fmt(BleachTuning.DRAIN_SHIKAI) + "/s"),
+						+ " of your pool to enter, then drains "
+						+ fmt(SoulLevelCurve.shikaiDrain(data.soulLevel)) + "/s at your level"),
 				bullet("Bankai", "needs " + pct(SpiritualData.gatePercent(SpiritualData.STATE_BANKAI, data.soulLevel))
-						+ ", refills you to full on entry, then drains " + fmt(BleachTuning.DRAIN_BANKAI) + "/s"),
+						+ ", refills you to full on entry, then drains "
+						+ fmt(SoulLevelCurve.bankaiDrain(data.soulLevel)) + "/s at your level"),
 				plain("  That refill is a loan. When you drop out of Bankai anything above what you"),
 				plain("  entered with is taken straight back — you cannot bank it."),
 				Component.empty(),

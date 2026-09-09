@@ -8,7 +8,6 @@ import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.attachment.SpiritualData;
 import com.bleach.mod.damage.BleachDamage;
 import com.bleach.mod.item.SpiritWeapon;
-import com.bleach.mod.tuning.BleachTuning;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
@@ -19,8 +18,11 @@ import net.minecraft.world.entity.Mob;
  * The four Soul Level damage multipliers · PRD §2.4–2.5, applied in the order below.
  *
  * <p>Applied <b>after</b> vanilla armour and resistance, never before. Folding a Soul Level bonus
- * in ahead of armour means armour eats it, and the documented "+38% bleach damage at SL 20" becomes
- * whatever is left after a diamond chestplate.
+ * in ahead of armour means armour eats it, and the documented bleach damage bonus becomes whatever
+ * is left after a diamond chestplate.
+ *
+ * <p>The Soul Level halves of this live in {@link SoulLevelCurve} — they are asymptotic rather than
+ * linear, and the reason is worth reading before touching any of the §E numbers.
  */
 public final class DamageScaling {
 	private DamageScaling() {
@@ -41,20 +43,20 @@ public final class DamageScaling {
 		boolean bleach = BleachDamage.is(source);
 
 		// Sui-Feng's two-strike kill and her Bankai's inner radius are mechanics, not damage. A
-		// capped player shrugging them off with −42% deletes the character · PRD §2.4.
+		// capped player shrugging them off with the §E reduction deletes the character · PRD §2.4.
 		boolean scalable = !BleachDamage.isMechanic(source);
 
 		if (victim instanceof ServerPlayer victimPlayer && scalable) {
 			int level = BleachAttachments.get(victimPlayer).soulLevel;
 
-			// 1. General defense. Applies to everything, drawn or sheathed — mobs get stronger as the
-			// world advances, so general defense has to advance with it.
-			damage *= reduction(BleachTuning.SL_GENERAL_DMG_TAKEN_PER_LEVEL, level);
-
-			// 2. Bleach resistance, on top of general. The two combine to −42% at SL 20.
-			if (bleach) {
-				damage *= reduction(BleachTuning.SL_BLEACH_DMG_TAKEN_PER_LEVEL, level);
-			}
+			// 1–2. General defense, plus bleach resistance on top of it when the source is bleach.
+			// General applies to everything, drawn or sheathed — mobs get stronger as the world
+			// advances, so general defense has to advance with it.
+			//
+			// Both come back as one number from SoulLevelCurve because the 50% hard floor is on the
+			// product, not on either half: two multipliers each honestly above the floor can still
+			// multiply out below it.
+			damage *= SoulLevelCurve.damageTaken(level, bleach);
 
 			// 2b. Blut Vene · design §5.4. 1.21.1 has no damage-taken attribute, so it lands here with
 			// the Soul Level reductions rather than being scattered. It is deliberately not gated on
@@ -76,7 +78,7 @@ public final class DamageScaling {
 			if (attacker != null && SpiritWeapon.isDrawn(attacker)) {
 				SpiritualData attackerData = BleachAttachments.get(attacker);
 				int level = attackerData.soulLevel;
-				damage *= 1.0 + BleachTuning.SL_BLEACH_DMG_DEALT_PER_LEVEL * (level - 1);
+				damage *= SoulLevelCurve.damageDealt(level);
 
 				// Transformation bleach melee bonus (Ichigo Shikai +25%, Bankai +40%, Yamamoto Bankai +30%).
 				// Applies to direct melee strikes (source.getDirectEntity() == attacker), not projectiles.
@@ -100,16 +102,5 @@ public final class DamageScaling {
 		}
 
 		return (float) damage;
-	}
-
-	/**
-	 * A per-level reduction, floored at zero.
-	 *
-	 * <p>The floor is not reachable at any shipped tuning — {@code SL_GENERAL_DMG_TAKEN_PER_LEVEL}
-	 * would have to exceed 0.0526 to zero out at SL 20 — but the config file can hold any number
-	 * somebody types into it, and a negative multiplier turns damage into healing.
-	 */
-	private static double reduction(double perLevel, int soulLevel) {
-		return Math.max(0.0, 1.0 - perLevel * (soulLevel - 1));
 	}
 }
