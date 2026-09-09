@@ -1009,3 +1009,49 @@ fix and should not be smuggled in as one.
 5. **Does a re-cast onto a target already being tracked break on their next jump** rather than
    missing it because the ground map was stale?
 
+---
+
+## 16. M — The Miracle is **on hold**, 2026-09-09
+
+M is next in the build order (§9 of the design spec: T, D, **M**, Z) and nothing technical blocks
+it. It is parked anyway, by the user's decision: **changes are coming to the Shinigami side first,
+and Suhas is doing that work.** M gets picked up after those land.
+
+Do not start M by default because the build order says so. The order is still right; the timing is
+not.
+
+### 16.1 Why the order still holds when M resumes
+
+Z stays last regardless. §10.1.2 of the design spec is an open question about The Zombie that was
+never answered, and the build order gates Z on it explicitly. M carries no such gate — only this
+scheduling one.
+
+Nothing for M exists yet: no `M_` constants, no transform class, no `BALANCE.md` §P section. The
+design sketch in the spec's §8 is the whole of it, which is where T and D each started.
+
+One decision is already written down and should not be re-litigated mid-build: **the miracle does
+not save you from Suì-Fēng's Nigeki Kessatsu or from D's dose kill.** Those are mechanics, not
+damage, for the same reason Soul Level reductions do not stop Suì-Fēng. Letting a Quincy shrug off
+two execute mechanics would delete both characters.
+
+The user also asked whether M's Vollständig should make you a giant. Not designed, but verified
+buildable: `Attributes.SCALE` exists in 1.21.1 (confirmed against the merged jar in the loom cache),
+so it is an `AttributeModifier` on the same remove-then-add pattern `SoulLevel.applyHealth` uses —
+no rendering work, no mixins, and vanilla-only, which the mod's own description requires. Three
+things to settle when M is designed rather than during: whether the size is flat on entry or grows
+with stacks; that a bigger hitbox is easier to hit and is a real cost to price rather than a bug;
+and that scale much above ~1.5 risks suffocation and getting stuck indoors, so it wants testing in a
+corridor and not only in a field.
+
+### 16.2 Two things waiting on Suhas
+
+Both predate this hold and both are his to answer.
+
+1. **The picker's per-race cap is 9, and Shinigami is at exactly 9.** `ZanpakutoSelectMenu` has
+   `ROW = 9` and the fill loop stops there. A tenth Shinigami logs a warning rather than vanishing
+   silently — that much was fixed — but it still will not appear in the menu. **If the Shinigami
+   changes add a character rather than retune existing ones, this blocks them on day one.** Quincy
+   is unaffected at 2 of 9.
+2. **§9.2 — projectile kills pay zero SPX.** Open since the design spec was written and explicitly
+   needs his sign-off, because it changes the economy for three of his characters.
+
