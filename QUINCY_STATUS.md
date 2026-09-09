@@ -559,17 +559,44 @@ ready. The subtraction is now widened to `long`. Worth recording because **nothi
 have caught it**: the symptom is a power that simply never fires, which reads as "not implemented
 yet" rather than as a bug.
 
-### 9.5 Still unverified in-world
+### 9.5 In-world verification — **PvP-tested 2026-09-09, kept**
 
-Everything in this section is compile-and-unit-test verified only. Specifically untested:
+Two players, live server, `bleach_mod 2.0.0`. User's verdict: *"schrift T is gud for pvp, we keep
+it"*. The kit is **kept as designed** — no retune requested.
 
-1. **Does the bolt actually damage the struck target?** The i-frame reset above is the single
-   riskiest line in the Schrift and no unit test can reach it. Shoot a high-health mob in tier 1 and
-   confirm it takes ~13, not ~7.
-2. **Does chaining pick sane targets?** Vollständig into a group; confirm 3 links, nearest first.
-3. **Bow-bash inertness** — enter tier 1, club a mob with the bow, confirm no bolt.
-4. **The cooldown reads as a rhythm**, not as a broken power. 3s in tier 1 may be too slow to feel.
-5. **§7.2 items 7 and 8** (bow and arrow) are finally reachable and have never been run.
+| # | Check | Result |
+|---|---|---|
+| 1 | **Does the bolt damage the struck target?** | ✅ confirmed — see the arithmetic below |
+| 2 | Does chaining pick sane targets? | ⚠️ **not testable in a duel** — see §9.6 |
+| 3 | Bow-bash inertness | ⬜ still open |
+| 4 | Does the cooldown read as a rhythm? | ✅ confirmed — the 3s/1s pacing is what "good for PvP" is describing |
+| 5 | §7.2 items 7 and 8 (bow and arrow) | ⬜ still open |
+
+**Item 1, from the numbers rather than from a claim.** Observed 5 hearts in Schrift and 7.5 in
+Vollständig, against raw values of 13 (`BOW_ARROW_DAMAGE` 7 + `THUNDER_BOLT_DAMAGE` 6) and 18.85
+(the same ×1.45 for `VOLL_DMG`). Had the i-frame reset failed, the arrow would have landed alone at
+about 2.75 hearts — so the bolt is provably firing, and §9.2's riskiest decision holds.
+
+**A second thing falls out of it for free.** Both tiers land at a consistent ~78% of raw, which is
+what a defender's Soul Level damage-taken reduction looks like. That is the §E asymptotic curve from
+Adil's item 6 working in live PvP, which nothing had confirmed until this session. It is indirect
+evidence rather than a measurement — the exact figure depends on both players' Soul Levels, which
+were not recorded — but the shape is right and both tiers agree.
+
+### 9.6 Chaining cannot be tested in a duel
+
+*"Can't really make out 3 lightning strikes."* That is correct behaviour, not a defect.
+`chainTargets` excludes both the shooter and the primary target, so a 1v1 with no third body inside
+`THUNDER_CHAIN_RADIUS` (5 blocks) of the person you hit has **nothing to chain to** and correctly
+produces zero links.
+
+Testing it needs a cluster: Vollständig into three or more mobs standing within 5 blocks of each
+other, then confirm three links, nearest first, at 3.0 / 1.5 / 0.75 falloff. Until someone does
+that, chain selection and the falloff ordering remain unverified — the unit tests cover
+`chainDamage`'s arithmetic but nothing reaches the entity search.
+
+Worth knowing before that test: the bolts are `setVisualOnly(true)`, so each link gets a real
+vanilla flash and thunderclap. Three links should be unmistakable when there is anything to hit.
 
 ---
 
