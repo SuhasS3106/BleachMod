@@ -34,6 +34,15 @@ public final class HeiligBogenModels {
 
 	public static void register() {
 		for (HeiligBogenItem bow : BleachItems.heiligBogen()) {
+			// The same released predicate the blades use. Only Hoffnung's model reads it today —
+			// Gerard is a sword outside Vollstaendig and a bow inside it, and the model has to say
+			// so. Registering it for every bow costs nothing and keeps the two families symmetric.
+			FabricModelPredicateProviderRegistry.register(bow,
+					com.bleach.mod.BleachMod.id("released"),
+					(stack, level, entity, seed) ->
+							stack.getOrDefault(com.bleach.mod.item.BleachComponents.RELEASED, 0)
+									/ (float) SpiritualData.STATE_BANKAI);
+
 			FabricModelPredicateProviderRegistry.register(bow,
 					ResourceLocation.withDefaultNamespace("pull"),
 					(stack, level, entity, seed) -> {

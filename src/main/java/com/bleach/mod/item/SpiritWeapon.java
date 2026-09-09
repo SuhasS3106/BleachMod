@@ -78,7 +78,14 @@ public final class SpiritWeapon {
 	 * will simply never be called while the drawn weapon is a bow.
 	 */
 	public static boolean isMeleeDrawn(Player player) {
-		return player.getMainHandItem().getItem() instanceof ZanpakutoItem;
+		Item held = player.getMainHandItem().getItem();
+		if (held instanceof ZanpakutoItem) {
+			return true;
+		}
+		// Hoffnung is the one weapon that is a blade some of the time. Outside Vollstaendig its
+		// swing IS Gerard's offence, so excluding it the way an ordinary bow is excluded would
+		// silence the melee hook for a kit built entirely around melee.
+		return held instanceof HoffnungItem hoffnung && !HeiligBogenItem.isDrawableBow(player);
 	}
 
 	/** A fresh weapon for the given kit, or empty if that kit has no registered weapon. */

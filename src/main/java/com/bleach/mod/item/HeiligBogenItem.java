@@ -43,14 +43,35 @@ public class HeiligBogenItem extends Item {
 	private final ResourceLocation kitId;
 
 	public HeiligBogenItem(ResourceLocation kitId) {
-		super(new Properties()
+		this(kitId, new Properties()
 				.stacksTo(1)
 				.rarity(Rarity.EPIC)
 				.fireResistant()
 				.component(DataComponents.UNBREAKABLE, new Unbreakable(true))
 				.attributes(SwordItem.createAttributes(Tiers.IRON,
 						BleachTuning.BOW_MELEE_DAMAGE, (float) BleachTuning.BOW_MELEE_SPEED)));
+	}
+
+	/**
+	 * For a subclass that needs different attributes.
+	 *
+	 * <p>Melee damage is baked into an item at construction and cannot vary by state, so a weapon
+	 * that is a sword some of the time has to be built as one — see {@code HoffnungItem}.
+	 */
+	protected HeiligBogenItem(ResourceLocation kitId, Properties properties) {
+		super(properties);
 		this.kitId = kitId;
+	}
+
+	/**
+	 * Whether this weapon is currently a bow in this holder's hands.
+	 *
+	 * <p>Always, for an ordinary Heilig Bogen. {@code HoffnungItem} is a sword until Vollstaendig,
+	 * and every bow behaviour below asks this rather than assuming — a weapon that is not a bow must
+	 * not enter a draw it cannot release.
+	 */
+	protected boolean isBowMode(LivingEntity holder) {
+		return true;
 	}
 
 	/** Which kit this bow belongs to. Matches {@link com.bleach.mod.ability.Kit#id()}. */
@@ -63,6 +84,12 @@ public class HeiligBogenItem extends Item {
 		return UseAnim.BOW;
 	}
 
+	/** True when the weapon in this player's hand is one of ours and currently drawable as a bow. */
+	public static boolean isDrawableBow(Player player) {
+		ItemStack held = player.getMainHandItem();
+		return held.getItem() instanceof HeiligBogenItem bogen && bogen.isBowMode(player);
+	}
+
 	@Override
 	public int getUseDuration(ItemStack stack, LivingEntity entity) {
 		return 72000;   // vanilla's "hold indefinitely"; the draw curve caps the useful part
@@ -70,6 +97,11 @@ public class HeiligBogenItem extends Item {
 
 	@Override
 	public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+		if (!isBowMode(player)) {
+			// A sword right now. Refusing the draw rather than starting one keeps the right-click
+			// free for whatever a melee-mode weapon wants it for later.
+			return InteractionResultHolder.pass(player.getItemInHand(hand));
+		}
 		player.startUsingItem(hand);
 		return InteractionResultHolder.consume(player.getItemInHand(hand));
 	}
@@ -84,6 +116,9 @@ public class HeiligBogenItem extends Item {
 	@Override
 	public void releaseUsing(ItemStack stack, Level level, LivingEntity entity, int timeLeft) {
 		if (level.isClientSide || !(entity instanceof ServerPlayer player)) {
+			return;
+		}
+		if (!isBowMode(player)) {
 			return;
 		}
 

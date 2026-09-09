@@ -52,7 +52,7 @@ public final class BleachItems {
 
 		for (ResourceLocation kitId : BleachKits.IDS) {
 			Race race = BleachKits.raceOf(kitId);
-			Item weapon = RaceWeapons.factoryFor(race).apply(kitId);
+			Item weapon = RaceWeapons.factoryFor(race, kitId).apply(kitId);
 			WEAPONS.put(kitId, weapon);
 			register(race.weaponPrefix() + "_" + kitId.getPath(), weapon);
 		}
