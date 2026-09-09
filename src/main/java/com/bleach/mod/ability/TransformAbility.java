@@ -61,6 +61,23 @@ public interface TransformAbility extends Ability {
 	}
 
 	/**
+	 * Victim-side hook: this transformed player has just <em>taken</em> damage.
+	 *
+	 * <p>Every other hook on this interface fires when the transformed player deals something.
+	 * Schrift M is the first ability whose whole tier-1 identity is what happens to it, so this is
+	 * the mirror the interface was missing. Defaulted empty, so no existing kit changes.
+	 *
+	 * <p>{@code attacker} is never null — the dispatch only fires for damage from a living source.
+	 * Fall damage, lava, drowning, starvation and cactus deliberately do not reach here: they are
+	 * all things a player can inflict on themselves in private, and an ability that rewards taking
+	 * damage must not be farmable outside a fight.
+	 *
+	 * @param damage the damage actually taken, after armour and every reduction
+	 */
+	default void onDamageTaken(ServerPlayer player, LivingEntity attacker, float damage) {
+	}
+
+	/**
 	 * Offered a bow release before the arrow is built, so a transformation can spend the shot on
 	 * something else entirely. Return {@code true} to say the shot is handled — the bow then fires no
 	 * arrow and charges no SP of its own, leaving the cost to the implementation.

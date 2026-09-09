@@ -1011,14 +1011,15 @@ fix and should not be smuggled in as one.
 
 ---
 
-## 16. M — The Miracle is **on hold**, 2026-09-09
+## 16. M — The Miracle · hold lifted same day, **built 2026-09-09** · §18
 
-M is next in the build order (§9 of the design spec: T, D, **M**, Z) and nothing technical blocks
-it. It is parked anyway, by the user's decision: **changes are coming to the Shinigami side first,
-and Suhas is doing that work.** M gets picked up after those land.
+**Superseded within the day.** The hold below was recorded and then lifted by the user in the same
+session; M was built. §18 is what shipped. The section is kept because §16.2's two items are still
+waiting on Suhas and did not move.
 
-Do not start M by default because the build order says so. The order is still right; the timing is
-not.
+~~M is parked by the user's decision: changes are coming to the Shinigami side first, and Suhas is
+doing that work.~~ **Lifted 2026-09-09.** Suhas's Shinigami changes may now land on top of M rather
+than before it — worth telling him, since that is the opposite order from what §16 originally said.
 
 ### 16.1 Why the order still holds when M resumes
 
@@ -1112,4 +1113,61 @@ builds M should read that rule as covering three mechanics, not two.
 3. **Is 25% recoil enough of a cost**, or does the pool cost alone already carry it?
 4. **Does the crater still behave** at the new damage? Nothing touched it, but it runs on the same
    detonation.
+
+---
+
+## 18. M — The Miracle, built 2026-09-09
+
+Gerard Valkyrie (`bleach_mod:miracle`), the third Quincy. Numbers in `BALANCE.md` §P.7.
+
+### 18.1 The three decisions taken before any code
+
+| Decision | Why | Cost if wrong |
+|---|---|---|
+| **Only a living attacker feeds stacks** | *User's call.* "Damage taken" read literally means fall damage, lava, drowning and cactus build the miracle — all self-inflictable in private before a fight. Same class of defect as a drain that reaches zero: not wrong arithmetic, but a rule whose obvious reading is farmable | M builds nothing from environmental hazards, which is slightly less faithful to a character who survives everything |
+| **The save is once per Vollständig, not re-earnable** | *User's call.* Rebuilding to the gate inside one transformation would mean several saves in a long fight against a bruiser who gains stacks by being hit. The flag clears only on revert, which costs the full gate and pool | Less faithful to Gerard, who genuinely does not stay down. One boolean to flip if it should be |
+| **Size grows with stacks rather than flat on entry** | *User's call.* Anyone across the arena can read how dangerous Gerard has become without a HUD, and the bonus max HP already arrives as empty hearts — a body that visibly swells as it absorbs punishment says the same thing twice | A modifier recompute whenever stacks change, which `setStacks` centralises anyway |
+
+### 18.2 One new hook on shared code, and why it was unavoidable
+
+**Every hook on `TransformAbility` was attacker-side** — `onMeleeHit`, `onProjectileHit`,
+`onBowRelease` all fire when the transformed player *deals* something. M is the first ability whose
+whole tier-1 identity is what happens *to* it, so `onDamageTaken` is the mirror the interface was
+missing.
+
+It is a `default` no-op, so **no existing kit changed and nothing of Suhas's or Adil's broke.**
+Dispatched from `MeleeHooks` in a victim-side branch that shares none of the attacker path's gating:
+that path is about what a drawn zanpakutō does on contact, this one is about what happens to
+whoever was standing there.
+
+### 18.3 Two things that did not go where the design said
+
+- **The melee bonus is not on `meleeDamageBonus()`.** That hook takes no player, so it cannot answer
+  a per-player stack count — found only when wiring it. It rides a vanilla `ATTACK_DAMAGE` modifier
+  with `ADD_MULTIPLIED_TOTAL` instead, which gives the same fraction and needs no shared code at all.
+- **The damage reduction is in `DamageScaling`**, next to Blut and for the identical stated reason:
+  1.21.1 has no damage-taken attribute, so it lands with the Soul Level reductions rather than being
+  scattered.
+
+Three vanilla attributes carry the stacks — `MAX_HEALTH`, `SCALE`, `ATTACK_DAMAGE` — all
+removed-then-added on the `SoulLevel.applyHealth` pattern, all driven from `setStacks` so they cannot
+drift from the count.
+
+### 18.4 Still unverified in-world
+
+96 tests green, thirteen of them new, covering the stack arithmetic, the ceiling, the scale
+interpolation and the save gate. Everything below is what no unit test reaches.
+
+1. **Do stacks actually build from being hit, and only from being hit?** Take fall damage and lava
+   and confirm **nothing** happens. This is the anti-farm guard and the whole of §18.1's first row.
+2. **Does Gerard visibly grow?** And critically — **can a capped Gerard get through a door?**
+   `M_SCALE_MAX = 1.4` is about 2.5 blocks, which does not clear a two-high doorway. Test in a
+   corridor, not in a field. Most likely number to need changing.
+3. **Does the death save fire once and only once?** Die past the gate, survive at 1 HP, then die
+   again inside the same Vollständig and confirm you actually die.
+4. **Does it correctly *not* save you** from Suì-Fēng's Nigeki Kessatsu or her Bankai core?
+5. **Do the empty hearts read as headroom** rather than looking like a heal that failed?
+6. **Does the entry burst shove anyone**, and does the heal scale with what you walked in carrying?
+7. **Do stacks and both attribute modifiers clear** on revert, death, logout and dimension change?
+   A leaked `SCALE` modifier is a permanently giant player.
 

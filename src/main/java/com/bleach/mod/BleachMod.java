@@ -59,6 +59,7 @@ public class BleachMod implements ModInitializer {
 		AbilityCooldowns.register();
 		AbilityRegistry.registerDefaults();
 		MeleeHooks.register();
+		com.bleach.mod.ability.kits.MiracleTransform.register();
 		SpiritWeapon.register();
 		SoulLevel.register();
 		ModToggle.register();

@@ -767,6 +767,72 @@ with the server about who is caged.
 
 ---
 
+### P.7 Schrift M · The Miracle — *Gerard Valkyrie*
+
+The only *stronger as you lose* identity in the mod, and the roster's only bruiser: a Quincy who
+wants to be **in** the fight, on a race built for range.
+
+| Symbol | Default | Meaning |
+|---|---|---|
+| `M_STACK_PER_DAMAGE` | 1.0 | stacks per point of damage taken **from a living attacker only** |
+| `M_STACK_MAX` | 20 | ceiling — about two thirds of an SL 20 health bar to reach |
+| `M_DMG_PER_STACK` | 0.025 | melee damage, **+50% at cap** |
+| `M_HP_PER_STACK` | 0.5 | max health, **+10 HP at cap**, as empty hearts |
+| `M_STACK_GRACE_TICKS` | 120 | 6s untouched before decay begins |
+| `M_STACK_DECAY_INTERVAL` | 20 | then one stack per second |
+| `M_VOLL_STACK_MULT` | 2.0 | stacks build twice as fast in Vollständig |
+| `M_DMG_REDUCTION_PER_STACK` | 0.01 | 20% at cap, Vollständig only |
+| `M_BURST_HEAL_PER_STACK` | 0.5 | 10 HP on entry at cap |
+| `M_BURST_RADIUS` / `M_BURST_KB_PER_STACK` | 8.0 / 0.08 | entry shockwave, 1.6 knockback at cap |
+| `M_MIRACLE_MIN_STACKS` | 10 | gate on the death save |
+| `M_MIRACLE_EXERTION` | 90.0 | seconds dumped when it fires · Suì-Fēng's kill costs 60 |
+| `M_SCALE_MAX` | 1.4 | size at full stacks, interpolated from 1.0 |
+
+#### P.7.1 Why only a living attacker feeds stacks
+
+*"Damage taken"* read literally means fall damage, lava, drowning, starvation and cactus all build
+the miracle — every one of them self-inflictable, in private, before a fight. That is the same class
+of defect as a drain that reaches zero: not wrong arithmetic, but a rule whose obvious reading is
+farmable. Stacks come only from a source with a living entity behind it, so the miracle builds in a
+fight or not at all.
+
+#### P.7.2 The three floors
+
+- **Stacks are capped.** Without a ceiling, being hit is unboundedly good.
+- **Reduction compounds, and is bounded.** M's 20% multiplies with the Soul Level reduction rather
+  than replacing it, so the lowest damage-taken figure anyone in the mod can reach is
+  `SL_DMG_TAKEN_FLOOR × 0.80 = 0.40`. Deliberate, and the reason `damageReduction` is held under
+  1.0 whatever the config says — a reduction that could reach 1.0 is an invulnerable bruiser, which
+  is the §E mistake wearing a different hat.
+- **The save is once per Vollständig and not re-earnable.** Spending it does not let you rebuild to
+  another inside the same transformation; the flag clears only on revert, which costs the full gate
+  and pool. The person fighting Gerard knows a second one is not coming.
+
+#### P.7.3 Parity — what the miracle does not save you from
+
+**Anything in the `SPIRIT_MECHANIC` tag.** One check, covering Suì-Fēng's Nigeki Kessatsu and, since
+§J.3.1, her Bankai's core. The design spec's §8.2 also named "D's dose kill", but §10.2 records that
+D was deliberately built with no outright kill, so there is nothing there to exclude.
+
+#### P.7.4 Implementation notes worth not rediscovering
+
+- **Three vanilla attributes carry the stacks** — `MAX_HEALTH`, `SCALE` and `ATTACK_DAMAGE` — each
+  removed-then-added on every change, the way `SoulLevel.applyHealth` is. `setStacks` is the single
+  place the count changes, so the modifiers cannot drift from it.
+- **The melee bonus does not use `TransformAbility.meleeDamageBonus()`.** That hook takes no player
+  and so cannot answer a per-player stack count. `ATTACK_DAMAGE` with `ADD_MULTIPLIED_TOTAL` gives
+  the fraction the design asked for and needs no shared code.
+- **`TransformAbility.onDamageTaken` is new.** Every other hook on that interface is attacker-side;
+  M is the first ability whose identity is what happens *to* it. Defaulted no-op, so no existing kit
+  changed. Dispatched from `MeleeHooks` alongside the attacker-side path.
+- **Bonus max HP is headroom, never a heal.** Empty hearts. The miracle is that you keep standing,
+  not that your wounds close.
+- **`M_SCALE_MAX = 1.4` puts a player at about 2.5 blocks**, which does not clear a standard two-high
+  doorway. Set dramatic on purpose; it is the number most likely to want changing after one session
+  in a corridor.
+
+---
+
 ## K. Networking and presentation
 
 | Symbol | Default | Meaning |

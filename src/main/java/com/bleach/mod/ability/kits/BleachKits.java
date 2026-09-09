@@ -44,6 +44,9 @@ public final class BleachKits {
 	/** Schrift D · the second Quincy. */
 	public static final ResourceLocation DEATHDEALING = BleachMod.id("deathdealing");
 
+	/** Schrift M, The Miracle. */
+	public static final ResourceLocation MIRACLE = BleachMod.id("miracle");
+
 	/**
 	 * Every kit id, in menu order. Read by {@code BleachItems} to mint one weapon per kit — a
 	 * zanpakutō or a Heilig Bogen, whichever {@code RaceWeapons} says the kit's race carries.
@@ -53,7 +56,7 @@ public final class BleachKits {
 	 */
 	public static final List<ResourceLocation> IDS = List.of(
 			ICHIGO, YAMAMOTO, SUIFENG, RUKIA, SHINJI, AIZEN, TOSEN, GIN, SHUNSUI,
-			THUNDERBOLT, DEATHDEALING);
+			THUNDERBOLT, DEATHDEALING, MIRACLE);
 
 	/**
 	 * Which race each kit belongs to. Read by {@code BleachItems} before any Kit object exists.
@@ -79,7 +82,8 @@ public final class BleachKits {
 			Map.entry(GIN, Races.SHINIGAMI),
 			Map.entry(SHUNSUI, Races.SHINIGAMI),
 			Map.entry(THUNDERBOLT, Races.QUINCY),
-			Map.entry(DEATHDEALING, Races.QUINCY));
+			Map.entry(DEATHDEALING, Races.QUINCY),
+			Map.entry(MIRACLE, Races.QUINCY));
 
 	/** Never null — an unlisted kit is treated as Shinigami, which is the pre-race behaviour. */
 	public static Race raceOf(ResourceLocation kitId) {
@@ -147,5 +151,10 @@ public final class BleachKits {
 				DeathdealingTransform.schrift(), DeathdealingTransform.vollstandig(),
 				BleachTuning.KIT_DEATHDEALING_FS_RANGE_MULT, BleachTuning.KIT_DEATHDEALING_FS_COOLDOWN_MULT,
 				BleachTuning.KIT_DEATHDEALING_PARTICLE_COLOR, Races.QUINCY));
+
+		AbilityRegistry.registerKit(new Kit(MIRACLE, "Gerard Valkyrie",
+				MiracleTransform.schrift(), MiracleTransform.vollstandig(),
+				BleachTuning.KIT_MIRACLE_FS_RANGE_MULT, BleachTuning.KIT_MIRACLE_FS_COOLDOWN_MULT,
+				BleachTuning.KIT_MIRACLE_PARTICLE_COLOR, Races.QUINCY));
 	}
 }

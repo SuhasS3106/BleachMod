@@ -54,6 +54,8 @@ public final class MeleeHooks {
 			return;
 		}
 
+		dispatchDamageTaken(victim, source, damageTaken, blocked);
+
 		if (!(source.getEntity() instanceof ServerPlayer attacker) || source.getDirectEntity() != attacker) {
 			return;
 		}
@@ -85,6 +87,40 @@ public final class MeleeHooks {
 		TransformAbility active = AbilityDispatcher.activeTransform(data);
 		if (active != null) {
 			active.onMeleeHit(attacker, victim, damageTaken);
+		}
+	}
+
+	/**
+	 * The victim's own kit gets told it was hit.
+	 *
+	 * <p>Runs before the attacker-side dispatch below and shares none of its gating: that path is
+	 * about what a drawn zanpakutō does on contact, this one is about what happens to whoever was
+	 * standing there. Schrift M is the only consumer today.
+	 *
+	 * <p><b>Only a living attacker counts.</b> Fall damage, lava, drowning, starvation and cactus
+	 * are all self-inflictable in private, and M turns damage taken into power — counting them would
+	 * make the miracle farmable before a fight ever starts.
+	 */
+	private static void dispatchDamageTaken(LivingEntity victim, DamageSource source,
+			float damageTaken, boolean blocked) {
+		if (blocked || damageTaken <= 0.0f) {
+			return;
+		}
+		if (!(victim instanceof ServerPlayer hurtPlayer)) {
+			return;
+		}
+		if (!(source.getEntity() instanceof LivingEntity attacker) || attacker == victim) {
+			return;
+		}
+
+		SpiritualData victimData = BleachAttachments.get(hurtPlayer);
+		if (!victimData.isTransformed()) {
+			return;
+		}
+
+		TransformAbility hurtActive = AbilityDispatcher.activeTransform(victimData);
+		if (hurtActive != null) {
+			hurtActive.onDamageTaken(hurtPlayer, attacker, damageTaken);
 		}
 	}
 

@@ -6,6 +6,7 @@ import com.bleach.mod.ability.TransformAbility;
 import com.bleach.mod.ability.common.Blut;
 import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.attachment.SpiritualData;
+import com.bleach.mod.ability.kits.MiracleTransform;
 import com.bleach.mod.damage.BleachDamage;
 import com.bleach.mod.item.SpiritWeapon;
 
@@ -62,6 +63,12 @@ public final class DamageScaling {
 			// the Soul Level reductions rather than being scattered. It is deliberately not gated on
 			// `bleach`: hardened blood stops a skeleton's arrow as well as a zanpakutō.
 			damage *= Blut.damageTakenMultiplier(BleachAttachments.get(victimPlayer).blut);
+
+			// 2b-ii. Schrift M's stacks, for the same reason Blut is here rather than on an
+			// attribute. Vollstaendig only — the Schrift builds stacks and takes full damage for
+			// them. This compounds with the reduction above rather than replacing it, so the lowest
+			// damage-taken figure anyone can reach is SL_DMG_TAKEN_FLOOR x 0.80 = 0.40.
+			damage *= MiracleTransform.damageTakenMultiplier(victimPlayer);
 		}
 
 		// 2c. Schrift D's doses · design §P.6. A dosed target takes more from everything, from

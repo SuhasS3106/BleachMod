@@ -1073,6 +1073,67 @@ public final class BleachTuning {
 	/** Askin's purple, matching the dome. */
 	public static int KIT_DEATHDEALING_PARTICLE_COLOR = 0xA855F7;
 
+	// --- P.7 Quincy · Schrift M, The Miracle ------------------------------------------
+
+	/**
+	 * Stacks gained per point of damage taken — <b>only from a living attacker</b>.
+	 *
+	 * <p>Fall damage, lava, drowning, starvation and cactus feed nothing, deliberately. "Damage
+	 * taken" read literally is farmable in private before a fight, which is the same class of defect
+	 * as a drain that reaches zero. The miracle only builds in a real fight, which is where the
+	 * identity lives.
+	 */
+	public static double M_STACK_PER_DAMAGE = 1.0;
+	/** Stack ceiling. Roughly two thirds of a Soul Level 20 health bar to reach. */
+	public static int M_STACK_MAX = 20;
+	/** Melee damage dealt per stack — +50% at cap, through the existing meleeDamageBonus hook. */
+	public static double M_DMG_PER_STACK = 0.025;
+	/** Max health per stack — +10 HP at cap, arriving as <em>empty</em> hearts rather than a heal. */
+	public static double M_HP_PER_STACK = 0.5;
+	/** Ticks without damage before stacks begin to decay. */
+	public static int M_STACK_GRACE_TICKS = 120;
+	/** Once decay begins, one stack is lost every this many ticks. */
+	public static int M_STACK_DECAY_INTERVAL = 20;
+
+	/** Stack gain multiplier while in Vollständig. */
+	public static double M_VOLL_STACK_MULT = 2.0;
+	/**
+	 * Damage reduction per stack while in Vollständig — 20% at cap.
+	 *
+	 * <p>This compounds with the Soul Level reduction, whose own floor is
+	 * {@link #SL_DMG_TAKEN_FLOOR}. Worst case is {@code 0.50 × 0.80 = 0.40} — the lowest damage-taken
+	 * figure in the mod, bounded and deliberate rather than accidental.
+	 */
+	public static double M_DMG_REDUCTION_PER_STACK = 0.01;
+	/** Health restored per stack when Vollständig is entered — 10 HP at cap. */
+	public static double M_BURST_HEAL_PER_STACK = 0.5;
+	/** Radius of the entry shockwave, in blocks. */
+	public static double M_BURST_RADIUS = 8.0;
+	/** Knockback strength per stack applied by the entry shockwave. */
+	public static double M_BURST_KB_PER_STACK = 0.08;
+
+	/** Stacks required before the death save is available at all. */
+	public static int M_MIRACLE_MIN_STACKS = 10;
+	/** Seconds of exertion dumped when the death save fires. Sui-Fēng's Shikai kill costs 60. */
+	public static double M_MIRACLE_EXERTION = 90.0;
+
+	/**
+	 * Size at full stacks, interpolated from 1.0. Vanilla {@code Attributes.SCALE}, so no rendering
+	 * work and no dependency.
+	 *
+	 * <p>1.4 puts a player at about 2.5 blocks, which does <b>not</b> clear a standard two-high
+	 * doorway — a capped Gerard indoors risks suffocation. Set dramatic on purpose; this is the
+	 * number most likely to want changing after one session in a corridor.
+	 */
+	public static double M_SCALE_MAX = 1.4;
+
+	/** Flash Step (Hirenkyaku) range multiplier for Gerard Valkyrie. */
+	public static double KIT_MIRACLE_FS_RANGE_MULT = 1.0;
+	/** Flash Step (Hirenkyaku) cooldown multiplier for Gerard Valkyrie. */
+	public static double KIT_MIRACLE_FS_COOLDOWN_MULT = 1.0;
+	/** Gerard's gold. */
+	public static int KIT_MIRACLE_PARTICLE_COLOR = 0xFBBF24;
+
 	// --- P.5 Quincy · Schrift T, The Thunderbolt --------------------------------------
 
 	/** Bolt damage on the struck target, before Soul Level scaling. Stacks on the arrow's own. */
