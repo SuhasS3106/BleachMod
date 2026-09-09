@@ -604,19 +604,31 @@ arrow at a time.
 | **Doses are keyed by entity UUID, not held on the entity** | Same reason | Entries are dropped as they empty, so the map only ever holds recently-dosed targets |
 | **Decay uses the server tick, not the dosing player's** | A player dying, changing dimension or logging out mid-stack must not reset or freeze the clock on targets they already dosed | — |
 
-### 10.3 Still unverified in-world
+### 10.3 In-world verification — **four of five confirmed 2026-09-09**
 
-Compile-and-unit-test verified only. 42 JUnit tests green; the eight new ones cover the dose
-arithmetic and its config guards, which is all that is reachable without a server.
+**The first thing on this branch anyone has actually played.** Two players, live server, on
+`bleach_mod 2.0.0` — so this run also carries Adil's seven items and the drain taper, not just the
+Schrift D code as it landed on the 8th. User's verdict: *"deathdealing is a big success"*.
 
-1. **Does the dome actually damage and dose?** Pop tier 2 in a mob group; health should tick down
-   once a second and the purple shell should be visible.
-2. **Does it stay put when you walk away, and vanish when you revert?**
-3. **Do doses actually raise damage taken?** Dose a high-health mob, then hit it with something
-   *unrelated* — a vanilla sword — and confirm it takes more. That is the whole mechanic and it is
-   the one thing no unit test reaches.
-4. **Does the dome survive a relog?** It should not.
-5. **Do doses decay?** Dose a target, wait, confirm the damage bonus falls off.
+| # | Check | Result |
+|---|---|---|
+| 1 | Does the dome damage and dose? | ✅ confirmed |
+| 2 | Does it stay put when you walk away, and vanish on revert? | ✅ confirmed |
+| 3 | **Do doses raise damage taken from an unrelated source?** | ✅ confirmed — the core mechanic, and the one no unit test reaches |
+| 4 | Does the dome survive a relog? *(it should not)* | ⬜ **still open** |
+| 5 | Do doses decay untended? | ✅ confirmed |
+
+Item 3 is the one that mattered. Doses multiplying damage from *anything, from anyone* is the whole
+of the letter, it sits outside `DamageScaling`'s `ServerPlayer` block so mobs can carry it, and no
+unit test can reach it. It works.
+
+Only the relog teardown is left, and it is the unhappy path: pop a dome, log out, log back in, and
+confirm no orphaned poison field is left running with nothing holding a reference to it.
+
+Two things this run does **not** tell us. The other four §10.2 decisions were about feel rather than
+function and want more than one session to judge — in particular whether "no outright kill" leaves D
+feared enough to be worth picking. And nothing here exercised Schrift T, Shunsui, or the new drain
+rates, which remain on their own lists (§9.5, §13.5, §14.3, §15.4).
 
 ## 11. Vollständig presentation — reworked 2026-09-08
 
