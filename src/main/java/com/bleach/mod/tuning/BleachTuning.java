@@ -328,6 +328,23 @@ public final class BleachTuning {
 	/** Pressure particle scale. */
 	public static double FLEX_PARTICLE_SCALE = 0.6;
 
+	// --- H.3.1 Flex aura rendering ---------------------------------------------------
+
+	/** Render distance for flex aura, blocks. */
+	public static double FLEX_AURA_RENDER_DISTANCE = 64.0;
+	/** Period of flex aura pulse, ticks. */
+	public static double FLEX_AURA_PULSE_PERIOD = 20.0;
+	/** Life duration of flex aura ring, ticks. */
+	public static double FLEX_AURA_RING_LIFE = 1.0;
+	/** Alpha of flex aura ring, 0-1. */
+	public static double FLEX_AURA_RING_ALPHA = 0.8;
+	/** Width of flex aura ring, blocks. */
+	public static double FLEX_AURA_RING_WIDTH = 0.3;
+	/** Number of segments in flex aura ring. */
+	public static int FLEX_AURA_RING_SEGMENTS = 32;
+	/** Budget for flex aura rendering, particles per frame. */
+	public static int FLEX_AURA_BUDGET = 1000;
+
 	// --- H.1 Reiatsu tier thresholds -------------------------------------------------
 
 	/** Level gap at which Reiatsu amplifier 0 applies. */
