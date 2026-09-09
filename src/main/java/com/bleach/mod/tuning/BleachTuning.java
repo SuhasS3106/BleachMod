@@ -608,8 +608,15 @@ public final class BleachTuning {
 	public static double SUI_MISSILE_RANGE = 120.0;
 	/** Hitbox inflation when testing what the missile has struck, blocks. */
 	public static double SUI_MISSILE_HIT_RADIUS = 0.5;
-	/** Self damage as a fraction of <em>current</em> health, never lethal. */
-	public static double SUI_BANKAI_SELF_DMG_PCT = 0.50;
+	/**
+	 * Recoil on firing, as a fraction of the caster's <em>current</em> health. Never lethal.
+	 *
+	 * <p>Cut from 0.50 on 2026-09-09. The health recoil was never the real price — {@code data.sp}
+	 * goes to zero on launch, and climbing back to a 95% entry gate is what actually rations the
+	 * Bankai. Halving the caster on top was a second cost for the same shot, and it punished the
+	 * miss exactly as hard as the hit.
+	 */
+	public static double SUI_BANKAI_SELF_DMG_PCT = 0.25;
 	/** Spherical crater radius, blocks. */
 	public static double SUI_CRATER_RADIUS = 18.0;
 	/** Hard cap on blocks changed by one crater. Full r=18 sphere is ~24,400 blocks plus outer rim shell. */

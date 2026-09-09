@@ -1055,3 +1055,61 @@ Both predate this hold and both are his to answer.
 2. **§9.2 — projectile kills pay zero SPX.** Open since the design spec was written and explicitly
    needs his sign-off, because it changes the economy for three of his characters.
 
+---
+
+## 17. Suì-Fēng's Bankai — the core was never a mechanic, fixed 2026-09-09
+
+Reported in play as three things: *"does no player dmg"*, *"kinda mehh, doesn't really give the
+feel"*, and *"the cost, reduce it"*. The first two turned out to be one bug.
+
+### 17.1 The bug
+
+`BleachDamage`'s class note and PRD §2.4 both state that Suì-Fēng's two-strike kill **and her
+Bankai's inner radius** are mechanics rather than damage. Only the Shikai kill was built that way.
+`detonate` fired `SPIRIT_PRESSURE` for both rings, and that type sits in the `bleach` tag and in
+none of the four `bypasses_*` tags — so the core took the full vanilla mitigation pipeline: 60 raw
+became 40.8 after netherite armour, 14.7 after Protection IV, and about 11.5 after the Soul Level
+reduction. Five and a half hearts against a player carrying 30+ HP, while an unarmoured mob standing
+beside them took the whole 60.
+
+Everyone is in Protection IV netherite — that was the entire premise of Adil's item 6 — so the
+Bankai was doing roughly a fifth of its damage to the only targets it is ever aimed at. It was not
+"mehh" for want of presentation. It was doing five hearts.
+
+**This is drift from a written decision, not a tuning miss**, which is why it survived a design
+review: the intent was recorded in a javadoc and in the PRD, and neither is a place the
+implementation gets checked against.
+
+### 17.2 What changed
+
+- The **core fires `SPIRIT_MECHANIC_KILL`**, bypassing armour, enchantments and resistance. The
+  **falloff keeps `SPIRIT_PRESSURE`** and stays mitigable and Soul Level scaled. The 12-block core
+  is the thing you were supposed to not be standing in; the outer ring is a shove, not a sentence.
+- **`SUI_BANKAI_SELF_DMG_PCT` 0.50 → 0.25.** The health recoil was never the real price — `data.sp`
+  goes to zero on launch and the climb back to a 95% gate is what rations the shot. Halving the
+  caster on top charged twice for one shot and punished a miss exactly as hard as a hit.
+- **No presentation work.** The user confirmed the feel complaint was the damage, so the 3s windup,
+  the telegraph ring and the detonation particles are untouched.
+
+The blast's two decisions are now pure functions — `isCoreHit` and `blastDamage` — with nine tests.
+`blastDamage` also picked up a guard the inline version lacked: equal lethal and falloff radii used
+to divide by zero inside the interpolation.
+
+### 17.3 Parity, stated now so it is not argued about later
+
+The core is now in the same class as Nigeki Kessatsu. **M — The Miracle must not save you from it**,
+exactly as the design spec's §8.2 already rules for the Shikai kill and D's dose kill. Whoever
+builds M should read that rule as covering three mechanics, not two.
+
+### 17.4 Still unverified in-world
+
+83 tests green. The arithmetic and the ring split are covered; none of the below is.
+
+1. **Does the core actually kill an armoured player now?** Stand a Protection IV netherite player
+   inside 12 blocks. This is the whole fix.
+2. **Does the falloff still spare them?** At 20+ blocks it should hurt and not kill — that ring was
+   never broken and must not have become a second core.
+3. **Is 25% recoil enough of a cost**, or does the pool cost alone already carry it?
+4. **Does the crater still behave** at the new damage? Nothing touched it, but it runs on the same
+   detonation.
+

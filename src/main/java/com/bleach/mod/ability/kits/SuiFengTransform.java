@@ -32,6 +32,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
@@ -366,6 +367,43 @@ public final class SuiFengTransform {
 
 	// --- Bankai: Jakuhō Raikōben ------------------------------------------------------
 
+	/**
+	 * Whether a target at this distance is in the core rather than the falloff.
+	 *
+	 * <p>This is the ring that decides which damage <em>type</em> the target takes, and the two are
+	 * not interchangeable. The core is a <b>mechanic</b> — {@link BleachDamage#SPIRIT_MECHANIC_KILL},
+	 * bypassing armour, enchantments and resistance, exactly as PRD §2.4 and {@link BleachDamage}'s
+	 * class note specify for Jakuhō Raikōben's inner radius. The falloff is ordinary bleach damage
+	 * and stays mitigable.
+	 *
+	 * <p>Both rings used to fire {@code SPIRIT_PRESSURE}, which meant 60 raw arrived as about 11
+	 * against Protection IV netherite while an unarmoured mob standing beside it took the full 60.
+	 * The Bankai did roughly a fifth of its damage to the only targets it is ever aimed at.
+	 */
+	public static boolean isCoreHit(double distance, double lethalRadius) {
+		return distance <= lethalRadius;
+	}
+
+	/**
+	 * Blast damage at a distance: flat across the core, then linear to {@code outer} at the falloff
+	 * radius and never below it.
+	 *
+	 * <p>The degenerate case is real rather than theoretical — a tuning pass that sets the two radii
+	 * equal would otherwise divide by zero inside the interpolation.
+	 */
+	public static double blastDamage(double distance, double lethalRadius, double falloffRadius,
+			double inner, double outer) {
+		if (distance <= lethalRadius) {
+			return inner;
+		}
+		double span = falloffRadius - lethalRadius;
+		if (span <= 0.0) {
+			return outer;
+		}
+		double t = Math.min(1.0, (distance - lethalRadius) / span);
+		return Mth.lerp(t, inner, outer);
+	}
+
 	private static final class Bankai implements TransformAbility {
 		private final Map<UUID, Integer> windupTicksByPlayer = new ConcurrentHashMap<>();
 
@@ -635,13 +673,18 @@ public final class SuiFengTransform {
 					e -> e.isAlive() && e.distanceToSqr(at) <= falloffRadiusSq)) {
 
 				double dist = Math.sqrt(target.distanceToSqr(at));
-				float dmg = dist <= lethalRadius
-						? (float) BleachTuning.SUI_BANKAI_DMG_INNER
-						: (float) Mth.lerp((dist - lethalRadius) / (falloffRadius - lethalRadius),
-								BleachTuning.SUI_BANKAI_DMG_INNER, BleachTuning.SUI_BANKAI_DMG_OUTER);
+				float dmg = (float) blastDamage(dist, lethalRadius, falloffRadius,
+						BleachTuning.SUI_BANKAI_DMG_INNER, BleachTuning.SUI_BANKAI_DMG_OUTER);
+
+				// The core is a mechanic, the falloff is damage. Firing SPIRIT_PRESSURE for both is
+				// what made the Bankai land for about 11 against Protection IV netherite while an
+				// unarmoured mob beside it took the whole 60.
+				ResourceKey<DamageType> type = isCoreHit(dist, lethalRadius)
+						? BleachDamage.SPIRIT_MECHANIC_KILL
+						: BleachDamage.SPIRIT_PRESSURE;
 
 				target.invulnerableTime = 0;
-				target.hurt(BleachDamage.source(level, BleachDamage.SPIRIT_PRESSURE, shooter), dmg);
+				target.hurt(BleachDamage.source(level, type, shooter), dmg);
 			}
 
 			BlockQueue.submit(new SuiFengCraterTask(

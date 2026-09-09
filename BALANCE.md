@@ -536,13 +536,13 @@ The blade is deliberately unremarkable. A character's power lives in Soul Level 
 | `SUI_BANKAI_WINDUP_TICKS` | 60 | 3 s telegraph |
 | `SUI_BANKAI_LETHAL_RADIUS` | 12.0 | blocks — full-damage core, no falloff |
 | `SUI_BANKAI_FALLOFF_RADIUS` | 24.0 | blocks — outer edge |
-| `SUI_BANKAI_DMG_INNER` | 60.0 | damage inside the core · Soul Level scaled |
-| `SUI_BANKAI_DMG_OUTER` | 12.0 | damage at the outer edge · Soul Level scaled |
+| `SUI_BANKAI_DMG_INNER` | 60.0 | damage inside the core · **a mechanic** — bypasses armour, enchantments and Soul Level reductions |
+| `SUI_BANKAI_DMG_OUTER` | 12.0 | damage at the outer edge · ordinary bleach damage, mitigable and Soul Level scaled |
 | `SUI_MISSILE_SPEED` | 2.5 | blocks/tick — flight speed |
 | `SUI_MISSILE_SUBSTEPS` | 5 | collision slices per tick |
 | `SUI_MISSILE_RANGE` | 120.0 | blocks before it detonates in the air |
 | `SUI_MISSILE_HIT_RADIUS` | 0.5 | blocks — hitbox inflation when testing what it struck |
-| `SUI_BANKAI_SELF_DMG_PCT` | 0.50 | frac of *current* health, never lethal |
+| `SUI_BANKAI_SELF_DMG_PCT` | 0.25 | frac of *current* health, never lethal — cut from 0.50 on 2026-09-09 |
 | `SUI_CRATER_RADIUS` | 18.0 | blocks — spherical excavation radius |
 | `SUI_CRATER_BLOCK_CAP` | 28000 | hard cap on blocks changed (~24,400 sphere + outer rim shell) |
 | `SUI_CRATER_BLOCKS_PER_TICK` | 400 | tick-slice budget |
@@ -550,6 +550,32 @@ The blade is deliberately unremarkable. A character's power lives in Soul Level 
 | `SUI_MARK_PARTICLE_SCALE` | 0.80 | quad scale multiplier for mark particle |
 | `SUI_BANKAI_RING_PARTICLES` | 100 | particles per expanding telegraph warning ring |
 | `SUI_MARK_RAYCAST_REACH` | 5.0 | blocks — raycast reach for mark detection |
+
+#### J.3.1 The core is a mechanic — fixed 2026-09-09
+
+`BleachDamage`'s class note and PRD §2.4 both say Suì-Fēng's two-strike kill **and her Bankai's
+inner radius** are mechanics rather than damage. Only the Shikai kill was ever built that way. The
+detonation fired `SPIRIT_PRESSURE` for both rings, which is in the `bleach` tag and in none of the
+`bypasses_*` tags — so the core ran the full vanilla mitigation pipeline:
+
+| Stage | Damage |
+|---|---|
+| Raw core | 60.0 |
+| After netherite armour (20 armour, 12 toughness) | 40.8 |
+| After Protection IV ×4 (EPF 16) | 14.7 |
+| After Soul Level reduction (≈0.78) | **≈11.5** |
+
+Roughly a fifth of its value against the only targets it is ever aimed at, while an unarmoured mob
+standing beside them took the whole 60 — and everyone is in Protection IV netherite, which was the
+entire premise of Adil's item 6. Reported in play as *"does no player damage"*.
+
+The core now fires `SPIRIT_MECHANIC_KILL` and the falloff keeps `SPIRIT_PRESSURE`. The split is
+deliberate: the 12-block core is the thing you were supposed to not be standing in, and the outer
+ring is a shove rather than a sentence.
+
+**Parity, stated so it is not argued about later:** this puts the core in the same class as Nigeki
+Kessatsu, so M — The Miracle must not save you from it either, exactly as the design spec's §8.2
+already rules for the Shikai kill and D's dose kill.
 
 ### J.4 Rukia · *PRD §6.4*
 
