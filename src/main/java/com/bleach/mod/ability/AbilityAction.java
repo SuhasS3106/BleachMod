@@ -32,7 +32,16 @@ public enum AbilityAction {
 	/** Falling edge of the Hover key — also sent on screen open and disconnect. */
 	HOVER_STOP,
 	/** Cycle the Blut stance: off → Vene → Arterie → off. Quincy only. */
-	BLUT_CYCLE;
+	BLUT_CYCLE,
+	/**
+	 * The kit's own move, whatever that is in the tier the player is currently in.
+	 *
+	 * <p>One action rather than one per move: {@code AbilityDispatcher} resolves it against the
+	 * active transformation, so a kit can put a different ability on the key in each tier without
+	 * spending a keybind per move. Gerard is the first user — God's Direction in the Schrift,
+	 * Divine Presence in Vollständig.
+	 */
+	KIT_ABILITY;
 
 	private static final AbilityAction[] BY_INDEX = values();
 

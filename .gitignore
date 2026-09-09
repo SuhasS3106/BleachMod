@@ -68,3 +68,8 @@ env/
 .env.local
 *.local
 
+
+# scraped reference material
+# .firecrawl/ holds the Gerard Valkyrie wiki scrape used to redesign Schrift M. The canon source is
+# already cited by URL in the kit's javadocs, so the scrape is a working artifact, not a dependency.
+.firecrawl/

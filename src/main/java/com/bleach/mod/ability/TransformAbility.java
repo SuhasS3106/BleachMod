@@ -1,7 +1,10 @@
 package com.bleach.mod.ability;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.bleach.mod.attachment.SpiritualData;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 
@@ -116,6 +119,19 @@ public interface TransformAbility extends Ability {
 	 */
 	default double flashStepRangeMult() {
 		return 1.0;
+	}
+
+	/**
+	 * The ability this tier puts on the kit-ability key, or {@code null} for a tier with no move
+	 * there.
+	 *
+	 * <p>Null by default, so the ten kits that predate the key are unaffected and pressing it does
+	 * nothing for them. Expressed on the transformation rather than the kit because the whole point
+	 * is that a tier chooses its own move.
+	 */
+	@Nullable
+	default ResourceLocation kitAbilityId() {
+		return null;
 	}
 
 	/** Melee damage bonus fraction while active (e.g. +0.25 for Ichigo Shikai, +0.40 for Ichigo Bankai). */

@@ -54,6 +54,8 @@ public final class AbilityRegistry {
 		register(new SpiritualFlex());
 		register(new AuraSense());
 		register(new Hover());
+		register(new com.bleach.mod.ability.kits.HoffnungsWrath());
+		register(new com.bleach.mod.ability.kits.HeiligPfeil());
 		BleachKits.register();
 	}
 

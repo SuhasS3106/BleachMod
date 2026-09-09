@@ -69,6 +69,11 @@ public final class DamageScaling {
 			// them. This compounds with the reduction above rather than replacing it, so the lowest
 			// damage-taken figure anyone can reach is SL_DMG_TAKEN_FLOOR x 0.80 = 0.40.
 			damage *= MiracleTransform.damageTakenMultiplier(victimPlayer);
+
+			// 2b-iii. Exposed Core. Canon weakness: the Quincy Cross is what keeps Gerard alive, and
+			// it is showing for a few seconds after the death save. Deliberately applied after his
+			// own reductions, so it is a real window rather than one his stacks cancel out.
+			damage *= MiracleTransform.coreExposureMultiplier(victimPlayer);
 		}
 
 		// 2c. Schrift D's doses · design §P.6. A dosed target takes more from everything, from

@@ -71,6 +71,7 @@ public final class AbilityDispatcher {
 
 		switch (action) {
 			case FLASH_STEP -> tryActivate(player, data, AbilityRegistry.FLASH_STEP, action);
+			case KIT_ABILITY -> tryKitAbility(player, data, action);
 			case SHIKAI -> toggleTransform(player, data, SpiritualData.STATE_SHIKAI);
 			case BANKAI -> toggleTransform(player, data, SpiritualData.STATE_BANKAI);
 			case FLEX_START -> setFlexing(player, data, true);
@@ -85,6 +86,26 @@ public final class AbilityDispatcher {
 	}
 
 	// --- Plain abilities --------------------------------------------------------------
+
+	/**
+	 * The kit's own move, resolved against whichever tier is live.
+	 *
+	 * <p>One key, a different ability per tier. Asking the active transformation rather than the
+	 * stored kit id means an untransformed player presses it and nothing happens, which is correct:
+	 * these are release moves.
+	 */
+	private static void tryKitAbility(ServerPlayer player, SpiritualData data, AbilityAction action) {
+		TransformAbility active = activeTransform(data);
+		if (active == null) {
+			return;
+		}
+		ResourceLocation id = active.kitAbilityId();
+		if (id == null) {
+			// A kit with no move on this key. Silent — most kits are in this case.
+			return;
+		}
+		tryActivate(player, data, id, action);
+	}
 
 	private static void tryActivate(ServerPlayer player, SpiritualData data,
 			ResourceLocation id, AbilityAction action) {

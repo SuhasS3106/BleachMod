@@ -1249,8 +1249,104 @@ public final class BleachTuning {
 	public static double KIT_MIRACLE_FS_RANGE_MULT = 1.0;
 	/** Flash Step (Hirenkyaku) cooldown multiplier for Gerard Valkyrie. */
 	public static double KIT_MIRACLE_FS_COOLDOWN_MULT = 1.0;
-	/** Gerard's gold. */
-	public static int KIT_MIRACLE_PARTICLE_COLOR = 0xFBBF24;
+	/**
+	 * Gerard's red — aura, wings and particles.
+	 *
+	 * <p>Deliberately brighter than Yamamoto's {@code 0xB91C1C} so the mod's two reds are tellable
+	 * apart at a glance, which is the only thing kit colour is for.
+	 */
+	public static int KIT_MIRACLE_PARTICLE_COLOR = 0xEF4444;
+
+	// --- P.7.5 Hoffnung's Reflection · passive, both tiers ----------------------------
+
+	/**
+	 * Fraction of melee damage taken that is thrown back at the attacker, before stacks.
+	 *
+	 * <p>Canon: damaging Hoffnung is damaging hope, and hope becoming despair is the injury coming
+	 * back "disproportionately large". Melee only — the reflection is a property of the blade being
+	 * struck, and reflecting arrows from across the map is neither canon nor fun.
+	 */
+	public static double M_REFLECT_BASE = 0.30;
+	/** Added reflection per stack — 0.70 total at a full stack. */
+	public static double M_REFLECT_PER_STACK = 0.02;
+
+	// --- P.7.6 The Miracle · passive, both tiers --------------------------------------
+
+	/** Chance to negate a hit outright at full health, alone. */
+	public static double M_PROB_BASE = 0.05;
+	/** Added chance across the whole health bar — full at zero health. */
+	public static double M_PROB_PER_MISSING_HP = 0.30;
+	/** Added chance per hostile beyond the first within {@link #M_PROB_ENEMY_RADIUS}. */
+	public static double M_PROB_PER_ENEMY = 0.05;
+	/** How far to look when counting the odds against him, blocks. */
+	public static double M_PROB_ENEMY_RADIUS = 12.0;
+	/** Hard ceiling. Above this the kit stops being fightable. */
+	public static double M_PROB_MAX = 0.35;
+
+	// --- P.7.7 Godly Size · threshold at full stacks ----------------------------------
+
+	/** Size reached by stacks alone, before Godly Size triggers. */
+	public static double M_SCALE_SOFT = 1.2;
+
+	// --- P.7.8 Exposed Core · the counterplay -----------------------------------------
+
+	/**
+	 * Ticks the Quincy Cross stays exposed after the death save fires.
+	 *
+	 * <p>Canon weakness: the cross inside his heart is what keeps him alive. This is what pays for a
+	 * kit that grows stronger the more it is hit and then refuses to die — the miracle is a gamble,
+	 * not free.
+	 */
+	public static int M_CORE_EXPOSED_TICKS = 140;
+	/**
+	 * Invulnerability granted the instant the save fires, ticks.
+	 *
+	 * <p>Surviving at 1 HP and then being immediately killed by the next swing is not a miracle, it
+	 * is a delay. This is the window to stand up in, and {@link #M_CORE_EXPOSED_TICKS} starts only
+	 * once it has closed — so the counterplay still exists, it just does not land on a man with one
+	 * health point.
+	 */
+	public static int M_SAVE_INVULN_TICKS = 60;
+	/** Regeneration duration after the save, ticks. Vanilla's totem gives 900 at amplifier 1. */
+	public static int M_SAVE_REGEN_TICKS = 200;
+	/** Regeneration amplifier after the save. 1 is Regeneration II. */
+	public static int M_SAVE_REGEN_AMP = 2;
+	/** Absorption duration after the save, ticks — temporary hearts, exactly as the totem grants. */
+	public static int M_SAVE_ABSORB_TICKS = 200;
+	/** Absorption amplifier after the save. */
+	public static int M_SAVE_ABSORB_AMP = 1;
+	/** Damage multiplier against Gerard while the core is exposed. */
+	public static double M_CORE_DAMAGE_MULT = 2.0;
+
+	// --- P.7.9 Hoffnung's Wrath · Schrift active --------------------------------------
+
+	/** Reach of the swing, blocks. */
+	public static double HW_RANGE = 6.0;
+	/** Half-angle of the swing arc, degrees. */
+	public static double HW_ARC_DEGREES = 60.0;
+	/** Damage before Soul Level scaling. */
+	public static double HW_DAMAGE = 12.0;
+	/** Upward launch on everything caught. */
+	public static double HW_LIFT = 0.8;
+	/** Outward shove on everything caught. */
+	public static double HW_KNOCKBACK = 0.7;
+	/** SP cost. */
+	public static double HW_SP_COST = 15.0;
+	/** Cooldown, ticks. */
+	public static int HW_COOLDOWN_TICKS = 50;
+
+	// --- P.7.10 Heilig Pfeil · Vollstaendig active ------------------------------------
+
+	/** Beam length, blocks. */
+	public static double HP_RANGE = 30.0;
+	/** How far off the beam's centre line still counts as hit, blocks. */
+	public static double HP_WIDTH = 1.5;
+	/** Damage before Soul Level scaling. Pierces everything in the line. */
+	public static double HP_DAMAGE = 20.0;
+	/** SP cost. */
+	public static double HP_SP_COST = 35.0;
+	/** Cooldown, ticks. */
+	public static int HP_COOLDOWN_TICKS = 100;
 
 	// --- P.7.11 The stack meter -------------------------------------------------------
 

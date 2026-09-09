@@ -36,6 +36,12 @@ public final class BleachKeybinds {
 	public static final KeyMapping STATS = register("stats", GLFW.GLFW_KEY_K);
 	public static final KeyMapping TOGGLE_MOD = register("toggle_mod", GLFW.GLFW_KEY_B);
 	public static final KeyMapping BLUT = register("blut", GLFW.GLFW_KEY_Z);
+	/**
+	 * The kit's own move for whichever tier you are in. T was the only key left, and it is the one
+	 * the reference moveset uses — its G, X, Z and C are all taken here by Vollständig,
+	 * draw/sheathe, Blut and Aura Sense, none of which can move without breaking every kit.
+	 */
+	public static final KeyMapping KIT_ABILITY = register("kit_ability", GLFW.GLFW_KEY_T);
 
 	/**
 	 * Last reported state of the hold key. The client owns this because only the client can see the
@@ -95,6 +101,10 @@ public final class BleachKeybinds {
 		// never needs to know what race it is to decide whether a key is live.
 		while (BLUT.consumeClick()) {
 			send(AbilityAction.BLUT_CYCLE);
+		}
+
+		while (KIT_ABILITY.consumeClick()) {
+			send(AbilityAction.KIT_ABILITY);
 		}
 
 		while (TOGGLE_MOD.consumeClick()) {
