@@ -58,6 +58,12 @@ public final class ScreenShake {
 			return;
 		}
 
+		// On the same beat the field itself surges on · FlexAura#pulse. A vignette held at a constant
+		// depth reads as a tint the eye stops seeing within a second or two; the same alpha breathing
+		// against a field you can watch pulse in front of you reads as something pressing on you.
+		// Wall time, like the field's, so the two are in step without either knowing about the other.
+		intensity *= FlexAura.pulse((System.currentTimeMillis() % 3_600_000L) / 1000.0f);
+
 		int width = graphics.guiWidth();
 		int height = graphics.guiHeight();
 		int depth = (int) (height * BleachTuning.REIATSU_VIGNETTE_DEPTH_PCT);

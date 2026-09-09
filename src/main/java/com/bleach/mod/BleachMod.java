@@ -64,6 +64,7 @@ public class BleachMod implements ModInitializer {
 		SoulLevel.register();
 		ModToggle.register();
 		SpiritualTicker.register();
+		com.bleach.mod.ability.common.FlexLight.register();
 		com.bleach.mod.ability.kits.AizenHypnosisManager.register();
 		BleachCommands.register();
 

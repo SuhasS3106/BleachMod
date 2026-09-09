@@ -252,8 +252,7 @@ public final class SpiritWeapon {
 		ServerPlayerEvents.JOIN.register(player -> {
 			SpiritualData data = BleachAttachments.get(player);
 			ensureRestored(player, data);
-			ensureAsauchi(player, data);
-			ensureReforged(player, data);
+			restoreSelectors(player, data);
 
 			// Nothing in vanilla hints that any of this exists. One line, once per session, pointing
 			// at the manual — the alternative is every new player asking in chat what the blue bar is.
@@ -268,8 +267,7 @@ public final class SpiritWeapon {
 			data.stowedItem = ItemStack.EMPTY;
 			ensureRestored(newPlayer, data);
 			ensureDrawn(newPlayer, data);
-			ensureAsauchi(newPlayer, data);
-			ensureReforged(newPlayer, data);
+			restoreSelectors(newPlayer, data);
 
 			// resetOnRespawn clears data.state without going through forceRevert, so this is the one
 			// place the stamp could survive a state that did not. Cheap, and it costs a mis-rendered
@@ -316,7 +314,28 @@ public final class SpiritWeapon {
 				data.stowedReforged += stack.getCount();
 			}
 			inventory.setItem(i, ItemStack.EMPTY);
+			data.owedSelectors = true;
 		}
+	}
+
+	/**
+	 * Give back every token death took, <b>Reforged first</b> · {@link SpiritualData#stowedReforged}.
+	 *
+	 * <p>The order is the whole point and it used to be the other way round. {@link #ensureAsauchi}
+	 * mints a plain token for anyone holding no selector at all, and until the debt above has been
+	 * paid a player who died carrying only a Reforged one is holding nothing — so the backstop fired,
+	 * minted a plain Asauchi that nobody had before the death, and the Reforged arrived a line later
+	 * on top of it. One picker in, two out, once per death, which is a duplicated character choice
+	 * rather than a cosmetic surplus.
+	 *
+	 * <p>Paying the debt first makes {@code ensureAsauchi}'s question — "is this player holding
+	 * something that opens the picker?" — one it can answer truthfully, and a Reforged Asauchi is an
+	 * honest yes: it opens the picker unconditionally · {@link ReforgedAsauchiItem}.
+	 */
+	public static void restoreSelectors(ServerPlayer player, SpiritualData data) {
+		ensureReforged(player, data);
+		ensureAsauchi(player, data);
+		data.owedSelectors = false;
 	}
 
 	/**

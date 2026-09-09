@@ -10,6 +10,7 @@ import com.bleach.mod.attachment.BleachAttachments;
 import com.bleach.mod.attachment.SpiritualData;
 import com.bleach.mod.attachment.SpiritualTicker;
 import com.bleach.mod.item.SpiritWeapon;
+import com.bleach.mod.race.Race;
 import com.bleach.mod.race.Races;
 import org.jetbrains.annotations.Nullable;
 
@@ -30,6 +31,7 @@ import net.minecraft.server.level.ServerPlayer;
  *   <li>the action index is one we defined</li>
  *   <li>the drawn sword, if the ability requires it (PRD §3.2)</li>
  *   <li>the player's kit actually has that ability</li>
+ *   <li>the state being entered is reachable from the current one, for transformations</li>
  *   <li>cooldown expired</li>
  *   <li>SP ≥ cost</li>
  *   <li>entry gate met, for transformations</li>
@@ -126,6 +128,11 @@ public final class AbilityDispatcher {
 	 * <p>Switching directly between Shikai and Bankai checks the target's gate <em>before</em>
 	 * reverting the current state, so a failed Bankai attempt while in Shikai leaves the player in
 	 * Shikai rather than silently dumping them to base.
+	 *
+	 * <p>Which switches are legal at all is {@link SpiritualData#canEnterFrom}: release 2 is entered
+	 * from release 1 and nowhere else, so the Bankai key does nothing from the base state. That check
+	 * runs <em>first</em> among the entry conditions — before the cooldown — because an unreachable
+	 * state is not a "wait" and must not read to the player as one.
 	 */
 	private static void toggleTransform(ServerPlayer player, SpiritualData data, byte target) {
 		Kit kit = AbilityRegistry.kitFor(data);
@@ -150,6 +157,16 @@ public final class AbilityDispatcher {
 		}
 
 		if (!ability.requiresDrawnSword() || hasDrawnSword(player)) {
+			if (!SpiritualData.canEnterFrom(data.state, target)) {
+				// Bankai and Vollständig escalate a blade that is already released · SpiritualData
+				// #canEnterFrom. Named per race, or a Quincy is told to release a Shikai they do
+				// not have.
+				Race race = Races.byId(data.race);
+				actionBar(player, race.tierName(target) + " can only be released from "
+						+ race.tierName(SpiritualData.STATE_SHIKAI) + ".");
+				return;
+			}
+
 			if (!AbilityCooldowns.isReady(player, ability.id())) {
 				return;
 			}

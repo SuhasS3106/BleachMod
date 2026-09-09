@@ -31,6 +31,7 @@ public final class BleachNetworking {
 		PayloadTypeRegistry.playS2C().register(SpxGainPayload.TYPE, SpxGainPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(KaromatsuSyncPayload.TYPE, KaromatsuSyncPayload.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(DomeTintPayload.TYPE, DomeTintPayload.STREAM_CODEC);
+		PayloadTypeRegistry.playS2C().register(FlexStatePayload.TYPE, FlexStatePayload.STREAM_CODEC);
 
 		PayloadTypeRegistry.playC2S().register(AbilityActivatePayload.TYPE, AbilityActivatePayload.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(ModTogglePayload.Request.TYPE, ModTogglePayload.Request.STREAM_CODEC);

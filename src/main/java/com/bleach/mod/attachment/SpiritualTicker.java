@@ -146,6 +146,14 @@ public final class SpiritualTicker {
 
 			data.playtimeTicks++;
 
+			// Almost always a single boolean read. True only after a strip that no respawn is coming
+			// to undo — a totem, or any other death that gets called off after the fact — and the
+			// isAlive gate is what keeps it from firing into a corpse between the death and the
+			// respawn that is about to repay it properly · SpiritualData#owedSelectors.
+			if (data.owedSelectors && player.isAlive()) {
+				SpiritWeapon.restoreSelectors(player, data);
+			}
+
 			// Cleared after the movement phase, so the landing tick's own fall damage is still
 			// covered by the grace and only the tick after it drops the flag.
 			if (data.flashStepFallGrace && player.onGround()) {

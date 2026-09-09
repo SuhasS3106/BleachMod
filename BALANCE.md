@@ -75,6 +75,23 @@ gate(SL)  = max(GATE_FLOOR_PCT, GATE_*_BASE − GATE_REDUCTION_PER_LEVEL × (SL 
 drain(SL) = DRAIN_* × max(FLOOR, 1 − TAPER_CAP × progress(SL))
 ```
 
+**The gate is a threshold, not the whole entry rule. Release 2 is reachable only from release 1** —
+Bankai and Vollständig may be entered from Shikai and from nowhere else, and the Bankai key does
+nothing at all in the base state (`SpiritualData.canEnterFrom`). The gate alone never enforced this:
+a rested player of *any* Soul Level sits above `GATE_BANKAI_BASE` by definition, so pressing Bankai
+from base always succeeded and the Shikai half of every kit was optional. That erases the split the
+two states exist to create — sustainable stance vs. committed burn — and it hands a fresh SL-1
+player the mod's strongest state as their opening move.
+
+Dropping Bankai → Shikai stays legal. It is a de-escalation onto a state already earned, and routing
+it through base would spend the claw-back for nothing.
+
+The practical consequence is that **entry is now a two-step with a window**: Shikai first (free, and
+draining), then Bankai before the drain pulls the pool back under `GATE_BANKAI_BASE`. At SL 1 that
+window is roughly `(sp − bankaiGate) / DRAIN_SHIKAI` seconds — about 3 s from a full pool. This is a
+real tightening of Bankai access at low levels and the gates may want re-tuning because of it; the
+window widens quickly with Soul Level, since the gate falls while the Shikai drain tapers.
+
 ### C.1 Why the drains taper — Adil's item 7
 
 He asked for a Shikai drain that reaches **zero** by SL 60–70. Built literally that is the §E defect
@@ -437,18 +454,146 @@ home is a slow cull of everything you own.
 
 | Symbol | Default | Unit | Meaning |
 |---|---|---|---|
-| `FLEX_PARTICLE_INTERVAL_TICKS` | 2 | ticks | Ticks between particle rings; above 1 so a held channel does not flood the client |
-| `FLEX_PARTICLE_BASE` | 10 | count | Riser particles before the spend term |
-| `FLEX_PARTICLE_PER_SP` | 3.0 | count per SP/s | Riser density scaling · PRD §5.3 |
-| `FLEX_RING_POINTS_PER_BLOCK` | 3.5 | count/block | Ring particles per block of field radius |
-| `FLEX_RING_Y_OFFSET` | 0.2 | blocks | Ring height above the flexer's feet |
 | `FLEX_FEEDBACK_TICKS` | 20 | ticks | How often the flexer's action bar reports the field |
-| `FLEX_PARTICLE_RISE` | 1.20 | blocks/tick | Upward velocity of riser particles |
-| `FLEX_PARTICLE_RING_JITTER` | 0.35 | blocks | In/out scatter on the ring |
-| `FLEX_PARTICLE_SCALE` | 0.6 | — | Pressure particle quad size — the field line reads thin |
+| `FLEX_RING_Y_OFFSET` | 0.2 | blocks | Shockwave ring height above the flexer's feet |
+| `FLEX_STATE_KEEPALIVE_TICKS` | 20 | ticks | How often the server repeats the "field is up" edge |
+| `FLEX_STATE_EXPIRY_TICKS` | 40 | ticks | How long a client draws a field it has stopped hearing about |
 
 The ring is drawn **on the field radius**, not around the flexer's ankles. The edge of the field is
 the one thing a target needs to be able to see, and drawing it there costs nothing extra.
+
+**Nothing about the field's shape is sent from the server.** It used to be: a ring walked around the
+radius at 3.5 points per block plus a scatter of risers, re-emitted every other tick as one
+`sendParticles` call per particle per viewer — around ninety packets per viewer per emission at Soul
+Level 20, five times a second, for a shape completely determined by where the flexer is standing and
+how strong they are. Both of those every client tracking them already knows. What goes out now is one
+small packet on the start edge plus a keepalive · `FlexStatePayload`, and the client owns the
+presentation · §H.6.
+
+---
+
+### H.6 Flex aura · *the client-side field*
+
+**A field is a population, not a decal** — the same finding as §N.3, arrived at the same way. The
+old presentation failed for five reasons, in the order they cost impact:
+
+1. **No onset.** The field was a steady loop from its first tick, so raising it and having held it
+   for a minute looked identical. Nearly all the impact of an ability like this lives in its first
+   fraction of a second, and there was nothing there at all. The start edge is now the one thing
+   besides the state that crosses the wire, because it is an edge and cannot be inferred.
+2. **Nothing silhouette-scale.** Every element was one 0.6-scale needle, a few hundred of them over
+   a disc that is nine hundred square metres at Soul Level 20. Specks read as weather: scale is a
+   comparison, and there is nothing in a speck to compare a player against.
+3. **Five updates a second, over the network.** Nothing driven that way can look continuous.
+4. **Constant density.** No rhythm — the ring walked at a fixed spacing and the risers spawned at a
+   fixed count, so the field had nothing to surge on.
+5. **No light and no ground contact**, so the particles floated in front of the scene rather than in
+   it.
+
+The three particle layers each answer one of those. The **column** is the mass. The **lances** —
+thin, fast, drawn hard along their own velocity so each is a line rather than a dot — are what make
+the radius read *vertically*: a ring on the floor is invisible the moment anything stands between you
+and the ground, while a wall of rising lines is legible from inside the field, from above it, and
+through a crowd. The **sheets** are a handful of big slow ribbons carrying silhouette scale.
+
+The **pulse** is one shared envelope. Spawn rate, shockwave and the Reiatsu vignette (§K) all surge
+on it, which is what makes a surge read as one event rather than three things that happen to be in
+the same place. Rings are *derived* from that clock rather than stored — a ring leaves on every beat,
+so the live ones are the last few multiples of the period — so they are in step by construction and
+there is no per-field list to leak.
+
+**Nothing is drawn flat on the floor.** A filled disc of light under the flexer was tried and cut: it
+is centred on them, so it slides along as they walk and reads as a decal stuck to their feet rather
+than as a field standing in the world. The shockwave is the ground element that survived, and it
+works for the opposite reason — it *leaves* the flexer instead of travelling with them, so it belongs
+to the world and not to the player.
+
+**Failure 5 was two failures, and only the ground-contact half was fixed.** The shockwave answered
+contact; nothing answered *light*. Additive particles write colour, and colour is not illumination —
+the floor under a flexer stayed exactly as dark as it had been, which is what kept the field sitting
+in front of the scene. It now casts real light: a `minecraft:light` block carried at chest height ·
+`FlexLight`, so terrain, mobs and other players are lit, every client sees the same thing with no
+rendering of ours involved, and it behaves like light — it pools in a doorway and stops at a wall.
+This is not the cut disc coming back. The disc was rejected for being a decal; a light block is not
+drawn at all. It is placed only into air, so it can never destroy anything, removed only when what
+stands there is still ours, and moved only when the flexer changes block — about five light updates a
+second at a sprint, which is a carried torch.
+
+**The field is anchored to the world, not to the player.** Particles are stored in the flexer's local
+frame, so the pool used to ride the player exactly: sprint, and the entire column moved with you with
+its shape intact, which is the one thing that read as *particles* rather than as pressure. Each
+frame's displacement is now subtracted back out of the pool, so what has already left the body stays
+where it was left and the flexer walks out of their own plume. `FLEX_AURA_CARRY` keeps a little of the
+motion, since a body does drag air with it; `FLEX_AURA_INHERIT` gives newborn particles the player's
+velocity so the column *leans* into a run rather than snapping backwards a frame after birth; and
+`FLEX_AURA_TELEPORT_SNAP` exempts a Flash Step, which is not travel through the air in between and
+must not leave the field stranded across half a chunk. The shockwave rings are anchored the same way —
+each now carries the spot it was thrown from, where before an expanding ring slid sideways with
+whoever threw it.
+
+**The lances are the exception, and the reason is what they are for.** The column and the sheets are
+exhaust — thrown off the body, and then the body's business no longer. A lance is *structure*: it
+stands on the radius to make the radius legible, and that radius is measured from the player every
+tick on the server. Anchoring one to the world sets the wall adrift from the field it is drawing, and
+because a lance feels no drag it never catches up — a sprinter leaves the whole wall a stride behind
+and the streaks read as missing. So `FLEX_AURA_LANCE_CARRY` is near 1 where `FLEX_AURA_CARRY` is near
+0, and lances take no birth velocity at all: anything added to a layer with no drag would never decay,
+and the wall would shear itself apart over a lance's life.
+
+**The cap is shared out, not raced for.** The three layers used to spawn in a fixed order against one
+ceiling, so whoever ran last starved first — and the column runs first and refills itself every frame.
+At a high tier, or through the onset burst, the column could take the entire pool and leave the
+lances and the sheets with nothing at exactly the moment the field is loudest and the layers matter
+most. Room is now divided in proportion to what each layer asked for. The layers are a *mix*, not a
+priority list, and under pressure the mix is what has to survive.
+
+| Symbol | Default | Unit | Meaning |
+|---|---|---|---|
+| `FLEX_AURA_PULSE_PERIOD` | 1.15 | s | The beat everything surges on |
+| `FLEX_AURA_PULSE_DEPTH` | 0.62 | 0–1 | How far the pulse dips between beats; 0 is a machine again |
+| `FLEX_AURA_ONSET_SECONDS` | 0.45 | s | Length of the activation burst |
+| `FLEX_AURA_ONSET_GAIN` | 3.5 | × | Peak spawn multiplier during the burst |
+| `FLEX_AURA_TIER_GAIN` | `[0.42, 0.68, 1.0, 1.45]` | × | Field intensity by Reiatsu amplifier |
+| `FLEX_AURA_COLUMN_RATE` | 620.0 | /s | Column particles per second before pulse and tier |
+| `FLEX_AURA_COLUMN_DISC` | 0.72 | blocks | Radius of the column's footprint |
+| `FLEX_AURA_BUOYANCY` | 11.5 | blocks/s² | Upward acceleration |
+| `FLEX_AURA_TURBULENCE` | 4.6 | — | Sideways churn, ramped with age |
+| `FLEX_AURA_SWIRL` | 5.2 | — | Rotation about the flexer's axis |
+| `FLEX_AURA_TAPER` | 3.4 | — | Pull back toward the axis; what gives the column its point |
+| `FLEX_AURA_DRAG` | 1.6 | /s | Velocity lost per second |
+| `FLEX_AURA_LIFE` | 0.95 | s | Base particle lifetime, rolled ×0.55–1.45 |
+| `FLEX_AURA_GRAIN` | 0.115 | blocks | Base particle radius — small and many, never big and few |
+| `FLEX_AURA_GROW` | 1.1 | × | Growth over a particle's life |
+| `FLEX_AURA_STRETCH` | 1.5 | — | Draw-out along velocity; the dots-into-fire dial |
+| `FLEX_AURA_OPACITY` | 0.30 | 0–1 | Per-particle alpha; brightness comes from overlap |
+| `FLEX_AURA_CARRY` | 0.12 | 0–1 | How much of the flexer's movement the existing field follows; 1 is a costume again |
+| `FLEX_AURA_LANCE_CARRY` | 0.92 | 0–1 | The same for the lances — near 1, because the wall marks a radius measured from the player |
+| `FLEX_AURA_INHERIT` | 0.55 | × | Fraction of the flexer's velocity a particle is born with — the lean |
+| `FLEX_AURA_TELEPORT_SNAP` | 3.0 | blocks/frame | Past this the field is carried whole, not anchored — Flash Step |
+| `FLEX_LIGHT_LEVEL` | 12 | 0–15 | Block light the field casts · §H.3; 0 disables |
+| `FLEX_LIGHT_HEIGHT` | 1 | blocks | How far above the feet the light block sits |
+| `FLEX_AURA_LANCE_RATE` | 700.0 | /s | The upward lances per second — outnumber the column on purpose |
+| `FLEX_AURA_LANCE_SPEED` | 11.0 | blocks/s | How fast a lance climbs |
+| `FLEX_AURA_LANCE_STRETCH` | 3.4 | — | Extra stretch — what makes a lance a line and not a dot |
+| `FLEX_AURA_LANCE_LIFE` | 0.85 | s | Lance lifetime |
+| `FLEX_AURA_LANCE_GRAIN` | 0.55 | × grain | Lance thickness |
+| `FLEX_AURA_LANCE_INNER` | 0.18 | × radius | Innermost spawn, so lances are a wall and not a thicker column |
+| `FLEX_AURA_SHEET_RATE` | 9.0 | /s | The big slow ribbons per second |
+| `FLEX_AURA_SHEET_GRAIN` | 7.5 | × grain | Sheet size |
+| `FLEX_AURA_SHEET_OPACITY` | 0.32 | × opacity | Sheet alpha |
+| `FLEX_AURA_SEGMENTS` | 5 | count | Segments in one particle's fan; a pentagon is a circle at this size |
+| `FLEX_AURA_MAX_PARTICLES` | 2600 | count | Ceiling on one field's pool |
+| `FLEX_AURA_BUDGET` | 6000 | count | Ceiling across every field on screen before throttling |
+| `FLEX_AURA_RENDER_DISTANCE` | 96.0 | blocks | Beyond this a field is not simulated |
+| `FLEX_AURA_NEAR_FADE` | 1.6 | blocks | Particles nearer the camera fade out — first person, and walking through a field |
+| `FLEX_AURA_RING_WIDTH` | 1.6 | blocks | Shockwave band width |
+| `FLEX_AURA_RING_LIFE` | 1.25 | × period | How long a ring takes to reach the edge |
+| `FLEX_AURA_RING_ALPHA` | 0.42 | 0–1 | Ring brightness |
+| `FLEX_AURA_RING_SEGMENTS` | 64 | count | Segments around one ring |
+
+`tools/flex-prototype.html` is the lab these numbers were found in: it runs the old presentation and
+this one side by side in a browser, with every layer separately toggleable. Retune there before
+retuning here — a round trip through a game launch per value is not a way to find a look.
 
 ---
 

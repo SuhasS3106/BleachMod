@@ -333,9 +333,10 @@ public final class AuraSense implements Ability {
 			return;
 		}
 
-		// Same particle and scale as the Flex ring, so the mod's pressure reads as one material.
+		// The mod's one pressure particle, at the scale the tell wants. It used to borrow the Flex
+		// ring's scale; the ring is now drawn client-side and has no particle scale to borrow.
 		PressureParticleOptions options = new PressureParticleOptions(
-				BleachTuning.AURA_COLOR_PLAYER, (float) BleachTuning.FLEX_PARTICLE_SCALE);
+				BleachTuning.AURA_COLOR_PLAYER, (float) BleachTuning.AURA_TELL_PARTICLE_SCALE);
 
 		Vec3 eye = sensor.getEyePosition();
 		sensor.serverLevel().sendParticles(options, eye.x, eye.y, eye.z, 1, 0.2, 0.2, 0.2, 0.0);

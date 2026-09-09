@@ -2,8 +2,11 @@ package com.bleach.mod.ability.common;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import com.bleach.mod.ability.Ability;
@@ -14,9 +17,11 @@ import com.bleach.mod.attachment.SpiritualData;
 import com.bleach.mod.damage.BleachDamage;
 import com.bleach.mod.effect.BleachEffects;
 import com.bleach.mod.effect.ReiatsuEffect;
-import com.bleach.mod.particle.PressureParticleOptions;
+import com.bleach.mod.network.FlexStatePayload;
 import com.bleach.mod.tuning.BleachTuning;
 
+import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -60,8 +65,6 @@ public final class SpiritualFlex implements Ability {
 
 	/** Mobs, and anything else without a Soul Level, count as zero · PRD §5.1. */
 	private static final int UNRANKED_SOUL_LEVEL = 0;
-
-	private static final double TWO_PI = Math.PI * 2.0;
 
 	@Override
 	public ResourceLocation id() {
@@ -161,15 +164,20 @@ public final class SpiritualFlex implements Ability {
 			flexers.add(player);
 		}
 
-		if (flexers == null) {
-			return;
-		}
-
 		// Whether each counterer could afford their push-back this tick. Memoised so standing inside
 		// three hostile fields costs one counter drain, not three.
 		Map<UUID, Boolean> countered = new HashMap<>();
-		for (ServerPlayer flexer : flexers) {
-			int pressured = project(flexer, BleachAttachments.get(flexer), countered);
+		Set<UUID> stillFlexing = new HashSet<>();
+
+		for (ServerPlayer flexer : flexers == null ? List.<ServerPlayer>of() : flexers) {
+			SpiritualData data = BleachAttachments.get(flexer);
+			stillFlexing.add(flexer.getUUID());
+
+			int pressured = project(flexer, data, countered);
+
+			// The field lights the world it stands in · FlexLight. After project, so a channel that
+			// ran the pool dry inside its own sweep does not light up for the tick it ends on.
+			FlexLight.update(flexer);
 
 			// The field is silent by design against anyone within one Soul Level, which from the
 			// inside is indistinguishable from a broken ability — so say so rather than leaving the
@@ -179,7 +187,21 @@ public final class SpiritualFlex implements Ability {
 						? "Spiritual pressure — " + pressured + " under your reiatsu"
 						: "Spiritual pressure — nothing within reach"), true);
 			}
+
+			// The start edge carries the burst; the keepalive after it must not, or the client would
+			// re-detonate it every second · FlexStatePayload#onset.
+			Integer last = announced.get(flexer.getUUID());
+			boolean onset = last == null;
+			if (onset || flexer.tickCount - last >= Math.max(1, BleachTuning.FLEX_STATE_KEEPALIVE_TICKS)) {
+				broadcast(flexer, data, radius(data), onset);
+			}
 		}
+
+		// Deliberately outside the loop and reached even when nobody is flexing: the tick on which the
+		// last channel drops is exactly the tick with no flexers in it, and that is the one that has
+		// to send the retraction.
+		retractEnded(server, stillFlexing);
+		FlexLight.retainOnly(server, stillFlexing);
 	}
 
 	/**
@@ -211,7 +233,6 @@ public final class SpiritualFlex implements Ability {
 			}
 		}
 
-		ring(level, flexer, data, radius);
 		return pressured;
 	}
 
@@ -351,55 +372,76 @@ public final class SpiritualFlex implements Ability {
 	// --- Presentation ---------------------------------------------------------------------
 
 	/**
-	 * A ring of pressure at the flexer's feet, on the radius rather than around their ankles — the
-	 * field's edge is the one thing a target needs to be able to see, and drawing it is free.
-	 *
-	 * <p>Density scales with the spend (PRD §5.3), which means a low-level flexer paying 3.0 SP/s
-	 * throws more of it than a capped one paying 1.1.
+	 * Flexers this server has told clients about, and the tick each was last told about ·
+	 * {@link FlexStatePayload}. Keyed on UUID rather than entity id so a respawn cannot inherit a
+	 * previous body's announcement.
 	 */
-	private static void ring(ServerLevel level, ServerPlayer flexer, SpiritualData data, double radius) {
-		if (flexer.tickCount % Math.max(1, BleachTuning.FLEX_PARTICLE_INTERVAL_TICKS) != 0) {
+	private static final Map<UUID, Integer> announced = new HashMap<>();
+
+	/**
+	 * Tell nearby clients the field is up, on the start edge and on the keepalive beat.
+	 *
+	 * <h2>Why no particles</h2>
+	 *
+	 * <p>This used to spawn the entire field from here every other tick: a ring walked around the
+	 * radius at 3.5 points per block plus a scatter of risers, each one its own {@code sendParticles}
+	 * call to every viewer. At Soul Level 20 that is around ninety packets per viewer per emission,
+	 * five times a second, for a shape completely determined by where the flexer is standing and how
+	 * strong they are — both of which every client tracking them already knows.
+	 *
+	 * <p>It also looked flat, and could not not look flat: an effect that updates five times a second
+	 * out of independently spawned specks has no continuity to read. The client now owns the whole
+	 * presentation · {@code FlexRenderer}, and this sends one small packet per hold plus a keepalive.
+	 *
+	 * <p>{@code PlayerLookup.tracking} plus the flexer themselves. Tracking is exactly the set of
+	 * clients that can resolve the entity id to a position to draw around — and it excludes the
+	 * flexer, who is the one person guaranteed to want to see their own pressure.
+	 */
+	private static void broadcast(ServerPlayer flexer, SpiritualData data, double radius,
+			boolean onset) {
+		announced.put(flexer.getUUID(), flexer.tickCount);
+
+		int tier = Math.max(0, mobTier(data));
+		FlexStatePayload payload = new FlexStatePayload(flexer.getId(), true, onset,
+				particleColor(data), (float) radius, (byte) tier);
+
+		ServerPlayNetworking.send(flexer, payload);
+		for (ServerPlayer viewer : PlayerLookup.tracking(flexer)) {
+			ServerPlayNetworking.send(viewer, payload);
+		}
+	}
+
+	/**
+	 * Retract every announcement whose channel has ended.
+	 *
+	 * <p>Runs off {@link #announced} rather than off the flexers list because the interesting case is
+	 * precisely a player who is no longer in it: dropped the key, ran dry, died, or logged out. The
+	 * first three can be told to their viewers; the last cannot, which is what the client's expiry is
+	 * for, so the entry is dropped either way and nothing accumulates.
+	 */
+	private static void retractEnded(MinecraftServer server, Set<UUID> stillFlexing) {
+		if (announced.isEmpty()) {
 			return;
 		}
 
-		int count = BleachTuning.FLEX_PARTICLE_BASE
-				+ (int) Math.round(drainPerSecond(data) * BleachTuning.FLEX_PARTICLE_PER_SP);
-		if (count <= 0) {
-			return;
-		}
+		Iterator<Map.Entry<UUID, Integer>> it = announced.entrySet().iterator();
+		while (it.hasNext()) {
+			Map.Entry<UUID, Integer> entry = it.next();
+			if (stillFlexing.contains(entry.getKey())) {
+				continue;
+			}
+			it.remove();
 
-		PressureParticleOptions options = new PressureParticleOptions(
-				particleColor(data), (float) BleachTuning.FLEX_PARTICLE_SCALE);
+			ServerPlayer flexer = server.getPlayerList().getPlayer(entry.getKey());
+			if (flexer == null) {
+				continue;
+			}
 
-		double x = flexer.getX();
-		double y = flexer.getY();
-		double z = flexer.getZ();
-
-		// A continuous ring, not a scatter. The old version threw `count` particles at random angles
-		// around a circle whose circumference at Soul Level 1 is already fifty blocks — five specks a
-		// tick, never in the same place twice, which is indistinguishable from the ability doing
-		// nothing at all. Walking the circle at a fixed spacing costs the same packets and actually
-		// draws the edge of the field.
-		int ringPoints = Math.max(1, (int) Math.round(radius * BleachTuning.FLEX_RING_POINTS_PER_BLOCK));
-		double phase = (flexer.tickCount % 80) * (TWO_PI / 80.0);
-		for (int i = 0; i < ringPoints; i++) {
-			double angle = phase + (TWO_PI * i) / ringPoints;
-			level.sendParticles(options,
-					x + Math.cos(angle) * radius, y + BleachTuning.FLEX_RING_Y_OFFSET, z + Math.sin(angle) * radius,
-					1, 0.0, 0.0, 0.0, 0.0);
-		}
-
-		// Density still scales with the spend (PRD §5.3) — it just does it with the risers thrown up
-		// through the field rather than with the ring, which has to stay readable at every level.
-		for (int i = 0; i < count; i++) {
-			double angle = TWO_PI * level.random.nextDouble();
-			double distance = radius * Math.sqrt(level.random.nextDouble());
-
-			// Count 0 makes the three offsets a velocity rather than a scatter, which is the only way
-			// to give a server-spawned particle a direction.
-			level.sendParticles(options,
-					x + Math.cos(angle) * distance, y, z + Math.sin(angle) * distance,
-					0, 0.0, BleachTuning.FLEX_PARTICLE_RISE, 0.0, 1.0);
+			FlexStatePayload off = FlexStatePayload.off(flexer.getId());
+			ServerPlayNetworking.send(flexer, off);
+			for (ServerPlayer viewer : PlayerLookup.tracking(flexer)) {
+				ServerPlayNetworking.send(viewer, off);
+			}
 		}
 	}
 

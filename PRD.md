@@ -78,6 +78,8 @@ shikaiGate(SL) = maxSp × (GATE_SHIKAI_BASE − GATE_REDUCTION_PER_LEVEL × (SL 
 ```
 SL 1 → 95% / 65% · SL 20 → 66.5% / 36.5%
 
+**Release 2 is entered only from release 1.** Bankai and Vollständig escalate a blade already released, so the Bankai key does nothing in the base state — Shikai first, always. The gate is a threshold on top of that ordering, never a substitute for it: a rested player at any Soul Level clears `GATE_BANKAI_BASE`, so a gate-only rule makes the Shikai half of every kit skippable and collapses the sustainable-stance / committed-burn split into one button. Bankai → Shikai remains legal; it de-escalates onto a state already earned.
+
 **The Bankai refill is a loan, not a gift.** Entering Bankai sets SP to 100% of max, giving you a full pool to burn. On revert, the surplus is clawed back:
 
 ```

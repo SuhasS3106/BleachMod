@@ -52,6 +52,10 @@ public class BleachModClient implements ClientModInitializer {
 				(payload, context) -> context.client().execute(
 						() -> com.bleach.mod.client.ClientDomeState.setInside(payload.inside())));
 
+		ClientPlayNetworking.registerGlobalReceiver(com.bleach.mod.network.FlexStatePayload.TYPE,
+				(payload, context) -> context.client().execute(
+						() -> com.bleach.mod.client.ClientFlexState.update(payload)));
+
 		// Otherwise the bar from the last world flashes up before the first sync of the next one.
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 			ClientSpiritualState.clear();
@@ -61,6 +65,11 @@ public class BleachModClient implements ClientModInitializer {
 			com.bleach.mod.client.ClientGinBeamState.clear();
 			com.bleach.mod.client.ClientKaromatsuState.clear();
 			com.bleach.mod.client.ClientDomeState.clear();
+			com.bleach.mod.client.ClientFlexState.clear();
+			// Both halves: the state is who is flexing, the renderer is the particles already in the
+			// air for them. Dropping only the first leaves pools keyed on entity ids that the next
+			// world will hand to somebody else.
+			com.bleach.mod.client.FlexRenderer.clear();
 		});
 
 		ParticleFactoryRegistry.getInstance().register(BleachParticles.PRESSURE, PressureParticle.Provider::new);
@@ -78,6 +87,10 @@ public class BleachModClient implements ClientModInitializer {
 		com.bleach.mod.client.EnmaKorogiOverlay.register();
 		com.bleach.mod.client.KaromatsuOverlay.register();
 		com.bleach.mod.client.GinBeamClient.register();
+
+		// World space rather than the HUD: the field is a thing standing in the world, so it is drawn
+		// into the scene after the translucent pass · FlexRenderer.
+		com.bleach.mod.client.FlexRenderer.register();
 
 		// After the other overlays and before the bar: the eyelid has to cover the blackout's own
 		// layer as well as everything under it, and the auras are drawn in front of the lid.

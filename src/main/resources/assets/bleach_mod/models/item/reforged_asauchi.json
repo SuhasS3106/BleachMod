@@ -1,6 +1,4 @@
 {
-	"parent": "minecraft:item/handheld",
-	"textures": {
-		"layer0": "minecraft:item/golden_sword"
-	}
+	"__comment": "The Reforged Asauchi is the same blade, so it is the same model: parenting picks up asauchi's elements, textures and the whole hand-pose block, which means the two can never drift apart when those poses are re-tuned. It was a golden_sword sprite standing in until the model existed.",
+	"parent": "bleach_mod:item/asauchi"
 }

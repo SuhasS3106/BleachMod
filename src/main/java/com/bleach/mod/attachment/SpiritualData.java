@@ -103,6 +103,20 @@ public class SpiritualData {
 	 */
 	public int stowedReforged;
 	/**
+	 * Whether death took a selector off this player that has not been handed back yet ·
+	 * {@code SpiritWeapon#stripSelectors}.
+	 *
+	 * <p><b>Not persisted and not in the codec</b>, because it is only ever true across the handful of
+	 * ticks between a strip and the repayment. It exists for the one strip that is never followed by a
+	 * respawn: Fabric fires {@code ALLOW_DEATH} from a redirect on the fatal-damage check, which sits
+	 * <em>before</em> vanilla consults the Totem of Undying — so a player saved by a totem has already
+	 * had their tokens taken by a death that then does not happen. The count in
+	 * {@link #stowedReforged} survives to the next login either way; this is what lets the ticker hand
+	 * everything back on the next tick instead, while the player is still standing there.
+	 */
+	public boolean owedSelectors;
+
+	/**
 	 * Whether the Spiritual Flex key is currently held. <b>Not persisted and not in the codec</b> —
 	 * it is an edge-tracked channel, and a stale true restored from disk would drain a player who
 	 * is not pressing anything. Cleared on logout by the client's own {@code FLEX_STOP}, and again
@@ -272,6 +286,35 @@ public class SpiritualData {
 			case STATE_BANKAI -> bankaiGate();
 			case STATE_SHIKAI -> shikaiGate();
 			default -> 0.0;
+		};
+	}
+
+	/**
+	 * Whether a deliberate transformation may move a player from {@code current} to {@code target} ·
+	 * {@code BALANCE.md} §C.
+	 *
+	 * <p><b>Release 2 is reached only through release 1.</b> Bankai — and Vollständig, which shares
+	 * the slot — is the escalation of a blade already released, so it may be entered from Shikai and
+	 * from nowhere else. Without this the SP gate was the only thing in the way, and since a rested
+	 * player at any Soul Level sits above {@code GATE_BANKAI_BASE}, the Shikai half of the kit could
+	 * be skipped outright: the mod's core tension (sustainable stance vs. committed burn) collapses
+	 * into one button.
+	 *
+	 * <p>The reverse is deliberately open. Dropping from Bankai to Shikai is a de-escalation onto a
+	 * state the player has already earned, and a rule that forced them through the base state to get
+	 * there would spend the Bankai claw-back for nothing.
+	 *
+	 * <p>Static, and beside {@link #gatePercent}, for the same reason that one is: this is the entry
+	 * rule, and a second copy anywhere else is how the two releases end up gated differently
+	 * depending on which code path asked. Reverting is not routed through here — leaving a state is
+	 * unconditional by design — and neither is {@code SpiritualTicker.enter}, which stays a raw
+	 * primitive so {@code /bleach state set} can still put an operator anywhere for testing.
+	 */
+	public static boolean canEnterFrom(byte current, byte target) {
+		return switch (target) {
+			case STATE_BANKAI -> current == STATE_SHIKAI;
+			case STATE_SHIKAI -> true;
+			default -> true;
 		};
 	}
 

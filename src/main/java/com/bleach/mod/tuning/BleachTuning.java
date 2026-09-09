@@ -309,41 +309,159 @@ public final class BleachTuning {
 
 	// --- H.3 Flex presentation -------------------------------------------------------
 
-	/** Ticks between particle rings. Above 1 to keep a held channel from flooding the client. */
-	public static int FLEX_PARTICLE_INTERVAL_TICKS = 2;
-	/** Particles in a ring before the spend term. */
-	public static int FLEX_PARTICLE_BASE = 10;
-	/** Extra particles per SP/s the flex is costing · PRD §5.3 "density scales with SP spent". */
-	public static double FLEX_PARTICLE_PER_SP = 3.0;
-	/** Upward velocity of a pressure particle, blocks per tick. */
-	public static double FLEX_PARTICLE_RISE = 1.20;
-	/** Random in/out scatter on the ring, blocks. */
-	public static double FLEX_PARTICLE_RING_JITTER = 0.35;
 	/** How often the flexer's action bar reports what the field is hitting, ticks. */
 	public static int FLEX_FEEDBACK_TICKS = 20;
-	/** Ring particles drawn per block of field radius. */
-	public static double FLEX_RING_POINTS_PER_BLOCK = 3.5;
-	/** Height of the ring above the flexer's feet, blocks. */
+	/** Height of the shockwave ring above the flexer's feet, blocks. */
 	public static double FLEX_RING_Y_OFFSET = 0.2;
-	/** Pressure particle scale. */
-	public static double FLEX_PARTICLE_SCALE = 0.6;
+	/**
+	 * Block light level a raised field casts on the world, 0–15 · {@code FlexLight}.
+	 *
+	 * <p>Real light, not a drawn glow: a {@code minecraft:light} block carried with the flexer, so it
+	 * falls on terrain, mobs and players and is occluded by walls. <b>Set to 0 to disable</b>, which
+	 * also takes down anything already placed.
+	 *
+	 * <p>12 rather than 15 deliberately. Full brightness flattens the field's own additive particles
+	 * against a floor lit to the same value, and the effect reads best as the brightest thing in a
+	 * space it is lifting — not as a space with no shadow left in it.
+	 */
+	public static int FLEX_LIGHT_LEVEL = 12;
+	/**
+	 * How far above the flexer's feet the light sits, blocks. Chest height: at 0 it is inside the
+	 * floor for anything standing on a slab or a stair, and the pool of light under them collapses.
+	 */
+	public static int FLEX_LIGHT_HEIGHT = 1;
+	/**
+	 * How often the server repeats the "field is up" edge, ticks · {@code FlexStatePayload}.
+	 * Comfortably under the client's expiry so an ordinary hold never flickers.
+	 */
+	public static int FLEX_STATE_KEEPALIVE_TICKS = 20;
+	/**
+	 * How long a client keeps drawing a field it has stopped hearing about, ticks. Longer than the
+	 * keepalive, short enough that a flexer who disconnected mid-hold clears within about a second.
+	 */
+	public static int FLEX_STATE_EXPIRY_TICKS = 40;
 
-	// --- H.3.1 Flex aura rendering ---------------------------------------------------
+	// --- H.6 Flex aura · the client-side field ----------------------------------------
 
-	/** Render distance for flex aura, blocks. */
-	public static double FLEX_AURA_RENDER_DISTANCE = 64.0;
-	/** Period of flex aura pulse, ticks. */
-	public static double FLEX_AURA_PULSE_PERIOD = 20.0;
-	/** Life duration of flex aura ring, ticks. */
-	public static double FLEX_AURA_RING_LIFE = 1.0;
-	/** Alpha of flex aura ring, 0-1. */
-	public static double FLEX_AURA_RING_ALPHA = 0.8;
-	/** Width of flex aura ring, blocks. */
-	public static double FLEX_AURA_RING_WIDTH = 0.3;
-	/** Number of segments in flex aura ring. */
-	public static int FLEX_AURA_RING_SEGMENTS = 32;
-	/** Budget for flex aura rendering, particles per frame. */
-	public static int FLEX_AURA_BUDGET = 1000;
+	/**
+	 * The beat, seconds. Everything surges on this one envelope — spawn rate, shockwave, ground
+	 * glow, rim light — which is what makes a surge read as one event instead of four.
+	 */
+	public static double FLEX_AURA_PULSE_PERIOD = 1.15;
+	/** How far the pulse dips between beats, 0–1. At 0 the field is a machine again. */
+	public static double FLEX_AURA_PULSE_DEPTH = 0.62;
+	/** Length of the activation burst, seconds · {@code FlexStatePayload#onset}. */
+	public static double FLEX_AURA_ONSET_SECONDS = 0.45;
+	/** How hard the onset multiplies the spawn rate at its peak. */
+	public static double FLEX_AURA_ONSET_GAIN = 3.5;
+
+	/** Per-tier intensity of the whole field, indexed by Reiatsu amplifier. */
+	public static double[] FLEX_AURA_TIER_GAIN = { 0.42, 0.68, 1.0, 1.45 };
+
+	/** Column particles per second, before the pulse and tier terms. */
+	public static double FLEX_AURA_COLUMN_RATE = 620.0;
+	/** Radius of the column's footprint around the flexer, blocks. */
+	public static double FLEX_AURA_COLUMN_DISC = 0.72;
+	/** Upward acceleration on a column particle, blocks/s². */
+	public static double FLEX_AURA_BUOYANCY = 11.5;
+	/** Sideways churn. Ramped with age, so the base stays coherent and only the top tears up. */
+	public static double FLEX_AURA_TURBULENCE = 4.6;
+	/** Rotation about the flexer's own axis. Without it the turbulence reads as jitter. */
+	public static double FLEX_AURA_SWIRL = 5.2;
+	/** Pull back toward the axis, growing with age. This is what gives the column its point. */
+	public static double FLEX_AURA_TAPER = 3.4;
+	/** Velocity lost per second. */
+	public static double FLEX_AURA_DRAG = 1.6;
+	/** Base particle lifetime, seconds. Rolled ×0.55–1.45 per particle. */
+	public static double FLEX_AURA_LIFE = 0.95;
+	/** Base particle radius, blocks. Small and many, never big and few. */
+	public static double FLEX_AURA_GRAIN = 0.115;
+	/** How much a particle grows over its life, as a fraction of its birth size. */
+	public static double FLEX_AURA_GROW = 1.1;
+	/** How far a fast particle is drawn out along its own velocity. The dots-into-fire dial. */
+	public static double FLEX_AURA_STRETCH = 1.5;
+	/** Per-particle alpha. Low on purpose: brightness comes from overlap, not from any one of them. */
+	public static double FLEX_AURA_OPACITY = 0.30;
+
+	/**
+	 * How much of the flexer's movement the <em>existing</em> field still follows, 0–1.
+	 *
+	 * <p>At 1 the pool is nailed to the player and the field is a costume — which is what it was, and
+	 * why a walking flexer's column looked wrong in a way nothing about the particles themselves could
+	 * fix. At 0 every particle is left in the world the instant it is born. A little above 0 because a
+	 * moving body does drag some air with it.
+	 */
+	public static double FLEX_AURA_CARRY = 0.12;
+	/**
+	 * The same, for the lances — and deliberately near 1, where the other layers are near 0.
+	 *
+	 * <p>The column and the sheets are exhaust: thrown off the body, and then no longer its business.
+	 * A lance is <em>structure</em>. It stands on the radius to make the radius legible, and that
+	 * radius is measured from the player every tick on the server — so a wall left standing in the
+	 * world is a wall that no longer marks the field it is drawing. Lances also feel no drag, so one
+	 * left behind never catches up: a sprinter walks out of the entire wall and the streaks read as
+	 * missing. Below about 0.8 that starts to show.
+	 */
+	public static double FLEX_AURA_LANCE_CARRY = 0.92;
+	/**
+	 * Fraction of the flexer's velocity a particle is born with. What makes the column <b>lean</b>
+	 * into a sprint instead of only being left behind by it; drag takes it away over the particle's
+	 * life, which is the taper.
+	 */
+	public static double FLEX_AURA_INHERIT = 0.55;
+	/**
+	 * Movement in a single frame past which the field is carried whole instead of anchored, blocks.
+	 * A Flash Step is not travel through the air in between, so nothing should be left along the way.
+	 */
+	public static double FLEX_AURA_TELEPORT_SNAP = 3.0;
+
+	/**
+	 * The upward lances, per second — the thin fast streaks climbing the whole field. The layer that
+	 * makes the radius read vertically instead of only as a line on the floor, so it is deliberately
+	 * dense.
+	 */
+	public static double FLEX_AURA_LANCE_RATE = 700.0;
+	/** How far up a lance climbs, blocks per second. */
+	public static double FLEX_AURA_LANCE_SPEED = 11.0;
+	/** Extra stretch on a lance over an ordinary particle. What makes it a line and not a dot. */
+	public static double FLEX_AURA_LANCE_STRETCH = 3.4;
+	/** Lance lifetime, seconds. */
+	public static double FLEX_AURA_LANCE_LIFE = 0.85;
+	/** Lance thickness, as a fraction of {@link #FLEX_AURA_GRAIN}. */
+	public static double FLEX_AURA_LANCE_GRAIN = 0.55;
+	/** Innermost fraction of the radius a lance may spawn at, so they read as a wall not a column. */
+	public static double FLEX_AURA_LANCE_INNER = 0.18;
+
+	/** The big slow ribbons per second. A handful, for silhouette-scale mass. */
+	public static double FLEX_AURA_SHEET_RATE = 9.0;
+	/** Sheet size as a multiple of {@link #FLEX_AURA_GRAIN}. */
+	public static double FLEX_AURA_SHEET_GRAIN = 7.5;
+	/** Sheet alpha as a fraction of {@link #FLEX_AURA_OPACITY}. */
+	public static double FLEX_AURA_SHEET_OPACITY = 0.32;
+
+	/** Segments in one particle's fan. Five, not twenty: at this size a pentagon is a circle. */
+	public static int FLEX_AURA_SEGMENTS = 5;
+	/** Ceiling on one field's particle pool. */
+	public static int FLEX_AURA_MAX_PARTICLES = 2600;
+	/** Ceiling across every field on screen, before the spawn rate is throttled back. */
+	public static int FLEX_AURA_BUDGET = 6000;
+	/** Beyond this many blocks a field is not simulated at all. */
+	public static double FLEX_AURA_RENDER_DISTANCE = 96.0;
+	/**
+	 * Particles nearer the camera than this fade out, blocks. Covers both cases that would otherwise
+	 * white the screen out: your own field in first person, where the column stands where your head
+	 * is, and walking through someone else's.
+	 */
+	public static double FLEX_AURA_NEAR_FADE = 1.6;
+
+	/** Shockwave ring band width, blocks. */
+	public static double FLEX_AURA_RING_WIDTH = 1.6;
+	/** How long a ring takes to reach the field edge, as a multiple of the pulse period. */
+	public static double FLEX_AURA_RING_LIFE = 1.25;
+	/** Ring brightness. */
+	public static double FLEX_AURA_RING_ALPHA = 0.42;
+	/** Segments around one ring. */
+	public static int FLEX_AURA_RING_SEGMENTS = 64;
 
 	// --- H.1 Reiatsu tier thresholds -------------------------------------------------
 
@@ -1446,6 +1564,8 @@ public final class BleachTuning {
 	public static double AURA_MOB_VALUE = 1.0;
 	/** Ticks between the pressure particles that tell everyone else a sensor's eyes are shut. */
 	public static int AURA_TELL_INTERVAL_TICKS = 6;
+	/** Scale of that mote. Thin, so the tell is legible without being a beacon. */
+	public static double AURA_TELL_PARTICLE_SCALE = 0.6;
 
 	// --- Aura Sense burn · how hard a soul is pushing · BALANCE.md §N.2 --------------
 
