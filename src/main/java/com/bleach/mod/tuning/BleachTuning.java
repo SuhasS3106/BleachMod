@@ -1252,6 +1252,17 @@ public final class BleachTuning {
 	/** Gerard's gold. */
 	public static int KIT_MIRACLE_PARTICLE_COLOR = 0xFBBF24;
 
+	// --- P.7.11 The stack meter -------------------------------------------------------
+
+	/** Horizontal offset of the meter from the left edge of the screen, pixels. */
+	public static int M_HUD_X = 12;
+	/** Vertical offset of the meter's top from the top of the screen, as a fraction of height. */
+	public static double M_HUD_Y_PCT = 0.32;
+	/** Meter width, pixels. */
+	public static int M_HUD_WIDTH = 7;
+	/** Meter height, pixels. */
+	public static int M_HUD_HEIGHT = 74;
+
 	// --- P.5 Quincy · Schrift T, The Thunderbolt --------------------------------------
 
 	/** Bolt damage on the struck target, before Soul Level scaling. Stacks on the arrow's own. */

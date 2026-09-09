@@ -44,6 +44,10 @@ public class BleachModClient implements ClientModInitializer {
 				(payload, context) -> context.client().execute(
 						() -> com.bleach.mod.client.SpxGainPopups.add(payload.amount())));
 
+		ClientPlayNetworking.registerGlobalReceiver(com.bleach.mod.network.MiracleSyncPayload.TYPE,
+				(payload, context) -> context.client().execute(
+						() -> com.bleach.mod.client.ClientMiracleState.update(payload)));
+
 		ClientPlayNetworking.registerGlobalReceiver(com.bleach.mod.network.KaromatsuSyncPayload.TYPE,
 				(payload, context) -> context.client().execute(
 						() -> com.bleach.mod.client.ClientKaromatsuState.update(payload)));
@@ -64,6 +68,7 @@ public class BleachModClient implements ClientModInitializer {
 			com.bleach.mod.client.ClientEnmaKorogiState.clear();
 			com.bleach.mod.client.ClientGinBeamState.clear();
 			com.bleach.mod.client.ClientKaromatsuState.clear();
+			com.bleach.mod.client.ClientMiracleState.clear();
 			com.bleach.mod.client.ClientDomeState.clear();
 			com.bleach.mod.client.ClientFlexState.clear();
 			// Both halves: the state is who is flexing, the renderer is the particles already in the
@@ -86,6 +91,7 @@ public class BleachModClient implements ClientModInitializer {
 		FreezeOverlay.register();
 		com.bleach.mod.client.EnmaKorogiOverlay.register();
 		com.bleach.mod.client.KaromatsuOverlay.register();
+		com.bleach.mod.client.MiracleOverlay.register();
 		com.bleach.mod.client.GinBeamClient.register();
 
 		// World space rather than the HUD: the field is a thing standing in the world, so it is drawn
